@@ -4,7 +4,6 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
 .check_env: &check_env
-  tags: ["fpga-shell"]              # your shell runner with the simulator installed
   stage: check
   cache:
     key: "$CI_PROJECT_NAME"
