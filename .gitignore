@@ -1,0 +1,8 @@
+/projects/*
+/doc/*
+/macro/*
+!macro/*.tcl
+!macro/*.do
+!macro/*.bat
+!macro/*.sh
+!macro/*.py
