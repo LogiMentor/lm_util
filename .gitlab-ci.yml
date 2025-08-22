@@ -1,0 +1,71 @@
+stages: [check]
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+.check_env: &check_env
+  tags: ["fpga-shell"]              # your shell runner with the simulator installed
+  stage: check
+  cache:
+    key: "$CI_PROJECT_NAME"
+    paths: [ .pip-cache/ ]
+  before_script:
+    - python3 -V
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install -U pip
+
+ci:lint+vunit:
+  <<: *check_env
+  rules:
+    # run on branches & merge requests
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    # ----- LINT (optional) -----
+    - echo "LINTER=${LINTER:-none}  SIM=${SIM:-modelsim}"
+    - |
+      case "${LINTER:-none}" in
+        none)
+          echo "Skipping lint (set LINTER=regex or vsg to enable)."
+          ;;
+        regex)
+          bash ci/lint_regex.sh
+          ;;
+        vsg)
+          pip install vhdl-style-guide
+          # add '--config .vsg_rules.yml' if you have one
+          vsg --input src --output vsg_report.txt
+          ;;
+        *)
+          echo "Unknown LINTER='${LINTER}'"; exit 2 ;;
+      esac
+
+    # ----- VUnit regression -----
+    - pip install -U vunit_hdl
+    # choose simulator: modelsim (covers Questa), rivierapro, or activehdl
+    - export VUNIT_SIMULATOR="${SIM:-modelsim}"
+    # If tools aren't on PATH, expose one of these:
+    # export VUNIT_MODELSIM_PATH="/opt/questasim/bin"
+    # export VUNIT_RIVIERAPRO_PATH="/opt/aldec/Riviera-PRO/bin"
+    # Optional pre-compile: run your TCL if you keep one
+    - |
+      if [ -f sim/scripts/compile.tcl ]; then
+        if [ "$VUNIT_SIMULATOR" = "modelsim" ]; then
+          vsim -c -do "source sim/scripts/compile.tcl; quit -f"
+        elif [ "$VUNIT_SIMULATOR" = "rivierapro" ]; then
+          vsimsa -c -do "do sim/scripts/compile.tcl; quit -force"
+        fi
+      fi
+    - python sim/scripts/run.py --clean --xunit-xml vunit_xunit.xml --output-path vunit_out
+
+  artifacts:
+    when: always
+    reports:
+      junit: vunit_xunit.xml
+    paths:
+      - vunit_out/
+      - vsg_report.txt
+    expire_in: 14 days
+
+  timeout: 60m

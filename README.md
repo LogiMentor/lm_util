@@ -1,4 +1,4 @@
-The UTILITY LIBRARY is a collection of modules that are used in almost every FPGA design, it is the Swiss Army Knife of every FPGA designer. All the modules are vendor independent high quality VHDL code.
+The UTILITY library is a collection of modules that are used in almost every FPGA design, it is the Swiss Army Knife of every FPGA designer. All the modules are vendor independent high quality VHDL code.
 In the UTILITY LIBRARY you will find a full set of memory modules (single port,
 dual port, true dual port), synchronous and asynchronous FIFOs, Encoders and Decoders and a lot of other essential modules.
 

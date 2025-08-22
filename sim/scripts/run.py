@@ -44,7 +44,7 @@ vu.add_vhdl_builtins()
 lib = vu.add_library("lm_util_lib")
 
 # Add all files ending in .vhd from src and tb directories to library
-lib.add_source_files("../src/*.vhd")
+lib.add_source_files("../../src/*.vhd")
 lib.add_source_files("../tb/*.vhd")
 
 # Manual test handling
