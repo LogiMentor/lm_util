@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_async_reset
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_async_reset
@@ -54,7 +54,7 @@ begin
       rst_n_o => rst_n_o
     );
 
-  main : process
+  proc_main : process
     constant C_RST_ACTIVE : std_logic := '0';
     constant C_T0         : time      := 103 ns;
     constant C_SHORT_RST  : time      := 3 ns;

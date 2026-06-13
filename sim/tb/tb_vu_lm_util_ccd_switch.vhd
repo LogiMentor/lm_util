@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_ccd_switch
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_ccd_switch
@@ -65,10 +65,10 @@ begin
       switch_low_i  => switch_low_i,
       out_level_o   => out_level_o);
 
-  main : process
+  proc_main : process
   begin
     test_runner_setup(runner, runner_cfg);
-    --todo: divide into separate test cases:
+    -- Split into separate test cases when expanding coverage:
     if run("check") then
       -- reset all input signals
       rst_n_i       <= '0';

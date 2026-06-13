@@ -1,8 +1,8 @@
 --==============================================================================
 -- Module Name : lm_util_edge_detector
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : G. Dalle Mura
 --------------------------------------------------------------------------------
 -- Description  : the module detects the edge of a signal based on the generic
@@ -11,7 +11,7 @@
 -- falling edge of the signal.
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

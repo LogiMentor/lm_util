@@ -1,15 +1,15 @@
 --=============================================================================
 -- Module Name : lm_util_encoder
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: general purpose encoder
 --
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

@@ -1,15 +1,15 @@
 --=============================================================================
 -- Module Name : lm_util_crc_par
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Calliope-Louisa Sotiropoulou
 -------------------------------------------------------------------------------
 -- Description  : CRC generator/checker, parallel implementation.
 --
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --
@@ -24,11 +24,6 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
--------------------------------------------------------------------------------
--- Revision History:
--- Date        Version  Author         Description
--- 25/1/2019   1.0.0    CLS           Initial Version
---
 --=============================================================================
 
 library ieee;

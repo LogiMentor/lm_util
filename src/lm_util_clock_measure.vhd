@@ -1,14 +1,14 @@
 --==============================================================================
 -- Module Name : lm_util_clock_measure
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
 -- Description: clock measurement module, count the number of transition of an
 --              input clock in 1 sec with a reference clock, known frequency.
 --------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

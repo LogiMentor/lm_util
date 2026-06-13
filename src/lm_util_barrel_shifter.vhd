@@ -1,13 +1,13 @@
 --=============================================================================
--- Module Name : lm_util_barrel_shift
+-- Module Name : lm_util_barrel_shifter
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : ACA
 -------------------------------------------------------------------------------
--- Descritpion: Structural implementation of a barrel shifter that rotates its
+-- Description: Structural implementation of a barrel shifter that rotates its
 -- input data to the left.
--- Multile levels of shift units are generated that combine to form a component
+-- Multiple levels of shift units are generated that combine to form a component
 -- that shifts input data an arbitrary number of bits.
 -- The top most level will shift half of the data width
 -- the level below one quarter of the data width, etc.
@@ -15,7 +15,7 @@
 --
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --
@@ -30,11 +30,6 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
--------------------------------------------------------------------------------
--- Revision History:
--- Date         Version Author    Description
--- 04/10/2015   1.0.0   ACA       Initial release
---
 --=============================================================================
 
 

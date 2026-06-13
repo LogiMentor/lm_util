@@ -1,8 +1,8 @@
 --=============================================================================
 -- Module Name : lm_util_clock_mux
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: clock mux, this VHDL code is inspired by the clock multiplexing
@@ -13,7 +13,7 @@
 --              This implementation is glitch-free and does not introduce any
 --              timing issues or glitches during clock switching.
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

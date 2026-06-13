@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_counter
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_counter
@@ -11,8 +11,8 @@
 --              - watchdog mode
 --              - counter mode
 --              - upcounter mode
---              - todo: downcounter mode (see issue #10)
---              - todo: load value
+--              - Down-counter mode is not covered yet.
+--              - Load-value mode is not covered yet.
 --              - reset functionality
 --
 --=============================================================================
@@ -80,7 +80,7 @@ begin
   -- Clock generation
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
-  main : process
+  proc_main : process
   begin
     test_runner_setup(runner, runner_cfg);
     if run("counter") then

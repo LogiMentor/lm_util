@@ -1,15 +1,15 @@
 --=============================================================================
--- Module Name : lm_util_delay
+-- Module Name : lm_util_delay_pulse
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: Fixed delay for std_logic_vector signals.
 --              simple counter (for pulses) implementation
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

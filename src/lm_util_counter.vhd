@@ -1,8 +1,8 @@
 --=============================================================================
 -- Module Name : lm_util_counter
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: general-purpose synchronous counter with optional load,
@@ -11,7 +11,7 @@
 --              generates a pulse on timer_o output.
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

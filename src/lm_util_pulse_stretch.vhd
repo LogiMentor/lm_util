@@ -1,14 +1,14 @@
 --==============================================================================
 -- Module Name : lm_util_pulse_stretch
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 --------------------------------------------------------------------------------
 -- Description: Stretch a pulse from an edge defining a fixed length or an overlength
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --
@@ -29,7 +29,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
--- User Library: Utility Library
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 

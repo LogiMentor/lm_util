@@ -1,8 +1,8 @@
 --=============================================================================
 -- Module Name : lm_util_ccd_resync
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: this module implements a re-synchronizer circuit, used in cross
@@ -17,7 +17,7 @@
 --              In both cases this process is vendor dependent
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

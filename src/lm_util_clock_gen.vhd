@@ -1,8 +1,8 @@
 --==============================================================================
 -- Module Name : lm_util_clock_gen
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
 -- Description: clock generator, generate an output clock with programmable duty cycle
@@ -10,7 +10,7 @@
 --            50% ( e.g. g_clock_div 7, high for 3 clock cycles and low for 4 )
 --            the phase of the output clock can also be configured
 --------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

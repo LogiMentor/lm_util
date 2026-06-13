@@ -1,8 +1,8 @@
 --=============================================================================
 -- Module Name : lm_util_mux_or
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Mauro Osvaldella
 -------------------------------------------------------------------------------
 -- Description: It generates the logic OR among the input channels . The inactive
@@ -13,7 +13,7 @@
 --              For other types of interface change accordingly removing
 --              unnecessary inputs or adding new ones
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --
@@ -37,7 +37,6 @@ use ieee.numeric_std.all;
 
 -- It generates the logic OR for data and write enable
 --   signals coming from the input modules.
--- 1.0.0 initial release
 
 entity lm_util_mux_or is
   generic(

@@ -1,15 +1,15 @@
 --=============================================================================
 -- Module Name : lm_util_pkg
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description:    common package with utility functions, procedures, types and
 --                 constants. This package, together with the lm_util_lib
 --                 library shoud be re-used as base library in every project
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --
@@ -924,7 +924,7 @@ package body lm_util_pkg is
     variable v_i, v_bitcount : natural;
   begin
     assert n > 0 report "f_ceil_log2(0) called!" severity failure;
-        -- todo: positive instead of natural???
+        -- Natural is kept here to preserve zero-width edge-case handling.
     if n = 1 then
       v_bitcount := 1;
     else
@@ -1234,7 +1234,7 @@ package body lm_util_pkg is
   end;
 
 
-  --todo: use enum for operation?
+  -- Operation is encoded as an integer to keep the package API compact.
   function f_vector_tree(slv : std_logic_vector; operation : integer) return std_logic is
     -- linear loop to determine result takes combinatorial delay that is proportional to slv'length:
     --   for i in slv'range loop

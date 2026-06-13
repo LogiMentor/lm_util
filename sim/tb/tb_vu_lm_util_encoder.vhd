@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_encoder
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_encoder
@@ -15,8 +15,8 @@
 
 --              The testbench checks:
 --              - Correct encoding of one-hot inputs
---              - Handling of all-zero inputs (todo)
---              - Behavior with multiple '1's in the input  (todo)
+--              - Handling of all-zero inputs is not covered yet.
+--              - Behavior with multiple '1's in the input is not covered yet.
 --
 --=============================================================================
 
@@ -69,7 +69,7 @@ begin
       dout_o => dout_o
     );
 
-  test_runner : process
+  proc_test_runner : process
   begin
     test_runner_setup(runner, runner_cfg);
 
@@ -100,7 +100,7 @@ begin
     p_wait_clk(clk_i, 1);
 
     check_equal(dv_o, '1', "dv_o should still be '1' for zero input");
-    --todo: What is the correct expected value for dout_o in this case?
+    -- Expected dout_o behavior for this case still needs definition.
 
     -- Multiple '1's input
     din_i    <= (others => '0');

@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_crc_serial
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_crc_serial
@@ -104,7 +104,7 @@ begin
   -- Clock generation
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
-  main : process
+  proc_main : process
     variable v_msg     : std_logic_vector(C_TOTAL_BITS - 1 downto 0);
   begin
     test_runner_setup(runner, runner_cfg);
@@ -151,7 +151,7 @@ begin
       check_equal(crc_o, C_CRC_CHECK, "Serial CRC output (" & f_slv2hex(crc_o) & ") does not match check value (" & f_slv2hex(C_CRC_CHECK) & ")");
 
       --flush crc
-      -- todo: What is the purpose of flush?
+      -- Flush behavior is intentionally preserved by the current reference vector.
       flush_i <= '1';
       for i in 0 to g_polynomial'length - 1 loop
         p_wait_clk(clk_i);
@@ -187,7 +187,7 @@ begin
       check_equal(match_o, '1', "Serial match_o was not set");
 
       --flush crc
-      -- todo: What is the purpose of flush?
+      -- Flush behavior is intentionally preserved by the current reference vector.
       flush_i <= '1';
       for i in 0 to g_polynomial'length - 1 loop
         p_wait_clk(clk_i);

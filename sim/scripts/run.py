@@ -83,9 +83,9 @@ test = lib.test_bench("tb_vu_lm_util_barrel_shifter").test("rotate_left_test")
 generate_tests(test, g_data_w = [32], g_shift = [0, 2, 5, 7, 11, 15, 31])
 if args.level == 'full':
     generate_tests(test, g_data_w = [64], g_shift = [0, 2, 5, 7, 11, 15, 31, 32, 48, 63])
-    #generate_tests(test, g_data_w = [24], g_shift = [0, 3, 8, 15, 23])  todo: temporary disabled. Test fails with 24 bits. [issue #1]
+    # Disabled: this case currently fails with 24-bit data width.
     generate_tests(test, g_data_w = [16], g_shift = [0, 3, 8, 15])
-    #generate_tests(test, g_data_w = [15], g_shift = [0, 3, 8, 14]) todo: temporary disabled. Test fails with 15 bits [issue #1]
+    # Disabled: this case currently fails with 15-bit data width.
     generate_tests(test, g_data_w = [8], g_shift = [0, 3, 7])
     generate_tests(test, g_data_w = [4], g_shift = [0, 3])
 
@@ -124,7 +124,7 @@ if args.level == 'full':
 # lm_util_counter
 test = lib.test_bench("tb_vu_lm_util_counter").test("counter")
 generate_tests(test, g_data_w = [16], g_wd_timer = [1, 5], g_dir = [1], g_load_dat = [0])
-#generate_tests(test, g_data_w = [16], g_wd_timer = [5],    g_dir = [0], g_load_dat = [0]) [issue #10]
+# Disabled: down-counter mode needs investigation.
 
 
 # lm_util_crc_serial
@@ -166,7 +166,7 @@ generate_tests(test, g_delay = [0, 1, 2, 3, 8], g_data_w = [10, 32])
 # lm_util_delay_pulse
 test = lib.test_bench("tb_vu_lm_util_delay_pulse").test("pulse")
 generate_tests(test, g_delay = [0, 1, 2, 3, 4, 5], g_pulse_width = [1])
-#todo: fails generate_tests(test, g_delay = [0, 1, 2, 3, 4, 5], g_pulse_width = [2])
+# Disabled: this case currently fails with g_pulse_width = 2.
 
 # lm_util_delay_var
 test = lib.test_bench("tb_vu_lm_util_delay_var").test("sequence")
@@ -175,7 +175,7 @@ generate_tests(test, g_delay = [1, 2, 3, 4, 7, 8], g_delay_max = [8], g_arch_typ
 
 test = lib.test_bench("tb_vu_lm_util_delay_var").test("pulse")
 generate_tests(test, g_delay = [2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [2], g_data_w = [1])
-#todo fails:generate_tests(test, g_delay = [1], g_delay_max = [8], g_arch_type = [2], g_data_w = [1])
+# Disabled: this case currently fails with g_delay = 1 and g_arch_type = 2.
 
 #lm_util_edge_detector
 test = lib.test_bench("tb_vu_lm_util_edge_detector").test("rising_edge_detect")
@@ -192,7 +192,7 @@ generate_tests(test, g_clock_div = [10])
 #lm_util_pulse_stretch
 test = lib.test_bench("tb_vu_lm_util_pulse_stretch")
 generate_tests(test, g_pulse_length = [2, 5], g_has_fixed_length = [0, 1], g_has_resync_stage=[0, 1], g_out_level = [1])
-#todo: seems to fail with g_out_level = ['0']
+# Disabled: this case currently fails with g_out_level = 0.
 
 # Run vunit function
 vu.main()

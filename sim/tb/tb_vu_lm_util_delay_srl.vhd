@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_delay_srl
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_delay_srl
@@ -71,7 +71,7 @@ begin
       dout_o => dout_o
     );
 
-  test_runner : process
+  proc_test_runner : process
   begin
     test_runner_setup(runner, runner_cfg);
 

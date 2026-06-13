@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_pkg
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench utilities package for VUnit

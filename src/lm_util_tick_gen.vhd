@@ -1,15 +1,15 @@
 --==============================================================================
 -- Module Name : lm_util_tick_gen
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
 -- Description: pulse generator, generate an output pulse for one clock cycle
 --              every g_clock_div clock pulses. Ideal to generate a clock enable
 --              pulse
 --------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

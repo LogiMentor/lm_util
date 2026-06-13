@@ -1,8 +1,8 @@
 --=============================================================================
 -- Module Name : lm_util_bitsum
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: Bit summation (or in other words counting the "1"s) module for
@@ -12,7 +12,7 @@
 -- Except the first stage, are two-input
 -- Latency is configuration dependent
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --

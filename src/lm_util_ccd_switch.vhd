@@ -1,8 +1,8 @@
 --=============================================================================
 -- Module Name : lm_util_ccd_switch
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description:
@@ -17,7 +17,7 @@
 --
 --
 -------------------------------------------------------------------------------
--- Copyright 2025 Logimentor Srl
+-- Copyright 2025 LogiMentor Srl
 --
 -- SPDX-License-Identifier: Apache-2.0
 --
@@ -92,26 +92,26 @@ architecture a_rtl of lm_util_ccd_switch is
   signal s_next_switch_level : std_logic;
 
 begin
-  wire_gen : if g_or_high = false and g_and_low = false generate
+  gen_wire : if g_or_high = false and g_and_low = false generate
     out_level_o <= s_switch_level;
-  end generate wire_gen;
+  end generate gen_wire;
 
-  or_gen : if g_or_high = true and g_and_low = false generate
+  gen_or : if g_or_high = true and g_and_low = false generate
     out_level_o <= s_switch_level or switch_high_i;
-  end generate or_gen;
+  end generate gen_or;
 
-  and_gen : if g_or_high = false and g_and_low = true generate
+  gen_and : if g_or_high = false and g_and_low = true generate
     out_level_o <= s_switch_level and (not switch_low_i);
-  end generate and_gen;
+  end generate gen_and;
 
-  or_and_gen : if g_or_high = true and g_and_low = true generate
-    or_and_gen_priority_lo : if g_priority_lo generate
-    out_level_o <= (s_switch_level or switch_high_i) and (not switch_low_i);
-    end generate or_and_gen_priority_lo;
-    or_and_gen_priority_high : if not g_priority_lo generate
+  gen_or_and : if g_or_high = true and g_and_low = true generate
+    gen_or_and_priority_lo : if g_priority_lo generate
+      out_level_o <= (s_switch_level or switch_high_i) and (not switch_low_i);
+    end generate gen_or_and_priority_lo;
+    gen_or_and_priority_high : if not g_priority_lo generate
       out_level_o <= switch_high_i or (s_switch_level and not switch_low_i);
-    end generate or_and_gen_priority_high;
-  end generate or_and_gen;
+    end generate gen_or_and_priority_high;
+  end generate gen_or_and;
 
   proc_reg : process(clk_i)
   begin

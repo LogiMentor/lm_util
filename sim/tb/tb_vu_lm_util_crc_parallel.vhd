@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_crc_parallel
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_crc_parallel
@@ -70,7 +70,7 @@ architecture a_tb of tb_vu_lm_util_crc_parallel is
   signal rst_n_i : std_logic := '0'; -- synchronous rst, active low
   signal dv_i    : std_logic := '0'; -- data valid
 
-  signal data_i  : std_logic_vector (g_data_w - 1 downto 0); -- data input paralel
+  signal data_i  : std_logic_vector (g_data_w - 1 downto 0); -- data input parallel
   signal flush_i : std_logic := '0'; -- flush crc, when '1' crc is flushed out on crc_o
   -- Observed signals - signals mapped to the output ports of tested entity
   signal match_o : std_logic; -- CRC match flag
@@ -106,7 +106,7 @@ begin
   -- Clock generation
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
-  main : process
+  proc_main : process
     variable v_msg     : std_logic_vector(C_TOTAL_BITS - 1 downto 0);
   begin
     test_runner_setup(runner, runner_cfg);
@@ -121,7 +121,7 @@ begin
     wait for 1 ps;
 
     if run("parallel") then
-      -- Paralel crc generator test
+      -- Parallel crc generator test
 
       -- reset
       dv_i    <= '0';

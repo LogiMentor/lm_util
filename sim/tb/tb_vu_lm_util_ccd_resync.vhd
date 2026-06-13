@@ -2,8 +2,8 @@
 --=============================================================================
 -- Module Name : tb_vu_lm_util_ccd_resync
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_ccd_resync
@@ -59,7 +59,7 @@ begin
       ccd_din_o => ccd_din_o
     );
 
-  main : process
+  proc_main : process
 
   begin
     test_runner_setup(runner, runner_cfg);
