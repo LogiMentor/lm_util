@@ -15,6 +15,7 @@ library.
 | `src/` | Synthesizable VHDL sources and `lm_util_pkg.vhd`. |
 | `sim/tb/` | VUnit self-checking testbenches. |
 | `sim/scripts/run.py` | VUnit regression runner. |
+| `tools/synth/` | Local vendor synthesis smoke-test runner. |
 | `.github/workflows/ci.yml` | GitHub Actions regression using GHDL and VUnit. |
 
 ## Modules
@@ -69,11 +70,21 @@ VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level full --clean --output-pat
 The GitHub Actions workflow runs the fast regression with GHDL and uploads the
 VUnit output as an artifact.
 
+Vendor synthesis smoke tests for Vivado, Quartus, and Diamond are defined under
+`tools/synth/`. They run locally only, using a machine-specific tool/device
+configuration, and collect synthesis reports for SRL, CDC, and clocking-sensitive
+modules.
+
 ## VHDL Standard
 
 The synthesizable sources avoid vendor primitives and use standard IEEE
 libraries. The VUnit testbenches use VHDL-2008 constructs such as context
 clauses; the GHDL CI flow compiles with VHDL-2008 enabled.
+
+Some modules rely on portable inference patterns for shift registers, CDC
+register chains, or clocking structures. Use the local vendor synthesis smoke
+tests to confirm the intended implementation on each FPGA family and tool
+version.
 
 ## Reset Strategy
 

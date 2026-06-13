@@ -10,6 +10,7 @@ __pycache__/
 # VUnit and simulator output
 sim/work/
 vunit_out/
+vendor_synth_out/
 vunit_xunit.xml
 *.cf
 *.ghw
@@ -18,3 +19,6 @@ vunit_xunit.xml
 modelsim.ini
 transcript
 work/
+
+# Local vendor synthesis configuration
+tools/synth/local.toml
