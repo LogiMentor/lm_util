@@ -1,67 +1,89 @@
-The UTILITY library is a collection of modules that are used in almost every FPGA design, it is the Swiss Army Knife of every FPGA designer. All the modules are vendor independent high quality VHDL code.
-In the UTILITY LIBRARY you will find a full set of memory modules (single port,
-dual port, true dual port), synchronous and asynchronous FIFOs, Encoders and Decoders and a lot of other essential modules.
+# LogiMentor VHDL Utility Library
 
-Benefits of libraries
+Reusable, vendor-independent VHDL utility blocks used across LogiMentor FPGA
+designs.
 
-VHDL libraries are a powerful mechanism the language offers to collect common modules together for reuse.
-Reuse is a key to success with FPGA design, it helps to design faster, easier and with verified and validated
-modules. Designing and testing a general purpose library is often considered as a time consuming effort and
-most often there is no time for FPGA designers to build a complete general purpose library.
-Using our library allow designers to focus on highlevel design without wasting time to develop building blocks.
+The library is intentionally small and practical: common counters, delays,
+clock-domain-crossing helpers, CRC engines, encoders, multiplexers, arbiters,
+and package-level helper functions live together in one `lm_util_lib` VHDL
+library.
 
-Key Features
+## Repository Layout
 
-vendor independent "off the shelf" VHDL cores for FPGAs (Xilinx, Altera,
-Achronix, Lattice and Microsemi)
-VHDL modules are written in pure VHDL-93 standard (2008 is not fully supported by all vendors and synthesizers), 
-completely vendor independent optimized in terms of speed, power and resource usage
+| Path | Contents |
+| --- | --- |
+| `src/` | Synthesizable VHDL sources and `lm_util_pkg.vhd`. |
+| `sim/tb/` | VUnit self-checking testbenches. |
+| `sim/scripts/run.py` | VUnit regression runner. |
+| `.github/workflows/ci.yml` | GitHub Actions regression using GHDL and VUnit. |
 
+## Modules
 
-Key benefits 
+| Module | Description |
+| --- | --- |
+| `lm_util_async_reset` | Asynchronous reset assertion with synchronous release. |
+| `lm_util_barrel_shifter` | Configurable barrel shifter / rotator. |
+| `lm_util_bitsum` | Population count helper. |
+| `lm_util_ccd_resync` | Multi-stage clock-domain resynchronizer. |
+| `lm_util_ccd_switch` | Cross-clock-domain level switch helper. |
+| `lm_util_ccd_sync_bus` | Handshaked bus transfer across clock domains. |
+| `lm_util_ccd_sync_pulse` | Pulse transfer across clock domains. |
+| `lm_util_clock_gen` | Simulation-oriented clock divider/generator. |
+| `lm_util_clock_measure` | Frequency measurement helper. |
+| `lm_util_clock_mux` | Clock mux using clock-gating style logic. |
+| `lm_util_counter` | Configurable counter/watchdog helper. |
+| `lm_util_crc_par` | Parallel CRC engine. |
+| `lm_util_crc_ser` | Serial CRC engine. |
+| `lm_util_debouncer` | Input debouncer. |
+| `lm_util_delay` | Fixed delay line. |
+| `lm_util_delay_pulse` | Delayed pulse generator. |
+| `lm_util_delay_srl` | SRL-style fixed delay line. |
+| `lm_util_delay_var` | Variable delay line. |
+| `lm_util_edge_detector` | Rising/falling edge detector. |
+| `lm_util_encoder` | One-hot to binary encoder. |
+| `lm_util_lfsr` | LFSR/xorshift random sequence generator. |
+| `lm_util_mux` | Generic multiplexer. |
+| `lm_util_mux_or` | OR-combining multiplexer. |
+| `lm_util_pri_arbiter` | Fixed-priority arbiter. |
+| `lm_util_pulse_stretch` | Pulse stretcher. |
+| `lm_util_rr_arbiter` | Round-robin arbiter. |
+| `lm_util_tick_gen` | Periodic tick generator. |
+| `lm_util_pkg` | Shared constants, types, and utility functions. |
 
-No cost for hardware/tool version update/upgrade
-No time to re-generate the cores for different targets and/or tools
-Considerably faster simulations compared to vendor pre-synthesized IP Cores
-More than 150 useful functions in the ces_util package
-More than 13.000 lines of VHDL source code and 7000 lines of comments
-Campera-ES internal VHDL coding standard to help you quickly understand the source code
-The ces_util_lib is the swiss army knife of every FPGA designer and is ideal for expert designers as well as beginners
+Some package constants still use the historical `C_CES_*` prefix. They are kept
+for compatibility while the library is being migrated.
 
+## Verification
 
-CES UTILITY LIBRARY MODULES
-Module name 					Description
-ces_util_ccd_switch 			Cross clock domain switch
-ces_util_counter 				General purpose configurable counter. Can be used also as Watchdog timer
-ces_util_mux 					General purpose multiplexer
-ces_util_demux 					General purpose demultiplexer
-ces_util_delay 					Delay with architecture SRL, memory or pulse
-ces_util_delay_var 				Variable delay module with SRL, memory or pulse architecture
-ces_util_encoder 				General purpose encoder
-ces_util_file_read/write 		Read or write formatted signals on files, for simulation purposes
-ces_util_clock_gen 				Single ended or differential clock generator for simulation purposes
-ces_util_pkg 					Utility package with more than 150 useful functions
-ces_util_sync_pulse 			Synchronize a pulse through a cross clock domain
-ces_util_ram_crw_crw			Synthesizable ram modules, single, simple dual, true dual port. The memory
-								content can be initialized from an external text file
-ces_util_fifo_sync 				Synchronous FIFO, with configurable depth and width
-ces_util_fifo_async 			Asynchronous FIFO with two clock domains
+The regression is based on VUnit and self-checking testbenches. The default
+`fast` level is intended for CI; `full` enables broader parameter sweeps.
 
+```sh
+python -m pip install -r requirements.txt
+VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level fast --clean --output-path vunit_out
+```
 
--- NAMING CONVENTIONS: 
--- _e one-CLK early sample
--- _d one-CLK delayed sample
--- _d2 two-CLKs delayed sample
--- _n active low signal
--- C_ constant
--- s_ signal
--- _i input port
--- _o output port
--- _io inout port
--- t_ type
--- _st FSM state
+To run the extended sweep:
 
-Reset Strategy
-all the ces util librariy cores used active low synchronous reset, with the exception of the ces_util_async_reset that is used to synchronize an asynchronous reset.
-keep in mind that you should only reset Finite State Machine and counters, the datapath should almost always doesnt need to use a reset signal, unless you have feedback i nyour datapath (again when you have "memory" of an old state you might need a reset)
-the fanout on the reset signal should be kept as low as possible
+```sh
+VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level full --clean --output-path vunit_out
+```
+
+The GitHub Actions workflow runs the fast regression with GHDL and uploads the
+VUnit output as an artifact.
+
+## VHDL Standard
+
+The synthesizable sources avoid vendor primitives and use standard IEEE
+libraries. The VUnit testbenches use VHDL-2008 constructs such as context
+clauses; the GHDL CI flow compiles with VHDL-2008 enabled.
+
+## Reset Strategy
+
+Most utility cores use active-low synchronous reset. `lm_util_async_reset` is
+the exception: it accepts an asynchronous reset input and releases reset
+synchronously in the target clock domain.
+
+## License
+
+Licensed under the Apache License, Version 2.0. See `LICENSE`.

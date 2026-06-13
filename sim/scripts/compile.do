@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 	  
 # Questasim design settings
 set worklib lm_util_lib
@@ -19,7 +21,6 @@ vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_debouncer.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_tick_gen.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_pulse_stretch.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_edge_detector.vhd"
-vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_async_reset.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_delay.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_delay_srl.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_delay_pulse.vhd"
@@ -33,10 +34,8 @@ vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_clock_measure.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_clock_mux.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_crc_par.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_crc_ser.vhd"
-#vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_elastic_buffer.vhd"     --todo: too much errors
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_mux_or.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_pri_arbiter.vhd"
 vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_rr_arbiter.vhd"
-#vcom -work $worklib -$vhdl_ver -explicit "$src_dir/lm_util_write_to_file.vhd"
 
 

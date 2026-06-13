@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 stages: [check]
 
 variables:
@@ -41,7 +43,7 @@ ci:lint+vunit:
       esac
 
     # ----- VUnit regression -----
-    - pip install -U vunit_hdl
+    - pip install -r requirements.txt
     # choose simulator: modelsim (covers Questa), rivierapro, or activehdl
     - export VUNIT_SIMULATOR="${SIM:-modelsim}"
     # If tools aren't on PATH, expose one of these:

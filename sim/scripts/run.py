@@ -1,6 +1,17 @@
-from vunit import VUnit
-from itertools import product
+# SPDX-License-Identifier: Apache-2.0
+
 import argparse
+import os
+from itertools import product
+from pathlib import Path
+
+from vunit import VUnit
+
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = ROOT_DIR / "src"
+TB_DIR = ROOT_DIR / "sim" / "tb"
+
 
 def generate_tests(test, **param_lists):
     """
@@ -40,12 +51,25 @@ vu = VUnit.from_argv(argv=remaining_argv)
 # Optionally add VUnit's builtin HDL utilities for checking, logging, communication...
 vu.add_vhdl_builtins()
 
+if os.environ.get("VUNIT_SIMULATOR") == "ghdl":
+    vu.set_compile_option("ghdl.a_flags", ["--std=08", "-fsynopsys"])
+    vu.set_sim_option("ghdl.elab_flags", ["--std=08", "-fsynopsys"])
+
 # Create library 'lib'
 lib = vu.add_library("lm_util_lib")
 
-# Add all files ending in .vhd from src and tb directories to library
-lib.add_source_files("../../src/*.vhd")
-lib.add_source_files("../tb/*.vhd")
+# Add source and testbench files using paths relative to this script, so the
+# runner works from the repository root and from sim/scripts alike.
+lib.add_source_files(str(SRC_DIR / "lm_util_pkg.vhd"))
+lib.add_source_files([
+    str(path)
+    for path in sorted(SRC_DIR.glob("*.vhd"))
+    if path.name != "lm_util_pkg.vhd"
+])
+lib.add_source_files([
+    str(path)
+    for path in sorted(TB_DIR.glob("*.vhd"))
+])
 
 # Manual test handling
 

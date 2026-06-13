@@ -1,3 +1,20 @@
-sim/work/
+# Editor / backup files
 *.bak
+
+# Python
 .venv/
+__pycache__/
+*.py[cod]
+.pip-cache/
+
+# VUnit and simulator output
+sim/work/
+vunit_out/
+vunit_xunit.xml
+*.cf
+*.ghw
+*.vcd
+*.wlf
+modelsim.ini
+transcript
+work/
