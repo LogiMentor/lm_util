@@ -46,7 +46,7 @@ parser.add_argument('--level', choices=['fast', 'full'], default='fast')
 args, remaining_argv = parser.parse_known_args()
 
 # Create VUnit instance by parsing command line arguments
-vu = VUnit.from_argv(argv=remaining_argv)
+vu = VUnit.from_argv(argv=remaining_argv, compile_builtins=False)
 
 # Optionally add VUnit's builtin HDL utilities for checking, logging, communication...
 vu.add_vhdl_builtins()
@@ -68,8 +68,8 @@ lib.add_source_files([
 ])
 
 if os.environ.get("VUNIT_SIMULATOR") == "ghdl":
-    vu.set_compile_option("ghdl.a_flags", ["--std=08", "-fsynopsys"])
-    vu.set_sim_option("ghdl.elab_flags", ["--std=08", "-fsynopsys"])
+    vu.set_compile_option("ghdl.a_flags", ["--std=08", "-fsynopsys", "-frelaxed"])
+    vu.set_sim_option("ghdl.elab_flags", ["--std=08", "-fsynopsys", "-frelaxed"])
 
 # Manual test handling
 
