@@ -15,8 +15,20 @@ library.
 | `src/` | Synthesizable VHDL sources and `lm_util_pkg.vhd`. |
 | `sim/tb/` | VUnit self-checking testbenches. |
 | `sim/scripts/run.py` | VUnit regression runner. |
+| `docs/user_guide.md` | Module reference, instantiation examples, generic configuration, and compile flows. |
+| `docs/LM_VHDL_coding_standard.md` | LogiMentor VHDL coding standard. |
 | `tools/synth/` | Local vendor synthesis smoke-test runner. |
 | `.github/workflows/ci.yml` | GitHub Actions regression using GHDL and VUnit. |
+
+## Documentation
+
+- [User guide](docs/user_guide.md): module functionality, instantiation
+  template, generic configuration notes, simulation flow, synthesis compile
+  examples, and local vendor synthesis report generation.
+- [Vendor synthesis smoke tests](tools/synth/README.md): local Vivado, Quartus,
+  and Diamond campaign runner.
+- [VHDL coding standard](docs/LM_VHDL_coding_standard.md): style rules used by
+  this repository.
 
 ## Modules
 
@@ -95,3 +107,5 @@ synchronously in the target clock domain.
 ## License
 
 Licensed under the Apache License, Version 2.0. See `LICENSE`.
+
+Maintained by [LogiMentor](https://www.logimentor.com/).
