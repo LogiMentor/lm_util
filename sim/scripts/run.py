@@ -75,7 +75,7 @@ if os.environ.get("VUNIT_SIMULATOR") == "ghdl":
 
 # lm_util_async_reset
 test = lib.test_bench("tb_vu_lm_util_async_reset").test("reset_pulse_check_waits")
-generate_tests(test, g_delay_len = [2, 3, 4], g_rst_lvl = ['0', '1'])
+generate_tests(test, g_delay_len = [2, 3, 4], g_rst_lvl = [0, 1])
 
 # lm_util_barrel_shifter
 test = lib.test_bench("tb_vu_lm_util_barrel_shifter").test("rotate_left_test")
@@ -191,7 +191,7 @@ generate_tests(test, g_event_edge = [1])
 
 #lm_util_pulse_stretch
 test = lib.test_bench("tb_vu_lm_util_pulse_stretch")
-generate_tests(test, g_pulse_length = [2, 5], g_has_fixed_length = [0, 1], g_has_resync_stage=[0, 1], g_out_level = ['1'])
+generate_tests(test, g_pulse_length = [2, 5], g_has_fixed_length = [0, 1], g_has_resync_stage=[0, 1], g_out_level = [1])
 #todo: seems to fail with g_out_level = ['0']
 
 # Run vunit function

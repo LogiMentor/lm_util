@@ -36,7 +36,7 @@ entity tb_vu_lm_util_pulse_stretch is
     g_has_fixed_length : natural   := 1;
     g_pulse_length     : natural   := 5;
     g_has_resync_stage : natural   := 0;
-    g_out_level        : std_logic := '1';
+    g_out_level        : natural   := 1;
 
     runner_cfg : string
   );
@@ -47,11 +47,12 @@ architecture tb of tb_vu_lm_util_pulse_stretch is
   constant C_CLK_PERIOD     : time    := 10 ns;
   constant C_LONG_PULSE_LEN : natural := 10;
   constant C_TIMEOUT        : time    := C_CLK_PERIOD * f_sel_a_b(g_has_resync_stage, 4, 2);
+  constant C_OUT_LEVEL      : std_logic := f_int2sl(g_out_level);
 
   --Stimulus signals
   signal clk_i   : std_logic := '1';
   signal rst_n_i : std_logic := '0';
-  signal pulse_i : std_logic := not g_out_level;
+  signal pulse_i : std_logic := not C_OUT_LEVEL;
   --Observed signal
   signal pulse_o : std_logic;
 begin
@@ -65,7 +66,7 @@ begin
       g_pulse_length     => g_pulse_length,
       g_pulse_overlength => g_pulse_length,
       g_has_resync_stage => g_has_resync_stage,
-      g_out_level        => g_out_level
+      g_out_level        => C_OUT_LEVEL
     )
     port map
     (
@@ -87,30 +88,30 @@ begin
     if run("single_pulse") then
       -- Check output pulse width for single input pulse
       -- Generate a single pulse
-      pulse_i <= g_out_level;
+      pulse_i <= C_OUT_LEVEL;
       p_wait_clk(clk_i);
-      pulse_i <= not g_out_level;
+      pulse_i <= not C_OUT_LEVEL;
       --check output pulse width. Must be equal g_pulse_length
-      p_check_pulse_width(pulse_o, g_out_level, C_CLK_PERIOD * (g_pulse_length), C_TIMEOUT, "Single pulse check");
+      p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length), C_TIMEOUT, "Single pulse check");
     elsif run("two_pulses") then
       -- Check output pulse width for two consecutive input pulses
 
       -- generate two pulses with a delay
-      pulse_i <= g_out_level;
+      pulse_i <= C_OUT_LEVEL;
       p_wait_clk(clk_i);
-      pulse_i <= not g_out_level, g_out_level after C_CLK_PERIOD, not g_out_level after C_CLK_PERIOD * 2 + 1 ps;
+      pulse_i <= not C_OUT_LEVEL, C_OUT_LEVEL after C_CLK_PERIOD, not C_OUT_LEVEL after C_CLK_PERIOD * 2 + 1 ps;
       p_wait_clk(clk_i);
 
       -- check output pulse width. Must be equal g_pulse_length
       if (g_has_resync_stage /= 0) and (g_has_fixed_length = 0) then
         -- note: is it +2 intended behavior?
-        p_check_pulse_width(pulse_o, g_out_level, C_CLK_PERIOD * (g_pulse_length + 2), C_TIMEOUT, "Two pulses check + Resync");
+        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + 2), C_TIMEOUT, "Two pulses check + Resync");
       else 
-        p_check_pulse_width(pulse_o, g_out_level, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Two pulses check");
+        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Two pulses check");
       end if;
     elsif run("long_pulse") then
       -- Check output pulse width for long pulse. Output pulse width = input pulse width + g_pulse_overlength
-      pulse_i <= g_out_level, not g_out_level after C_CLK_PERIOD * C_LONG_PULSE_LEN + 1 ps; --1 ps to solve weird timing issue
+      pulse_i <= C_OUT_LEVEL, not C_OUT_LEVEL after C_CLK_PERIOD * C_LONG_PULSE_LEN + 1 ps; --1 ps to solve weird timing issue
       p_wait_clk(clk_i);
 
       -- check output pulse width
@@ -119,12 +120,12 @@ begin
           -- Note: pulse is 1 cycle shorter? Is it intended behavior?
         if (g_has_resync_stage /= 0) then
           -- pulse length is 
-          p_check_pulse_width(pulse_o, g_out_level, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength");
+          p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength");
         else
-          p_check_pulse_width(pulse_o, g_out_level, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength + no resync");
+          p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength + no resync");
         end if;
       else
-        p_check_pulse_width(pulse_o, g_out_level, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Long pulse check");
+        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Long pulse check");
       end if;
     end if;
 

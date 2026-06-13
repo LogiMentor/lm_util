@@ -23,7 +23,7 @@ use lm_util_lib.tb_vu_lm_pkg.all;
 entity tb_vu_lm_util_async_reset is
   generic (
     g_delay_len : integer   := C_META_DELAY_LEN;
-    g_rst_lvl   : std_logic := '0';
+    g_rst_lvl   : natural   := 0;
 
     -- Required for VUnit
     runner_cfg : string := ""
@@ -31,6 +31,7 @@ entity tb_vu_lm_util_async_reset is
 end tb_vu_lm_util_async_reset;
 
 architecture tb_architecture of tb_vu_lm_util_async_reset is
+  constant C_RST_LVL     : std_logic := f_int2sl(g_rst_lvl);
   signal arst_i        : std_logic;
   signal clk_i         : std_logic := '1';
   signal rst_n_o       : std_logic;
@@ -44,7 +45,7 @@ begin
   uut : entity lm_util_lib.lm_util_async_reset
     generic map(
       g_delay_len => g_delay_len,
-      g_rst_lvl   => g_rst_lvl
+      g_rst_lvl   => C_RST_LVL
     )
     port map
     (
@@ -66,11 +67,11 @@ begin
     if run("reset_pulse_check_waits") then
       -- using waits
       -- apply asynchronous long reset pulse > C_CLK_PERIOD
-      arst_i <= not g_rst_lvl, g_rst_lvl after C_T0, not g_rst_lvl after C_T0 + C_LONG_RST;
+      arst_i <= not C_RST_LVL, C_RST_LVL after C_T0, not C_RST_LVL after C_T0 + C_LONG_RST;
       wait for C_T0 + 1 ps;
       check(rst_n_o = C_RST_ACTIVE, "Reset output should be asserted");
       -- wait for the reset input signal to be deasserted
-      wait until arst_i = not g_rst_lvl;
+      wait until arst_i = not C_RST_LVL;
       -- wait for the next cycles
       p_wait_clk(clk_i);
       wait for C_CLK_PERIOD * (g_delay_len - 1) - C_T_EPSILON;
@@ -82,7 +83,7 @@ begin
       -- using self-written check_held_for() procedure
 
       -- apply asynchronous short reset pulse < C_CLK_PERIOD
-      arst_i <= not g_rst_lvl, g_rst_lvl after C_T0, not g_rst_lvl after C_T0 + C_SHORT_RST;
+      arst_i <= not C_RST_LVL, C_RST_LVL after C_T0, not C_RST_LVL after C_T0 + C_SHORT_RST;
       wait for C_T0;
       -- Wait for the next clk edge
       p_wait_clk(clk_i);
@@ -92,7 +93,7 @@ begin
       -- https://vunit.github.io/check/user_guide.html#stability-check-check-stable
 
       -- apply asynchronous short reset pulse < C_CLK_PERIOD
-      arst_i <= not g_rst_lvl, g_rst_lvl after C_T0, not g_rst_lvl after C_T0 + C_SHORT_RST;
+      arst_i <= not C_RST_LVL, C_RST_LVL after C_T0, not C_RST_LVL after C_T0 + C_SHORT_RST;
       wait for C_T0 + C_T_EPSILON;
       check(rst_n_o = C_RST_ACTIVE, "Reset output should be asserted");
       -- stability test
