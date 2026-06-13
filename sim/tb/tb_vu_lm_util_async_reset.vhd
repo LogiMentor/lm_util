@@ -111,4 +111,4 @@ begin
 
   stability_check : check_stable(clk_i, s_check_en, s_check_start, s_check_end, rst_n_o, result("rst_n_o."));
 
-end tb_architecture;
+end a_tb;

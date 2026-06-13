@@ -151,4 +151,4 @@ begin
     test_runner_cleanup(runner);
   end process;
 
-end tb_architecture;
+end a_tb;

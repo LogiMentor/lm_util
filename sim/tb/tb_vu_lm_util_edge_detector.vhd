@@ -106,4 +106,4 @@ begin
     test_runner_cleanup(runner);
   end process;
 
-end tb;
+end a_tb;
