@@ -7,7 +7,7 @@
 -- Author      : A.C.
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_crc_parallel
---              
+--
 --              Verifies the CRC calculation for a given polynomial,
 --              initialization value, and XOR output by comparing the
 --              calculated CRC value with a known good value from the CRC
@@ -35,22 +35,22 @@ entity tb_vu_lm_util_crc_parallel is
   generic (
     -- CRC-16/GENIBUS
     -- width=16 poly=0x1021 init=0xffff refin=false refout=false xorout=0xffff check=0xd64e residue=0x1d0f name="CRC-16/GENIBUS"
-    g_polynomial : string  := "1021"; --* CRC Polynomial
-    g_init       : string  := "FFFF"; --* Initialization value
-    g_xor_out    : string  := "FFFF";--* Bits for the output XOR
+    g_polynomial : string  := "1021"; -- CRC Polynomial
+    g_init       : string  := "FFFF"; -- Initialization value
+    g_xor_out    : string  := "FFFF";-- Bits for the output XOR
     g_flip_in    : integer := 0;
     g_data_w     : integer := 8;
     --https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.legend
     g_test_str  : string  := "123456789";
-    g_crc_check : string  := "d64e"; --* reference value to check crc
-    g_refin     : boolean := false; --*false = the characters of the message are read bit-by-bit, MSB first; true = LSB first.
-    g_refout    : boolean := false; --*false = the contents of the register after reading the last message bit are unreflected before presentation; if equal to true, it specifies that they are reflected, character-by-character, before presentation. For the purpose of this definition, the reflection is performed by swapping the content of each cell with that of the cell an equal distance from the opposite end of the register; the characters of the CRC are then true images of parts of the reflected register, the character containing the original MSB always appearing first.
+    g_crc_check : string  := "d64e"; -- reference value to check crc
+    g_refin     : boolean := false; -- false = the characters of the message are read bit-by-bit, MSB first; true = LSB first.
+    g_refout    : boolean := false; -- false = the contents of the register after reading the last message bit are unreflected before presentation; if equal to true, it specifies that they are reflected, character-by-character, before presentation. For the purpose of this definition, the reflection is performed by swapping the content of each cell with that of the cell an equal distance from the opposite end of the register; the characters of the CRC are then true images of parts of the reflected register, the character containing the original MSB always appearing first.
     -- Required for VUnit
     runner_cfg : string := ""
   );
 end tb_vu_lm_util_crc_parallel;
 
-architecture tb_architecture of tb_vu_lm_util_crc_parallel is
+architecture a_tb of tb_vu_lm_util_crc_parallel is
   -- Constants
   constant C_CLK_PERIOD    : time                                 := 10 ns;
   constant C_BITS_PER_CHAR : integer                              := 8;
@@ -66,25 +66,25 @@ architecture tb_architecture of tb_vu_lm_util_crc_parallel is
 
   -- Stimulus signals - signals mapped to the input and inout ports of tested entity
 
-  signal clk_i   : std_logic := '1'; --* input clock
-  signal rst_n_i : std_logic := '0'; --* synchronous rst, active low
-  signal dv_i    : std_logic := '0'; --* data valid
+  signal clk_i   : std_logic := '1'; -- input clock
+  signal rst_n_i : std_logic := '0'; -- synchronous rst, active low
+  signal dv_i    : std_logic := '0'; -- data valid
 
-  signal data_i  : std_logic_vector (g_data_w - 1 downto 0); --* data input paralel
-  signal flush_i : std_logic := '0'; --* flush crc, when '1' crc is flushed out on crc_o
+  signal data_i  : std_logic_vector (g_data_w - 1 downto 0); -- data input paralel
+  signal flush_i : std_logic := '0'; -- flush crc, when '1' crc is flushed out on crc_o
   -- Observed signals - signals mapped to the output ports of tested entity
-  signal match_o : std_logic; --* CRC match flag
-  signal crc_o   : std_logic_vector(C_POLY_LEN - 1 downto 0); --* paralle CRC output
+  signal match_o : std_logic; -- CRC match flag
+  signal crc_o   : std_logic_vector(C_POLY_LEN - 1 downto 0); -- paralle CRC output
 
   -- auxilary signals
-  signal s_crc : std_logic_vector(C_POLY_LEN - 1 downto 0); --* calculated CRC
+  signal s_crc : std_logic_vector(C_POLY_LEN - 1 downto 0); -- calculated CRC
 begin
   assert g_test_str'length > 0 report "g_test_string must be provided" severity error;
   assert C_TOTAL_BITS mod g_data_w = 0 report "C_TOTAL_BITS must be multiple of g_data_w" severity error;
   assert C_POLY_LEN mod g_data_w = 0 report "C_POLY_LEN must be multiple of g_data_w" severity error;
 
   -- Unit Under Test port map
-  uut : entity lm_util_lib.lm_util_crc_par
+  inst_dut : entity lm_util_lib.lm_util_crc_par
     generic map(
       g_polynomial   => C_POLYNOMIAL,
       g_init_value   => C_INIT_VALUE,
@@ -108,8 +108,6 @@ begin
 
   main : process
     variable v_msg     : std_logic_vector(C_TOTAL_BITS - 1 downto 0);
-    variable char_val  : std_logic_vector(7 downto 0); -- 8 bits for ASCII character
-    variable bit_index : integer := C_TOTAL_BITS - 1;
   begin
     test_runner_setup(runner, runner_cfg);
 
@@ -125,7 +123,7 @@ begin
     if run("parallel") then
       -- Paralel crc generator test
 
-      -- reset 
+      -- reset
       dv_i    <= '0';
       flush_i <= '0';
       p_wait_clk(clk_i);
@@ -152,8 +150,8 @@ begin
       -- check crc output against check "reference" value
       check_equal(crc_o, C_CRC_CHECK, "Parallel CRC output (" & f_slv2hex(crc_o) & ") does not match check value (" & f_slv2hex(C_CRC_CHECK) & ")");
 
-      --Check crc 
-      -- reset 
+      --Check crc
+      -- reset
       rst_n_i <= '0';
       p_wait_clk(clk_i);
       -- deassert reset

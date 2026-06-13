@@ -36,7 +36,7 @@ entity tb_vu_lm_util_ccd_sync_pulse is
   );
 end tb_vu_lm_util_ccd_sync_pulse;
 
-architecture tb_architecture of tb_vu_lm_util_ccd_sync_pulse is
+architecture a_tb of tb_vu_lm_util_ccd_sync_pulse is
   constant C_CLK_IN_PERIOD  : time := 3 ns;
   constant C_CLK_OUT_PERIOD : time := 10 ns;
 
@@ -58,7 +58,7 @@ begin
   out_clk_i <= s_out_clk after 1.3 ns;
 
   -- Unit Under Test port map
-  uut : entity lm_util_lib.lm_util_ccd_sync_pulse
+  inst_dut : entity lm_util_lib.lm_util_ccd_sync_pulse
     generic map(
       g_delay_len => g_delay_len
     )

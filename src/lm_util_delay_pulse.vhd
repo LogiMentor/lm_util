@@ -5,7 +5,7 @@
 -- Company     : Logimentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
--- Description: Fixed delay for std_logic_vector signals. 
+-- Description: Fixed delay for std_logic_vector signals.
 --              simple counter (for pulses) implementation
 --
 -------------------------------------------------------------------------------
@@ -33,27 +33,26 @@ use ieee.numeric_std.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief Variable delay for std_logic_vector signals
---* Input signal is delayed by a specific amount
---* The input is valid and is entered in the delay FIFO when ce_i is true
---* @version 1.1.1
+-- Variable delay for std_logic_vector signals
+-- Input signal is delayed by a specific amount
+-- The input is valid and is entered in the delay FIFO when ce_i is true
 entity lm_util_delay_pulse is
   generic(
-    --* actual delay can be different from a power of 2
+    -- actual delay can be different from a power of 2
     g_delay       : natural;
-    --* input pulse active level, used only in "pulse" mode
+    -- input pulse active level, used only in "pulse" mode
     g_pulse_level : std_logic
     );
   port(
-    --* input clock
+    -- input clock
     clk_i   : in  std_logic;
-    --* input reset
+    -- input reset
     rst_n_i : in  std_logic;
-    --* clock enable
+    -- clock enable
     ce_i    : in  std_logic := '1';
-    --* input data
+    -- input data
     din_i   : in  std_logic;
-    --* output delayed data
+    -- output delayed data
     dout_o  : out std_logic
     );
 end lm_util_delay_pulse;

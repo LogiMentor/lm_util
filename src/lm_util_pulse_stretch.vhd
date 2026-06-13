@@ -6,7 +6,7 @@
 -- Author      : A.Campera
 --------------------------------------------------------------------------------
 -- Description: Stretch a pulse from an edge defining a fixed length or an overlength
--- 
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 Logimentor Srl
 --
@@ -36,16 +36,16 @@ use lm_util_lib.lm_util_pkg.all;
 --pulse stretcher
 entity lm_util_pulse_stretch is
   generic (
-    --* 1: out pulse shall have fixed length specified by the g_pulse_length generic
-    --* 0: out pulse shall be stretched of g_pulse_overlength clock cycles
+    -- 1: out pulse shall have fixed length specified by the g_pulse_length generic
+    -- 0: out pulse shall be stretched of g_pulse_overlength clock cycles
     g_has_fixed_length : natural;
-    --* defines the length of the output pulse in clock cycles when g_has_fixed_length = 1
+    -- defines the length of the output pulse in clock cycles when g_has_fixed_length = 1
     g_pulse_length     : natural;
-    --* defines the pulse lengthening in clock cycles when g_has_fixed_length = 0
-    --* out pulse is stretched for additional g_pulse_overlength clock cycles when g_has_fixed_length = 0
+    -- defines the pulse lengthening in clock cycles when g_has_fixed_length = 0
+    -- out pulse is stretched for additional g_pulse_overlength clock cycles when g_has_fixed_length = 0
     g_pulse_overlength : natural;
-    --* 0: do not include a 2-FFD resync stage on the input pulse
-    --* 1: include a 2-FFD resync stage on the input pulse
+    -- 0: do not include a 2-FFD resync stage on the input pulse
+    -- 1: include a 2-FFD resync stage on the input pulse
     g_has_resync_stage : natural;
     -- defines the logic level ('1' or '0') that represents the active state of the output pulse
     g_out_level        : std_logic
@@ -118,7 +118,7 @@ begin
           pulse_o <= not g_out_level;
         else
           if (s_cnt_ena = '1') then     -- counter enabled
-            if (s_cnt < g_pulse_length-1) then  --count g_pulse_length* clk_i period          
+            if (s_cnt < g_pulse_length-1) then  --count g_pulse_length* clk_i period
               pulse_o <= g_out_level;
               s_cnt   <= s_cnt + 1;
             else

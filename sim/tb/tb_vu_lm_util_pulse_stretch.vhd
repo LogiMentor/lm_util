@@ -42,7 +42,7 @@ entity tb_vu_lm_util_pulse_stretch is
   );
 end;
 
-architecture tb of tb_vu_lm_util_pulse_stretch is
+architecture a_tb of tb_vu_lm_util_pulse_stretch is
 
   constant C_CLK_PERIOD     : time    := 10 ns;
   constant C_LONG_PULSE_LEN : natural := 10;
@@ -60,7 +60,7 @@ begin
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- UUT instantiation
-  uut : entity lm_util_lib.lm_util_pulse_stretch
+  inst_dut : entity lm_util_lib.lm_util_pulse_stretch
     generic map(
       g_has_fixed_length => g_has_fixed_length,
       g_pulse_length     => g_pulse_length,
@@ -106,7 +106,7 @@ begin
       if (g_has_resync_stage /= 0) and (g_has_fixed_length = 0) then
         -- note: is it +2 intended behavior?
         p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + 2), C_TIMEOUT, "Two pulses check + Resync");
-      else 
+      else
         p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Two pulses check");
       end if;
     elsif run("long_pulse") then
@@ -119,7 +119,7 @@ begin
         -- If not fixed length, check for overlength
           -- Note: pulse is 1 cycle shorter? Is it intended behavior?
         if (g_has_resync_stage /= 0) then
-          -- pulse length is 
+          -- pulse length is
           p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength");
         else
           p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength + no resync");

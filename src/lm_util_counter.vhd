@@ -8,7 +8,7 @@
 -- Description: general-purpose synchronous counter with optional load,
 --              direction, and watchdog capabilities.
 --              When counter reaches g_wd_timer - 1, it is reseted to zero and
---              generates a pulse on timer_o output. 
+--              generates a pulse on timer_o output.
 --
 -------------------------------------------------------------------------------
 -- Copyright 2025 Logimentor Srl
@@ -35,31 +35,30 @@ use ieee.numeric_std.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief general purpose counter
---* @version 1.0.0
+-- general purpose counter
 entity lm_util_counter is
   generic(
-    --* counter data width
+    -- counter data width
     g_data_w   : integer;
-    --* watchdog timer value:
+    -- watchdog timer value:
     g_wd_timer : integer;
-    --* counter direction, 1: up, 0 : down
+    -- counter direction, 1: up, 0 : down
     g_dir      : integer
     );
   port(
-    --* input clock
+    -- input clock
     clk_i      : in  std_logic;
-    --* input reset
+    -- input reset
     rst_n_i    : in  std_logic;
-    --* clock enable
+    -- clock enable
     ce_i       : in  std_logic;
-    --* active high strobe for counter loading
+    -- active high strobe for counter loading
     load_i     : in  std_logic;
-    --* data to be loaded
+    -- data to be loaded
     load_dat_i : in  std_logic_vector(g_data_w - 1 downto 0);
-    --* output counter
+    -- output counter
     cnt_o      : out std_logic_vector(g_data_w - 1 downto 0);
-    --* timer output
+    -- timer output
     timer_o    : out std_logic
     );
 end entity lm_util_counter;

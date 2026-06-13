@@ -5,7 +5,7 @@
 -- Company     : Logimentor Srl
 -- Author      : ACA
 -------------------------------------------------------------------------------
--- Descritpion: Structural implementation of a barrel shifter that rotates its 
+-- Descritpion: Structural implementation of a barrel shifter that rotates its
 -- input data to the left.
 -- Multile levels of shift units are generated that combine to form a component
 -- that shifts input data an arbitrary number of bits.
@@ -58,14 +58,14 @@ end entity lm_util_barrel_shifter;
 architecture a_struct of lm_util_barrel_shifter is
   type t_app_array is array (f_ceil_log2(g_data_w) downto 0) of
   std_logic_vector(g_data_w-1 downto 0);
-  
+
   -- all the intermediate shifted signals between the multiplexers
   signal s_app_array : t_app_array;
 begin
   -- assign the input and output data
   s_app_array(0) <= din_i;
   dout_o         <= s_app_array(f_ceil_log2(g_data_w));
-  
+
   -- generate the different levels of shifters
   gen_tree : for k in 0 to f_ceil_log2(g_data_w)-1 generate
     begin
@@ -87,9 +87,9 @@ begin
         (not nof_shifts_i(C_SHIFT_INDEX))) or (s_app_array(k)((i-C_MUX_WIDTH/2) mod g_data_w) and
         nof_shifts_i(C_SHIFT_INDEX));
       end generate gen_shift;
-      
+
     end generate gen_mux;
   end generate gen_tree;
-  
+
 end architecture a_struct;
 

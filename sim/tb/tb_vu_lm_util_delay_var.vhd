@@ -26,16 +26,16 @@ use lm_util_lib.lm_util_pkg.all;
 use lm_util_lib.tb_vu_lm_pkg.all;
 entity tb_vu_lm_util_delay_var is
   generic (
-    g_delay_max   : positive  := 8; --* max delay
-    g_delay       : positive  := 8; --* delay
-    g_data_w      : natural   := 8; --* input data width
-    g_arch_type   : natural   := C_CES_SRL; --* architecture used
+    g_delay_max   : positive  := 8; -- max delay
+    g_delay       : positive  := 8; -- delay
+    g_data_w      : natural   := 8; -- input data width
+    g_arch_type   : natural   := C_LM_SRL; -- architecture used
     g_pulse_level : std_logic := '1';
     runner_cfg    : string
   );
 end;
 
-architecture tb of tb_vu_lm_util_delay_var is
+architecture a_tb of tb_vu_lm_util_delay_var is
 
   constant C_CLK_PERIOD : time     := 10 ns;
   constant C_DELAY_W    : positive := f_ceil_log2(g_delay_max + 1);
@@ -46,7 +46,7 @@ architecture tb of tb_vu_lm_util_delay_var is
   signal delay_i : std_logic_vector(C_DELAY_W - 1 downto 0) := f_nat2slv(g_delay, C_DELAY_W);
   signal din_i   : std_logic_vector(g_data_w - 1 downto 0);
   --Observed signal
-  signal dout_o : std_logic_vector(g_data_w - 1 downto 0); --* output delayed data
+  signal dout_o : std_logic_vector(g_data_w - 1 downto 0); -- output delayed data
   signal dv_o   : std_logic;
 
 begin
@@ -54,7 +54,7 @@ begin
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test
-  uut : entity lm_util_lib.lm_util_delay_var
+  inst_dut : entity lm_util_lib.lm_util_delay_var
     generic map(
       g_delay_max   => g_delay_max,
       g_data_w      => g_data_w,

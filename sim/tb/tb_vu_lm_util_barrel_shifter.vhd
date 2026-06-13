@@ -36,7 +36,7 @@ entity tb_vu_lm_util_barrel_shifter is
   );
 end tb_vu_lm_util_barrel_shifter;
 
-architecture tb_architecture of tb_vu_lm_util_barrel_shifter is
+architecture a_tb of tb_vu_lm_util_barrel_shifter is
   -- Stimulus signals - signals mapped to the input and inout ports of tested entity
   signal nof_shifts_i : std_logic_vector(f_ceil_log2(g_data_w) - 1 downto 0);
   signal din_i        : std_logic_vector(g_data_w - 1 downto 0);
@@ -45,7 +45,7 @@ architecture tb_architecture of tb_vu_lm_util_barrel_shifter is
   signal s_dout : unsigned(g_data_w - 1 downto 0) := (others => '0');
 
 begin
-  uut : entity lm_util_lib.lm_util_barrel_shifter
+  inst_dut : entity lm_util_lib.lm_util_barrel_shifter
     generic map(
       g_data_w => g_data_w
     )

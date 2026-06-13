@@ -39,15 +39,15 @@ use lm_util_lib.lm_util_pkg.all;
 
 entity lm_util_clock_mux is
   generic (
-    --* Sets the number of clock inputs (must be a positive integer).
+    -- Sets the number of clock inputs (must be a positive integer).
     g_num_clocks : positive
     );
   port (
-    --* Input clock signals: a vector of clocks, where each clock corresponds to an index in clk_sel_i.
+    -- Input clock signals: a vector of clocks, where each clock corresponds to an index in clk_sel_i.
     clk_i     : in  std_logic_vector(g_num_clocks-1 downto 0);
-    --* One-hot selection signal to choose which clock to output
+    -- One-hot selection signal to choose which clock to output
     clk_sel_i : in  std_logic_vector(g_num_clocks-1 downto 0);  -- one hot
-    --* Output clock signal, which will be one of the input clocks based on clk_sel_i
+    -- Output clock signal, which will be one of the input clocks based on clk_sel_i
     clk_o     : out std_logic
     );
 end entity lm_util_clock_mux;
@@ -79,8 +79,7 @@ architecture a_rtl of lm_util_clock_mux is
 -- the unrelated clocks from appearing on the same LUT.
   signal s_gated_clks    : std_logic_vector(g_num_clocks-1 downto 0);
 
--- 
-
+--
 -- we have to set the attribute synthesis keep (or equivalent) to tell the synthesiser to use
 -- different LUTs to implement the clock gating
   attribute keep                 : boolean;

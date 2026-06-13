@@ -33,7 +33,7 @@ entity tb_vu_lm_util_edge_detector is
   );
 end tb_vu_lm_util_edge_detector;
 
-architecture tb of tb_vu_lm_util_edge_detector is
+architecture a_tb of tb_vu_lm_util_edge_detector is
 
   constant C_CLK_PERIOD : time := 10 ns;
 
@@ -46,7 +46,7 @@ begin
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test
-  uut_rising : entity lm_util_lib.lm_util_edge_detector
+  inst_rising : entity lm_util_lib.lm_util_edge_detector
     generic map(
       g_event_edge => g_event_edge
     )

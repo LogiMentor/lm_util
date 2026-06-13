@@ -1,5 +1,5 @@
 --=============================================================================
--- Module Name : lm_util_sync_pulse 
+-- Module Name : lm_util_sync_pulse
 -- Library     : lm_util_lib
 -- Project     : UTILITY
 -- Company     : Logimentor Srl
@@ -40,18 +40,17 @@ use ieee.std_logic_1164.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief cross clock domain re-synchronizer circuit
---* The in_pulse is captured in the in_clk_i domain and then transfered to the
---* out_clk_i domain. The out_pulse_o is also only one cycle wide and transfered
---* back to the in_clk_i domain to serve as an acknowledge signal to ensure
---* that the in_pulse was recognized also in case the in_clk_i is faster than
---* the out_clk_i. The in_busy_o is active during the entire transfer. Hence the
---* rate of pulses that can be transfered is limited by g_delay_len and by
---* the out_clk_i rate.
---* @version 1.0.0
+-- cross clock domain re-synchronizer circuit
+-- The in_pulse is captured in the in_clk_i domain and then transfered to the
+-- out_clk_i domain. The out_pulse_o is also only one cycle wide and transfered
+-- back to the in_clk_i domain to serve as an acknowledge signal to ensure
+-- that the in_pulse was recognized also in case the in_clk_i is faster than
+-- the out_clk_i. The in_busy_o is active during the entire transfer. Hence the
+-- rate of pulses that can be transfered is limited by g_delay_len and by
+-- the out_clk_i rate.
 entity lm_util_ccd_sync_pulse is
   generic(
-    --* number of resync stage to reduce metastability
+    -- number of resync stage to reduce metastability
     g_delay_len : natural
   );
   port(
@@ -59,9 +58,9 @@ entity lm_util_ccd_sync_pulse is
     in_clk_i : in std_logic;
     -- input reset
     in_rst_n_i : in std_logic;
-    --* input pulse
+    -- input pulse
     in_pulse_i : in std_logic;
-    -- indicates whether the module is busy 
+    -- indicates whether the module is busy
     in_busy_o : out std_logic;
     -- output reset
     out_rst_n_i : in std_logic;
@@ -85,7 +84,7 @@ architecture a_rtl of lm_util_ccd_sync_pulse is
   signal s_next_out_pulse : std_logic;
 
 begin
-  capture_in_pulse_inst : entity lm_util_lib.lm_util_ccd_switch
+  inst_capture_in_pulse : entity lm_util_lib.lm_util_ccd_switch
     generic map(
       g_priority_lo => true,
       g_or_high     => false,

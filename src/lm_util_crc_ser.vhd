@@ -36,29 +36,29 @@ use ieee.std_logic_1164.all;
 
 entity lm_util_crc_ser is
   generic (
-    --* CRC Polynomial
+    -- CRC Polynomial
     g_polynomial : std_logic_vector := "0001000000100001";
-    --* Initialization value
+    -- Initialization value
     g_init_value : std_logic_vector         := x"FFFF";
-    --* Output bytes issued on reverse (0 not to flip)
+    -- Output bytes issued on reverse (0 not to flip)
     g_flip_out      : integer range 0 to 1  := 0;
-    --* Bits for the output XOR
+    -- Bits for the output XOR
     g_xor_out       : std_logic_vector      := x"0000"
     );
   port (
-    --* input clock
+    -- input clock
     clk_i   : in  std_logic;
-    --* synchronous rst, active low
+    -- synchronous rst, active low
     rst_n_i : in  std_logic;
-    --* data valid
+    -- data valid
     dv_i    : in  std_logic;
-    --* data input
+    -- data input
     data_i  : in  std_logic;
-    --* flush crc, when '1' crc is flushed out on crc_o
+    -- flush crc, when '1' crc is flushed out on crc_o
     flush_i : in  std_logic;
-    --* CRC match flag
+    -- CRC match flag
     match_o : out std_logic;
-    --* CRC output
+    -- CRC output
     crc_o   : out std_logic_vector(g_polynomial'length - 1 downto 0)
     );
 end entity lm_util_crc_ser;
@@ -78,33 +78,33 @@ architecture a_rtl of lm_util_crc_ser is
 
 begin
 
-  --* Parameter checking: Invalid generics will abort simulation/synthesis
-  --* Check C_MSB and C_INIT_MSB length
+  -- Parameter checking: Invalid generics will abort simulation/synthesis
+  -- Check C_MSB and C_INIT_MSB length
   assert C_MSB = C_INIT_MSB report "g_polynomial and g_init_value vectors must be equal length!" severity failure;
 
-  --* Check polynomial size
+  -- Check polynomial size
   assert (C_MSB >= 3) and (C_MSB <= 31) report "g_polynomial must be of order 4 to 32!" severity failure;
 
-  --* Check that the polynomial MUST have the lsb set to 1 (why? this is worthless in principle)
+  -- Check that the polynomial MUST have the lsb set to 1 (why? this is worthless in principle)
   assert C_P(0) = '1' report "g_polynomial must have lsb set to 1!" severity failure;
 
 
-  --* Create vectors of data input and C_MSB of CRC
+  -- Create vectors of data input and C_MSB of CRC
   gen_di : for i in 1 to C_MSB generate
     s_din(i)     <= data_i;
     s_crc_msb(i) <= s_crc(C_MSB);
   end generate gen_di;
 
-  --* Feedback signals
+  -- Feedback signals
   s_fb(0)              <= data_i xor s_crc(C_MSB);
   s_fb(C_MSB downto 1) <= s_crc(C_MSB-1 downto 0) xor ((s_din xor s_crc_msb) and C_P(C_MSB downto 1));
 
 
-  --* CRC process
+  -- CRC process
   proc_crc : process (clk_i)
   begin
     if rising_edge(clk_i) then
-      if rst_n_i = '0' then         --* sync. reset
+      if rst_n_i = '0' then         -- sync. reset
         s_crc   <= g_init_value;
         match_o <= '0';
       else
@@ -113,17 +113,17 @@ begin
             s_crc(0)              <= '0';
             s_crc(C_MSB downto 1) <= s_crc(C_MSB - 1 downto 0);
           else
-            --* CRC generation
-            s_crc <= s_fb;  
+            -- CRC generation
+            s_crc <= s_fb;
           end if;
-          --* CRC match checker (if data plus CRC is clocked in without errors,
-          --* the CRC register ends up with all zeroes)
+          -- CRC match checker (if data plus CRC is clocked in without errors,
+          -- the CRC register ends up with all zeroes)
           if s_fb = C_ZERO then
             match_o <= '1';
           else
             match_o <= '0';
           end if;
-        end if; 
+        end if;
       end if;
     end if;
   end process proc_crc;
@@ -144,7 +144,7 @@ begin
     s_crc_xor(i) <= g_xor_out(i) xor s_crc_flip(i);
   end generate gen_xor_out;
 
-  --* output assignments
+  -- output assignments
   crc_o <= s_crc_xor;
 
 end architecture a_rtl;

@@ -31,23 +31,22 @@ use ieee.std_logic_1164.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief general purpose multiplexer
---* @version 1.0.0
+-- general purpose multiplexer
 entity lm_util_mux is
   generic(
-    --* input data width
+    -- input data width
     g_data_w     : integer;
-    --* implementation type, C_CES_COMB: combinatorial mux, C_CES_SYNC: synchronuous mux
+    -- implementation type, C_LM_COMB: combinatorial mux, C_LM_SYNC: synchronuous mux
     g_arch_type  : integer;
-    --* number of inputs
+    -- number of inputs
     g_nof_inputs : integer
     );
   port(
-    --* input clock
+    -- input clock
     clk_i  : in  std_logic;
-    --* mux select control input
+    -- mux select control input
     sel_i  : in  std_logic_vector(f_ceil_log2(g_nof_inputs) - 1 downto 0);
-    --* mux input data as concatenation of g_nof_inputs inputs of data width g_data_w
+    -- mux input data as concatenation of g_nof_inputs inputs of data width g_data_w
     din_i  : in  std_logic_vector(g_nof_inputs * g_data_w - 1 downto 0);
     -- output selected data
     dout_o : out std_logic_vector(g_data_w - 1 downto 0)
@@ -60,11 +59,11 @@ architecture a_rtl of lm_util_mux is
   signal s_array_val : t_mux_array;
 
 begin
-  assert g_arch_type = C_CES_COMB or g_arch_type = C_CES_SYNC
+  assert g_arch_type = C_LM_COMB or g_arch_type = C_LM_SYNC
     report "lm_util_mux: architecture could only be 0:comb or 1: sync"
     severity failure;
 
-  gen_comb : if g_arch_type = C_CES_COMB generate
+  gen_comb : if g_arch_type = C_LM_COMB generate
     gen_mux : for i in s_array_val'range generate
       s_array_val(i) <= din_i(dout_o'left + (i * g_data_w) downto i * g_data_w);
     end generate;
@@ -72,7 +71,7 @@ begin
     dout_o <= s_array_val(f_slv2nat(sel_i));
   end generate gen_comb;
 
-  gen_sync : if g_arch_type = C_CES_SYNC generate
+  gen_sync : if g_arch_type = C_LM_SYNC generate
     gen_mux : for i in s_array_val'range generate
       proc_mux : process(clk_i)
       begin

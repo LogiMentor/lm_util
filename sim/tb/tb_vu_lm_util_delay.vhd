@@ -24,13 +24,13 @@ use lm_util_lib.lm_util_pkg.all;
 use lm_util_lib.tb_vu_lm_pkg.all;
 entity tb_vu_lm_util_delay is
   generic (
-    g_delay    : natural := 2; --* actual delay can be different from a power of 2
-    g_data_w   : natural := 32; --* input data width
+    g_delay    : natural := 2; -- actual delay can be different from a power of 2
+    g_data_w   : natural := 32; -- input data width
     runner_cfg : string
   );
 end;
 
-architecture tb of tb_vu_lm_util_delay is
+architecture a_tb of tb_vu_lm_util_delay is
 
   constant C_CLK_PERIOD : time := 10 ns;
 
@@ -40,14 +40,14 @@ architecture tb of tb_vu_lm_util_delay is
   signal ce_i    : std_logic := '1';
   signal din_i   : std_logic_vector(g_data_w - 1 downto 0);
   --Observed signal
-  signal dout_o : std_logic_vector(g_data_w - 1 downto 0); --* output delayed data
+  signal dout_o : std_logic_vector(g_data_w - 1 downto 0); -- output delayed data
 
 begin
 
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test
-  uut : entity lm_util_lib.lm_util_delay
+  inst_dut : entity lm_util_lib.lm_util_delay
     generic map(
       g_delay  => g_delay,
       g_data_w => g_data_w

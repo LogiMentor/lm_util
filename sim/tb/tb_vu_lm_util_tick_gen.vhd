@@ -35,7 +35,7 @@ entity tb_vu_lm_util_tick_gen is
   );
 end;
 
-architecture tb of tb_vu_lm_util_tick_gen is
+architecture a_tb of tb_vu_lm_util_tick_gen is
 
   constant C_CLK_PERIOD : time    := 10 ns;
   constant C_ITERATIONS : integer := 10;
@@ -51,7 +51,7 @@ begin
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test
-  dut : entity lm_util_lib.lm_util_tick_gen
+  inst_dut : entity lm_util_lib.lm_util_tick_gen
     generic map(
       g_clock_div => g_clock_div
     )

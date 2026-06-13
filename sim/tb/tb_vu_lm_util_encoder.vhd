@@ -10,8 +10,8 @@
 --
 --              This testbench verifies the encoding functionality of the
 --              lm_util_encoder module. It tests the encoding of one-hot
---              inputs (din_i, dv_i) into binary indices, ensuring correct behavior 
---              of dv_o, dout_o across various input patterns. 
+--              inputs (din_i, dv_i) into binary indices, ensuring correct behavior
+--              of dv_o, dout_o across various input patterns.
 
 --              The testbench checks:
 --              - Correct encoding of one-hot inputs
@@ -32,16 +32,16 @@ use lm_util_lib.lm_util_pkg.all;
 use lm_util_lib.tb_vu_lm_pkg.all;
 entity tb_vu_lm_util_encoder is
   generic (
-    g_data_w : natural := 16; --* input data width
+    g_data_w : natural := 16; -- input data width
 
     runner_cfg : string
   );
 end;
 
-architecture tb of tb_vu_lm_util_encoder is
+architecture a_tb of tb_vu_lm_util_encoder is
 
   constant C_CLK_PERIOD : time    := 10 ns;
-  constant c_index_w    : integer := f_ceil_log2(g_data_w);
+  constant C_INDEX_W    : integer := f_ceil_log2(g_data_w);
 
   --Stimulus signals
   signal clk_i : std_logic                               := '0';
@@ -49,14 +49,14 @@ architecture tb of tb_vu_lm_util_encoder is
   signal din_i : std_logic_vector(g_data_w - 1 downto 0) := (others => '0');
   --Observed signal
   signal dv_o   : std_logic;
-  signal dout_o : std_logic_vector(c_index_w - 1 downto 0);
+  signal dout_o : std_logic_vector(C_INDEX_W - 1 downto 0);
 begin
 
   -- Clock generation
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test
-  dut : entity lm_util_lib.lm_util_encoder
+  inst_dut : entity lm_util_lib.lm_util_encoder
     generic map(
       g_data_w => g_data_w
     )
@@ -87,7 +87,7 @@ begin
 
       check_equal(dv_o, '1', "dv_o should be '1' for valid input");
 
-      check_equal(unsigned(dout_o), to_unsigned(i, c_index_w),
+      check_equal(unsigned(dout_o), to_unsigned(i, C_INDEX_W),
       "Incorrect encoding for input index " & integer'image(i)
       );
     end loop;
@@ -113,7 +113,7 @@ begin
 
     check_equal(
     unsigned(dout_o),
-    to_unsigned(5, c_index_w),
+    to_unsigned(5, C_INDEX_W),
     "Encoder should return index of last '1' (5)"
     );
 

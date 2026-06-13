@@ -27,14 +27,14 @@ use lm_util_lib.lm_util_pkg.all;
 use lm_util_lib.tb_vu_lm_pkg.all;
 entity tb_vu_lm_util_delay_pulse is
   generic (
-    g_delay       : natural   := 2; --* actual delay can be different from a power of 2
-    g_pulse_level : std_logic := '1'; --* input pulse active level, used only in "pulse" mode
-    g_pulse_width : positive  := 1; --* pulse width in clks
+    g_delay       : natural   := 2; -- actual delay can be different from a power of 2
+    g_pulse_level : std_logic := '1'; -- input pulse active level, used only in "pulse" mode
+    g_pulse_width : positive  := 1; -- pulse width in clks
     runner_cfg    : string
   );
 end;
 
-architecture tb of tb_vu_lm_util_delay_pulse is
+architecture a_tb of tb_vu_lm_util_delay_pulse is
 
   constant C_CLK_PERIOD : time := 10 ns;
 
@@ -42,9 +42,9 @@ architecture tb of tb_vu_lm_util_delay_pulse is
   signal clk_i   : std_logic := '1';
   signal rst_n_i : std_logic := '0';
   signal ce_i    : std_logic := '1';
-  signal din_i   : std_logic; --* input data, pulse
+  signal din_i   : std_logic; -- input data, pulse
   --Observed signal
-  signal dout_o : std_logic; --* output delayed data
+  signal dout_o : std_logic; -- output delayed data
 
 begin
   --assert g_delay - g_pulse_width >= 0 report "Delay must be greater than or equal to pulse width" severity ERROR;
@@ -53,7 +53,7 @@ begin
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test
-  uut : entity lm_util_lib.lm_util_delay_pulse
+  inst_dut : entity lm_util_lib.lm_util_delay_pulse
     generic map(
       g_delay       => g_delay,
       g_pulse_level => g_pulse_level

@@ -10,7 +10,7 @@
 --
 --              Testbench verifies the clock generation functionality:
 --              - clock phase
---              - clock duty cycle 
+--              - clock duty cycle
 --              - reset functionality
 --=============================================================================
 
@@ -26,11 +26,11 @@ use lm_util_lib.tb_vu_lm_pkg.all;
 
 entity tb_vu_lm_util_clock_gen is
   generic (
-    --* input clock frequency divider
+    -- input clock frequency divider
     g_clock_div : integer := 10;
-    --* output clock phase  
+    -- output clock phase
     g_clock_phase : integer := 0;
-    --* positive output clock cycles 
+    -- positive output clock cycles
     g_pos_duty_cycle : integer := 5;
 
     -- Required for VUnit
@@ -38,21 +38,21 @@ entity tb_vu_lm_util_clock_gen is
   );
 end tb_vu_lm_util_clock_gen;
 
-architecture tb_architecture of tb_vu_lm_util_clock_gen is
+architecture a_tb of tb_vu_lm_util_clock_gen is
   constant C_CLK_IN_PERIOD : time := 10 ns;
 
   -- Stimulus signals - signals mapped to the input and inout ports of tested entity
-  signal clk_i   : std_logic := '1'; --* input clock
-  signal rst_n_i : std_logic := '0'; --* input reset
+  signal clk_i   : std_logic := '1'; -- input clock
+  signal rst_n_i : std_logic := '0'; -- input reset
   -- Observed signals - signals mapped to the output ports of tested entity
-  signal clk_o : std_logic := '0'; --* output pulse
+  signal clk_o : std_logic := '0'; -- output pulse
 
 begin
   -- Clock generation
   clk_i <= not clk_i after C_CLK_IN_PERIOD / 2;
 
   -- Unit Under Test port map
-  uut : entity lm_util_lib.lm_util_clock_gen
+  inst_dut : entity lm_util_lib.lm_util_clock_gen
     generic map(
       g_clock_div      => g_clock_div,
       g_clock_phase    => g_clock_phase,

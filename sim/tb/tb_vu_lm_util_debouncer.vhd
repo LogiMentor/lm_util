@@ -38,11 +38,11 @@ entity tb_vu_lm_util_debouncer is
   );
 end;
 
-architecture tb of tb_vu_lm_util_debouncer is
+architecture a_tb of tb_vu_lm_util_debouncer is
 
   constant C_CLK_PERIOD : time := 10 ns;
   constant C_T0         : time := C_CLK_PERIOD * 2;
-  constant C_T1_0       : time := C_CLK_PERIOD * 5; -- 0  
+  constant C_T1_0       : time := C_CLK_PERIOD * 5; -- 0
   constant C_T2_1       : time := C_CLK_PERIOD * 7; -- 1
   constant C_T3_0       : time := C_CLK_PERIOD * 100; -- 0
   constant C_T4_1       : time := C_CLK_PERIOD * 200; -- 1
@@ -65,7 +65,7 @@ begin
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test
-  uut : entity lm_util_lib.lm_util_debouncer
+  inst_dut : entity lm_util_lib.lm_util_debouncer
     generic map(
       g_debounce_length => g_debounce_length,
       g_debounce_lvl    => g_debounce_lvl

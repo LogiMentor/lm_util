@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
-	  
 # Questasim design settings
 set worklib lm_util_lib
 set vhdl_ver 2002

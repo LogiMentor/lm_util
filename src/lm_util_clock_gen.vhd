@@ -6,7 +6,7 @@
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
 -- Description: clock generator, generate an output clock with programmable duty cycle
---            only if g_clock_div is even. If odd the duty cycle is less than 
+--            only if g_clock_div is even. If odd the duty cycle is less than
 --            50% ( e.g. g_clock_div 7, high for 3 clock cycles and low for 4 )
 --            the phase of the output clock can also be configured
 --------------------------------------------------------------------------------
@@ -37,22 +37,22 @@ use lm_util_lib.lm_util_pkg.all;
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
---* @brief generate an output clock with 50 % duty cycle
---* only if g_clock_div is even. If odd the duty cycle is less than 
---* 50% ( e.g. g_clock_div 7, high for 3 clock cycles and low for 4
+-- generate an output clock with 50 % duty cycle
+-- only if g_clock_div is even. If odd the duty cycle is less than
+-- 50% ( e.g. g_clock_div 7, high for 3 clock cycles and low for 4
 entity lm_util_clock_gen is
   generic(
-    --* input clock frequency divider
+    -- input clock frequency divider
     g_clock_div      : integer;
-    --* output clock phase  
+    -- output clock phase
     g_clock_phase    : integer;
-    --* positive output clock cycles 
+    -- positive output clock cycles
     g_pos_duty_cycle : integer
     );
   port(
-    clk_i   : in  std_logic;            --* input clock
-    rst_n_i : in  std_logic;            --* input reset
-    clk_o   : out std_logic             --* output pulse
+    clk_i   : in  std_logic;            -- input clock
+    rst_n_i : in  std_logic;            -- input reset
+    clk_o   : out std_logic             -- output pulse
     );
 end lm_util_clock_gen;
 
@@ -75,7 +75,7 @@ begin
   -- generate delay if phase is greater than 0
   gen_delay : if g_clock_phase > 0 generate
     -----------------------------------------------------------------------------
-    --* delay on the output clock to adjust output phase
+    -- delay on the output clock to adjust output phase
     -----------------------------------------------------------------------------
     proc_delay : process(clk_i)
     begin
@@ -100,8 +100,8 @@ begin
   end generate gen_wire;
 
   -----------------------------------------------------------------------------
-  --* this process divides the input frequency to generate the
-  --* desired output clock rate
+  -- this process divides the input frequency to generate the
+  -- desired output clock rate
   -----------------------------------------------------------------------------
   proc_m_counter : process(clk_i)
   begin

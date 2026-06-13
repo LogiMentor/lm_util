@@ -34,7 +34,7 @@ entity tb_vu_lm_util_ccd_switch is
   );
 end tb_vu_lm_util_ccd_switch;
 
-architecture tb_architecture of tb_vu_lm_util_ccd_switch is
+architecture a_tb of tb_vu_lm_util_ccd_switch is
   constant C_CLK_IN_PERIOD : time := 10 ns;
   constant C_T0            : time := 100 ns;
 
@@ -51,7 +51,7 @@ begin
   clk_i <= not clk_i after C_CLK_IN_PERIOD/2;
 
   -- Unit Under Test port map
-  uut : entity lm_util_lib.lm_util_ccd_switch
+  inst_dut : entity lm_util_lib.lm_util_ccd_switch
     generic map(
       g_priority_lo => g_priority_lo,
       g_or_high     => g_or_high,
@@ -94,7 +94,7 @@ begin
       wait until clk_i;
       wait for 1 ps;
       check_equal(out_level_o, '1', "ccd_switch output should be 1 after clk with switch_high_i");
-      
+
       -- Test switch_low_i stimulus reaction
       switch_low_i  <= '1';
       switch_high_i <= '0';

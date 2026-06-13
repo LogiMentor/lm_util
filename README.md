@@ -50,9 +50,6 @@ library.
 | `lm_util_tick_gen` | Periodic tick generator. |
 | `lm_util_pkg` | Shared constants, types, and utility functions. |
 
-Some package constants still use the historical `C_CES_*` prefix. They are kept
-for compatibility while the library is being migrated.
-
 ## Verification
 
 The regression is based on VUnit and self-checking testbenches. The default

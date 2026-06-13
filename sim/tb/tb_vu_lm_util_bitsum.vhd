@@ -29,11 +29,11 @@ use lm_util_lib.tb_vu_lm_pkg.all;
 
 entity tb_vu_lm_util_bitsum is
   generic (
-    --* Input data width
+    -- Input data width
     g_din_w                 : natural := 28;
-    --* Number of first stage chunks, used to calculate bitsum
+    -- Number of first stage chunks, used to calculate bitsum
     g_nof_first_stage_chunk : natural := 3;
-    --* Input data for the test
+    -- Input data for the test
     g_d_in : natural := 1024;
 
     -- Required for VUnit
@@ -41,7 +41,7 @@ entity tb_vu_lm_util_bitsum is
   );
 end tb_vu_lm_util_bitsum;
 
-architecture tb_architecture of tb_vu_lm_util_bitsum is
+architecture a_tb of tb_vu_lm_util_bitsum is
   -- Stimulus signals - signals mapped to the input and inout ports of tested entity
   signal clk_i : std_logic := '0';
   signal dv_i  : std_logic;
@@ -55,7 +55,7 @@ begin
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
   -- Unit under test instantiation
-  uut : entity lm_util_lib.lm_util_bitsum
+  inst_dut : entity lm_util_lib.lm_util_bitsum
     generic map(
       g_din_w                 => g_din_w,
       g_nof_first_stage_chunk => g_nof_first_stage_chunk

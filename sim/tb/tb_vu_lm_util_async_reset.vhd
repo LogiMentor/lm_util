@@ -30,7 +30,7 @@ entity tb_vu_lm_util_async_reset is
   );
 end tb_vu_lm_util_async_reset;
 
-architecture tb_architecture of tb_vu_lm_util_async_reset is
+architecture a_tb of tb_vu_lm_util_async_reset is
   constant C_RST_LVL     : std_logic := f_int2sl(g_rst_lvl);
   signal arst_i        : std_logic;
   signal clk_i         : std_logic := '1';
@@ -42,7 +42,7 @@ begin
 
   clk_i <= not clk_i after C_CLK_PERIOD / 2;
 
-  uut : entity lm_util_lib.lm_util_async_reset
+  inst_dut : entity lm_util_lib.lm_util_async_reset
     generic map(
       g_delay_len => g_delay_len,
       g_rst_lvl   => C_RST_LVL
@@ -89,7 +89,7 @@ begin
       p_wait_clk(clk_i);
       p_check_held_for(rst_n_o, C_RST_ACTIVE, C_CLK_PERIOD * (g_delay_len - 1), "Reset pulse to short");
     elsif run("reset_pulse_check_stability") then
-      -- using vunit-provided procedure check_stable()  -- see stability_check 
+      -- using vunit-provided procedure check_stable()  -- see stability_check
       -- https://vunit.github.io/check/user_guide.html#stability-check-check-stable
 
       -- apply asynchronous short reset pulse < C_CLK_PERIOD

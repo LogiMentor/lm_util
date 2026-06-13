@@ -5,7 +5,7 @@
 -- Company     : Logimentor Srl
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
--- Description: pulse generator, generate an output pulse for one clock cycle 
+-- Description: pulse generator, generate an output pulse for one clock cycle
 --              every g_clock_div clock pulses. Ideal to generate a clock enable
 --              pulse
 --------------------------------------------------------------------------------
@@ -36,17 +36,17 @@ use lm_util_lib.lm_util_pkg.all;
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
---* @brief pulse generator, generate a pulse of one clock cycle every 
---* g_clock_div clock cycles
+-- pulse generator, generate a pulse of one clock cycle every
+-- g_clock_div clock cycles
 entity lm_util_tick_gen is
   generic(
-    --* input clock frequency divider,  must be >= 1
+    -- input clock frequency divider,  must be >= 1
     g_clock_div : positive
   );
   port(
-    clk_i   : in  std_logic; --* input clock
-    rst_n_i : in  std_logic; --* input reset, synchronous active low
-    pulse_o : out std_logic  --* output pulse
+    clk_i   : in  std_logic; -- input clock
+    rst_n_i : in  std_logic; -- input reset, synchronous active low
+    pulse_o : out std_logic  -- output pulse
   );
 end lm_util_tick_gen;
 
@@ -56,8 +56,8 @@ begin
 
   assert g_clock_div > 1 report "g_clock_div must be > 1"  severity FAILURE;
   -----------------------------------------------------------------------------
-  --* this process divides the input frequency to generate the
-  --* desired output clock rate
+  -- this process divides the input frequency to generate the
+  -- desired output clock rate
   -----------------------------------------------------------------------------
   proc_m_counter : process(clk_i)
   begin

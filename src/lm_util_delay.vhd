@@ -5,7 +5,7 @@
 -- Company     : Logimentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
--- Description: Fixed delay for std_logic_vector signals. 
+-- Description: Fixed delay for std_logic_vector signals.
 --              Shift register implementation
 --
 -------------------------------------------------------------------------------
@@ -33,25 +33,24 @@ use ieee.numeric_std.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief Variable delay for std_logic_vector signals
---* Input signal is delayed by a specific amount
---* The input is valid and is entered in the delay FIFO when ce_i is true
---* @version 1.1.1
+-- Variable delay for std_logic_vector signals
+-- Input signal is delayed by a specific amount
+-- The input is valid and is entered in the delay FIFO when ce_i is true
 entity lm_util_delay is
   generic(
-    --* actual delay can be different from a power of 2
+    -- actual delay can be different from a power of 2
     g_delay : natural;
-    --* input data width
+    -- input data width
     g_data_w : natural
   );
   port(
-    --* input clock
+    -- input clock
     clk_i : in std_logic;
-    --* clock enable
+    -- clock enable
     ce_i : in std_logic := '1';
-    --* input data
+    -- input data
     din_i : in std_logic_vector(g_data_w - 1 downto 0);
-    --* output delayed data
+    -- output delayed data
     dout_o : out std_logic_vector(g_data_w - 1 downto 0)
   );
 end lm_util_delay;
@@ -62,7 +61,7 @@ end lm_util_delay;
 architecture a_rtl of lm_util_delay is
 --`protect begin
 begin
-  
+
   gen_no_delay : if g_delay = 0 generate
     dout_o <= din_i;
   end generate gen_no_delay;

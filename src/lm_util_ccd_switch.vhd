@@ -45,41 +45,40 @@ use lm_util_lib.lm_util_pkg.all;
 
 -------------------------------------------------------------------------------
 -- ENTITY
-------------------------------------------------------------------------------- 
---* @brief The output goes high when switch_high_i='1' and low when
---* switch_low_i='1'.
---* If g_or_high is true then the output follows the switch_high_i immediately,
---* else it goes high in the next clk cycle.
---* If g_and_low is true then the output follows the switch_low_i immediately,
---* else it goes low in the next clk cycle.
---* The g_priority_lo defines which input has priority when switch_high_i and
---* switch_low_i are active simultaneously.
---* @version 1.0.0
+-------------------------------------------------------------------------------
+-- The output goes high when switch_high_i='1' and low when
+-- switch_low_i='1'.
+-- If g_or_high is true then the output follows the switch_high_i immediately,
+-- else it goes high in the next clk cycle.
+-- If g_and_low is true then the output follows the switch_low_i immediately,
+-- else it goes low in the next clk cycle.
+-- The g_priority_lo defines which input has priority when switch_high_i and
+-- switch_low_i are active simultaneously.
 entity lm_util_ccd_switch is
   generic(
-    --* When TRUE then input switch_low_i has priority, else switch_high_i.
-    --* Don't care when switch_high_i and switch_low_i are pulses that do not occur
-    --* simultaneously.
+    -- When TRUE then input switch_low_i has priority, else switch_high_i.
+    -- Don't care when switch_high_i and switch_low_i are pulses that do not occur
+    -- simultaneously.
     g_priority_lo : boolean;
-    --* When TRUE and priority hi then the registered switch_level is OR-ed with the
-    --* input switch_high_i to get out_level_o, else out_level_o is the registered
-    --* switch_level
+    -- When TRUE and priority hi then the registered switch_level is OR-ed with the
+    -- input switch_high_i to get out_level_o, else out_level_o is the registered
+    -- switch_level
     g_or_high     : boolean;
-    --* When TRUE and priority lo then the registered switch_level is AND-ed with the
-    --* input switch_low_i to get out_level_o, else out_level_o is the registered
-    --* switch_level
+    -- When TRUE and priority lo then the registered switch_level is AND-ed with the
+    -- input switch_low_i to get out_level_o, else out_level_o is the registered
+    -- switch_level
     g_and_low     : boolean
     );
   port(
-    --* input clock
+    -- input clock
     clk_i         : in  std_logic;
-    --* input reset
+    -- input reset
     rst_n_i       : in  std_logic;
-    --* A pulse on switch_high_i makes the out_level go high
+    -- A pulse on switch_high_i makes the out_level go high
     switch_high_i : in  std_logic;
-    --* A pulse on switch_low_i makes the out_level go low
+    -- A pulse on switch_low_i makes the out_level go low
     switch_low_i  : in  std_logic;
-    --* output data
+    -- output data
     out_level_o   : out std_logic
     );
 end lm_util_ccd_switch;

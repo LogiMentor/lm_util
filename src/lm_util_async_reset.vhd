@@ -6,16 +6,16 @@
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: Immediately apply reset and synchronously release it at rising clk_i
---              The first reason for recommending synchronous resets is for big 
---              blocks like DSPs and block RAMs which by architecture support only 
---              synchronous resets. The inference of DSPs and block RAMs is possible 
---              if synchronous resets are used. Use of asynchronous resets might 
---              result in these structures getting inferred in the fabric which 
---              might hurt performance. In the DSP blocks, the pipeline registers 
---              only support synchronous resets. In block RAMs, the output 
---              registers support only synchronous resets and using output 
+--              The first reason for recommending synchronous resets is for big
+--              blocks like DSPs and block RAMs which by architecture support only
+--              synchronous resets. The inference of DSPs and block RAMs is possible
+--              if synchronous resets are used. Use of asynchronous resets might
+--              result in these structures getting inferred in the fabric which
+--              might hurt performance. In the DSP blocks, the pipeline registers
+--              only support synchronous resets. In block RAMs, the output
+--              registers support only synchronous resets and using output
 --              registers is an advantage as it reduces the clock-to-out (Tco).
---              The rule of thumb with reset is to use synchronous reset inside 
+--              The rule of thumb with reset is to use synchronous reset inside
 --              the FPGA, as it is automaticcally timed and need no special
 --              constraint
 --              The input asynchronous reset is active on g_rst_lvl, the output
@@ -44,22 +44,21 @@ use ieee.std_logic_1164.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief Immediately apply reset and synchronously release it at an edge of 
---* clk_i. 
---* @version 1.0.0
+-- Immediately apply reset and synchronously release it at an edge of
+-- clk_i.
 entity lm_util_async_reset is
   generic (
-    --* number of resync stage to reduce metastability
+    -- number of resync stage to reduce metastability
     g_delay_len : integer;
-    --* asynchronous reset level
+    -- asynchronous reset level
     g_rst_lvl : std_logic
   );
   port (
-    --* input reset, asynchronous, active state at generic g_rst_lvl
+    -- input reset, asynchronous, active state at generic g_rst_lvl
     arst_i : in std_logic;
-    --* input clock
+    -- input clock
     clk_i : in std_logic;
-    --* output resynced reset, active low
+    -- output resynced reset, active low
     rst_n_o : out std_logic
   );
 end lm_util_async_reset;
@@ -77,9 +76,9 @@ begin
 
   -- VENDOR INDEPENDENT
 
-  --* When rst_n_i becomes '0' then rst_n_o follows immediately (asynchronous reset apply).
-  --* When rst_n_i becomes '1' then rst_n_o follows after g_delay_len cycles (synchronous reset release).
-  --* This block can also synchronise other signals than reset
+  -- When rst_n_i becomes '0' then rst_n_o follows immediately (asynchronous reset apply).
+  -- When rst_n_i becomes '1' then rst_n_o follows after g_delay_len cycles (synchronous reset release).
+  -- This block can also synchronise other signals than reset
   proc_resync : process (clk_i, arst_i)
   begin
     if arst_i = g_rst_lvl then

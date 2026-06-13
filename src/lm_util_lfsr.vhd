@@ -39,22 +39,22 @@ use lm_util_lib.lm_util_pkg.all;
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
---* @brief random noise generator
---* The xorshift random number generator produces a sequence of 2^g_data_w -1
---* by making a xor of a computer word with a shifted version of itself.
---* Computing such xorshift opeations for various shifts and arguments provides
---* extremely fast and simple RNGs.
+-- random noise generator
+-- The xorshift random number generator produces a sequence of 2^g_data_w -1
+-- by making a xor of a computer word with a shifted version of itself.
+-- Computing such xorshift opeations for various shifts and arguments provides
+-- extremely fast and simple RNGs.
 entity lm_util_lfsr is
   generic(
-    --* data width
+    -- data width
     g_data_w : integer := 32
     );
   port(
-    clk_i   : in  std_logic;                                --* input clock
-    rst_n_i : in  std_logic;                                --* input reset
-    load_i  : in  std_logic;                                --* load seed
-    seed_i  : in  std_logic_vector(g_data_w - 1 downto 0);  --* seed (should be nonzero)
-    rng_o   : out std_logic_vector(g_data_w - 1 downto 0)   --* random output
+    clk_i   : in  std_logic;                                -- input clock
+    rst_n_i : in  std_logic;                                -- input reset
+    load_i  : in  std_logic;                                -- load seed
+    seed_i  : in  std_logic_vector(g_data_w - 1 downto 0);  -- seed (should be nonzero)
+    rng_o   : out std_logic_vector(g_data_w - 1 downto 0)   -- random output
     );
 end lm_util_lfsr;
 

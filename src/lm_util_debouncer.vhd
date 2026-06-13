@@ -6,8 +6,8 @@
 -- Author      : ACA
 -------------------------------------------------------------------------------
 -- Description  : general purpose debouncer circuit with configurable length
--- 
--- 
+--
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 Logimentor Srl
 --
@@ -70,7 +70,7 @@ begin
     end if;
   end process proc_sample;
 
-  --xor 
+  --xor
   gen_debounce_both : if g_debounce_lvl = 2 generate
     s_diff <= s_din_d xor s_din_d2;
 
@@ -79,9 +79,9 @@ begin
     proc_debounce : process (clk_i)
     begin
       if rising_edge(clk_i) then
-        if (rst_n_i = '0') then           --sync reset 
+        if (rst_n_i = '0') then           --sync reset
           s_debounced <= din_i;
-        else  
+        else
           if (s_cnt = g_debounce_length - 1) then
             s_debounced <= s_din_d2;
           end if;
@@ -100,9 +100,9 @@ begin
     proc_debounce : process (clk_i)
     begin
       if rising_edge(clk_i) then
-        if (rst_n_i = '0') then           --sync reset 
+        if (rst_n_i = '0') then           --sync reset
           s_debounced <= din_i;
-        else  
+        else
           if (s_cnt = g_debounce_length - 1) then
             s_debounced <= s_din_d2;
           elsif s_din_d2 = '1' then
@@ -122,9 +122,9 @@ begin
     proc_debounce : process (clk_i)
     begin
       if rising_edge(clk_i) then
-        if (rst_n_i = '0') then           --sync reset 
+        if (rst_n_i = '0') then           --sync reset
           s_debounced <= din_i;
-        else  
+        else
           if (s_cnt = g_debounce_length - 1) then
             s_debounced <= s_din_d2;
           elsif s_din_d2 = '0' then
@@ -140,7 +140,7 @@ begin
   proc_counter : process (clk_i)
   begin
     if rising_edge(clk_i) then
-      if (rst_n_i = '0') then           --sync reset 
+      if (rst_n_i = '0') then           --sync reset
         s_cnt <= (others => '0');
       else
         --change detected or end of counter

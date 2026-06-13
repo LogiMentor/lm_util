@@ -5,11 +5,11 @@
 -- Company     : Logimentor Srl
 -- Author      : G. Dalle Mura
 --------------------------------------------------------------------------------
--- Description  : the module detect the edge of a signal based on the generic
--- g_level_edge. If g_level_edge = C_CES_RISING the module detect the rising
--- edge of the signal. If g_level_edge = C_CES_FALLING the module detect the
--- falling edge of the signal. 
--- 
+-- Description  : the module detects the edge of a signal based on the generic
+-- g_event_edge. If g_event_edge = C_RISING_EDGE the module detects the rising
+-- edge of the signal. If g_event_edge = C_FALLING_EDGE the module detects the
+-- falling edge of the signal.
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 Logimentor Srl
 --
@@ -37,23 +37,22 @@ use lm_util_lib.lm_util_pkg.all;
 --------------------------------------------------------------------------------
 -- ENTITY
 --------------------------------------------------------------------------------
---* @brief the module detect the edge of a signal based on the generic
---* g_level_edge. If g_level_edge = C_CES_RISING the module detect the rising
---* edge of the signal. If g_level_edge = C_CES_FALLING the module detect the
---* falling edge of the signal.
---* @version 1.0.0
+-- the module detects the edge of a signal based on the generic
+-- g_event_edge. If g_event_edge = C_RISING_EDGE the module detects the rising
+-- edge of the signal. If g_event_edge = C_FALLING_EDGE the module detects the
+-- falling edge of the signal.
 entity lm_util_edge_detector is
   generic(
-    --* Rising or falling edge event to be detected
-    --* g_event_edge can be C_RISING_EDGE or C_FALLING_EDGE
+    -- Rising or falling edge event to be detected
+    -- g_event_edge can be C_RISING_EDGE or C_FALLING_EDGE
     g_event_edge : integer
     );
   port(
-    --* input clcok
+    -- input clcok
     clk_i   : in  std_logic;
-    --* signal which edge has to be detected
+    -- signal which edge has to be detected
     din_i   : in  std_logic;
-    --* detected edge
+    -- detected edge
     dout_o  : out std_logic
     );
 end lm_util_edge_detector;
@@ -64,9 +63,9 @@ architecture a_rtl of lm_util_edge_detector is
 
 begin
 
-  --* process to register input signal. xor operation detect both rising and
-  --* falling edge. the internal condition (din_i = g_event_edge) allows to select
-  --* the desired edge event
+  -- process to register input signal. xor operation detect both rising and
+  -- falling edge. the internal condition (din_i = g_event_edge) allows to select
+  -- the desired edge event
   proc_reg : process(clk_i)
   begin
     if rising_edge(clk_i) then

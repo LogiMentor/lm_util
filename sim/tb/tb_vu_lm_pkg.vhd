@@ -123,14 +123,14 @@ package body tb_vu_lm_pkg is
     constant C_DURATION : in time;
     constant C_MSG      : in string := ""
   ) is
-    variable t_start : time;
+    variable v_t_start : time;
   begin
     check_equal(s_sig, C_EXPECTED, C_MSG);
-    t_start := now;
+    v_t_start := now;
     wait until s_sig /= C_EXPECTED for C_DURATION;
-    check(now - t_start >= C_DURATION,
+    check(now - v_t_start >= C_DURATION,
     "Signal did not hold value " & std_logic'image(C_EXPECTED) &
-    " for " & time'image(C_DURATION) & " but only for " & time'image(now - t_start) &
+    " for " & time'image(C_DURATION) & " but only for " & time'image(now - v_t_start) &
     " -- " & C_MSG);
   end procedure;
 
@@ -198,14 +198,14 @@ package body tb_vu_lm_pkg is
   shared variable seed2 : positive := 303;
 
   impure function f_random_vector(n : natural) return std_logic_vector is
-    variable result                   : std_logic_vector(n - 1 downto 0);
-    variable r                        : real;
+    variable v_result : std_logic_vector(n - 1 downto 0);
+    variable v_r      : real;
   begin
     for i in 0 to n - 1 loop
-      uniform(seed1, seed2, r);
-      result(i) := '1' when r >= 0.5 else
+      uniform(seed1, seed2, v_r);
+      v_result(i) := '1' when v_r >= 0.5 else
       '0';
     end loop;
-    return result;
+    return v_result;
   end function;
 end package body;

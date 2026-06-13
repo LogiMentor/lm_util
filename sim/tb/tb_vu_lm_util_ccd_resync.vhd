@@ -34,7 +34,7 @@ entity tb_vu_lm_util_ccd_resync is
   );
 end tb_vu_lm_util_ccd_resync;
 
-architecture tb_architecture of tb_vu_lm_util_ccd_resync is
+architecture a_tb of tb_vu_lm_util_ccd_resync is
   constant C_CLK_IN_PERIOD : time := 10 ns;
   constant C_T0            : time := 98 ns;
   constant C_T1            : time := 118 ns;
@@ -48,7 +48,7 @@ begin
   clk_i <= not clk_i after C_CLK_IN_PERIOD/2;
 
   -- Unit Under Test port map
-  uut : entity lm_util_lib.lm_util_ccd_resync
+  inst_dut : entity lm_util_lib.lm_util_ccd_resync
     generic map(
       g_meta_levels => g_meta_levels
     )

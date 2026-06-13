@@ -33,23 +33,22 @@ use ieee.numeric_std.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief general purpose encoder
---* @version 1.0.0
+-- general purpose encoder
 entity lm_util_encoder is
   generic(
-    --* input data width
+    -- input data width
     g_data_w : integer
     );
   port(
-    --* input clock
+    -- input clock
     clk_i   : in  std_logic;
-    --* input data valid
+    -- input data valid
     dv_i    : in  std_logic;
-    --* input data
+    -- input data
     din_i   : in  std_logic_vector(g_data_w - 1 downto 0);
-    --* output data valid
+    -- output data valid
     dv_o    : out std_logic;
-    --* output encoded data
+    -- output encoded data
     dout_o  : out std_logic_vector(f_ceil_log2(g_data_w) - 1 downto 0)
     );
 end entity lm_util_encoder;
