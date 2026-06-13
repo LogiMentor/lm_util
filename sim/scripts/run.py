@@ -187,7 +187,7 @@ generate_tests(test, g_event_edge = [0])
 
 #lm_util_tick_gen
 test = lib.test_bench("tb_vu_lm_util_tick_gen")
-generate_tests(test, g_event_edge = [1])
+generate_tests(test, g_clock_div = [10])
 
 #lm_util_pulse_stretch
 test = lib.test_bench("tb_vu_lm_util_pulse_stretch")
