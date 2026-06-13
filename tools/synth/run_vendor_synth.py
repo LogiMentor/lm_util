@@ -192,9 +192,10 @@ def write_vivado_script(path: Path, target: Target, top: str, sources: list[Path
     part = target.options.get("part")
     if not part:
         raise ValueError(f"Vivado target {target.name} requires a 'part' option.")
+    script_dir = path.parent.resolve().as_posix()
     lines = [
         "# SPDX-License-Identifier: Apache-2.0",
-        "set script_dir [file dirname [file normalize [info script]]]",
+        f"set script_dir {tcl(script_dir)}",
         "file mkdir [file join $script_dir reports]",
         f"create_project -force {tcl(top)} [file join $script_dir project] -part {tcl(part)}",
         "set_property target_language VHDL [current_project]",
@@ -211,7 +212,7 @@ def write_vivado_script(path: Path, target: Target, top: str, sources: list[Path
         ]
     )
     path.write_text("\n".join(lines), encoding="utf-8")
-    return [target.executable, "-mode", "batch", "-source", str(path)]
+    return [target.executable, "-mode", "batch", "-source", path.as_posix()]
 
 
 def write_quartus_script(path: Path, target: Target, top: str, sources: list[Path]) -> list[str]:
@@ -237,7 +238,7 @@ def write_quartus_script(path: Path, target: Target, top: str, sources: list[Pat
         ]
     )
     path.write_text("\n".join(lines), encoding="utf-8")
-    return [target.executable, "-t", str(path)]
+    return [target.executable, "-t", path.as_posix()]
 
 
 def write_diamond_script(path: Path, target: Target, top: str, sources: list[Path]) -> list[str]:
@@ -263,7 +264,7 @@ def write_diamond_script(path: Path, target: Target, top: str, sources: list[Pat
         ]
     )
     path.write_text("\n".join(lines), encoding="utf-8")
-    return [target.executable, *target.options.get("arguments", []), str(path)]
+    return [target.executable, *target.options.get("arguments", []), path.as_posix()]
 
 
 def write_script(target: Target, case: SynthCase, case_dir: Path, sources: list[Path]) -> list[str]:
@@ -302,6 +303,35 @@ def collect_text(case_dir: Path) -> str:
     return "".join(chunks)
 
 
+def first_failure_message(case_dir: Path) -> str:
+    log_paths = [case_dir / "stdout.log", case_dir / "stderr.log"]
+    log_paths.extend(sorted(path for path in case_dir.glob("*.log") if path.name not in {"stdout.log", "stderr.log"}))
+    patterns = [
+        r"couldn't read file.*",
+        r"can't create directory.*",
+        r"package .*isn't loaded.*",
+        r"invalid part.*",
+        r"No parts matched.*",
+        r"ERROR:.*",
+        r"Error \(.*",
+        r"Command failed.*",
+    ]
+
+    for pattern in patterns:
+        regex = re.compile(pattern, flags=re.IGNORECASE)
+        for path in log_paths:
+            if not path.exists():
+                continue
+            try:
+                for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    match = regex.search(line.strip())
+                    if match:
+                        return match.group(0)[:180]
+            except OSError:
+                continue
+    return ""
+
+
 def run_one(target: Target, case: SynthCase, out_root: Path, sources: list[Path], dry_run: bool) -> dict[str, Any]:
     case_dir = out_root / target.name / case.name
     case_dir.mkdir(parents=True, exist_ok=True)
@@ -332,13 +362,14 @@ def run_one(target: Target, case: SynthCase, out_root: Path, sources: list[Path]
         "returncode": None,
         "seconds": 0.0,
         "directory": str(case_dir),
+        "message": "",
         "missing_expectations": [],
     }
 
     try:
         command = write_script(target, case, case_dir, sources)
     except Exception as exc:  # noqa: BLE001 - report generation errors cleanly
-        result.update(status="error", error=str(exc))
+        result.update(status="error", error=str(exc), message=str(exc))
         return result
 
     result["command"] = command
@@ -347,7 +378,8 @@ def run_one(target: Target, case: SynthCase, out_root: Path, sources: list[Path]
         return result
 
     if not command_exists(command[0]):
-        result.update(status="skipped", error=f"Tool executable not found: {command[0]}")
+        message = f"Tool executable not found: {command[0]}"
+        result.update(status="skipped", error=message, message=message)
         return result
 
     started = time.monotonic()
@@ -357,14 +389,21 @@ def run_one(target: Target, case: SynthCase, out_root: Path, sources: list[Path]
     result["returncode"] = proc.returncode
 
     if proc.returncode != 0:
-        result["status"] = "failed"
+        result.update(status="failed", message=first_failure_message(case_dir))
         return result
 
     text = collect_text(case_dir)
     missing = [pattern for pattern in expectation_patterns(target, case) if not re.search(pattern, text, flags=re.MULTILINE)]
     result["missing_expectations"] = missing
-    result["status"] = "passed" if not missing else "review"
+    if missing:
+        result.update(status="review", message="Missing expectations: " + ", ".join(missing))
+    else:
+        result["status"] = "passed"
     return result
+
+
+def markdown_cell(value: Any) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
 
 
 def write_summary(out_root: Path, results: list[dict[str, Any]]) -> None:
@@ -374,13 +413,19 @@ def write_summary(out_root: Path, results: list[dict[str, Any]]) -> None:
     lines = [
         "# Vendor Synthesis Summary",
         "",
-        "| Target | Tool | Case | Entity | Status | Seconds |",
-        "| --- | --- | --- | --- | --- | ---: |",
+        "| Target | Tool | Case | Entity | Status | Seconds | Directory | Notes |",
+        "| --- | --- | --- | --- | --- | ---: | --- | --- |",
     ]
     for item in results:
+        directory = Path(item["directory"])
+        try:
+            display_dir = directory.relative_to(out_root).as_posix()
+        except ValueError:
+            display_dir = str(directory)
         lines.append(
             f"| {item['target']} | {item['tool']} | {item['case']} | {item['entity']} | "
-            f"{item['status']} | {item.get('seconds', 0.0)} |"
+            f"{item['status']} | {item.get('seconds', 0.0)} | `{display_dir}` | "
+            f"{markdown_cell(item.get('message', ''))} |"
         )
     lines.append("")
     lines.append("Statuses: `passed` means the tool returned success and configured regex expectations matched; `review` means synthesis succeeded but one or more report patterns were not found.")

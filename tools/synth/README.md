@@ -40,7 +40,14 @@ python tools\synth\run_vendor_synth.py --config tools\synth\local.toml
 Results are written below `vendor_synth_out/<timestamp>/` unless overridden by
 `--out`. Each target/case directory contains generated vendor scripts, logs,
 reports, and a `case.json` descriptor. The top-level `summary.json` and
-`summary.md` collect the run status.
+`summary.md` collect the run status, result directory, and a short failure note
+when the vendor tool exits before reports are produced.
+
+`vendor_synth_out/` is intentionally ignored by Git. These reports are local
+evidence for the machine, tool version, license setup, and device family used
+for the run. A failed tool startup or synthesis command may only produce
+`stdout.log`, `stderr.log`, and vendor logs; utilization, timing, or inferred
+resource reports appear only after the corresponding vendor flow completes.
 
 Each case also generates a small VHDL wrapper with fixed generic values and
 concrete top-level ports. This avoids relying on different vendor command-line

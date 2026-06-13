@@ -19,6 +19,9 @@ vunit_xunit.xml
 modelsim.ini
 transcript
 work/
+vivado*.jou
+vivado*.log
+quartus*.log
 
 # Local vendor synthesis configuration
 tools/synth/local.toml
