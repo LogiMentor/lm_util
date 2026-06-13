@@ -1185,8 +1185,8 @@ package body lm_util_pkg is
   end;  --f_sig2uns
 
 
-  -- -- binary to gray-code encoder
-  -- function f_bin2gray(a : std_logic_vector) return std_logic_vector is
+  -- binary to gray-code encoder
+  function f_bin2gray(a : std_logic_vector) return std_logic_vector is
     variable v_a : std_logic_vector(a'length-1 downto 0) := a;
   begin
     assert v_a'length > 1
@@ -1194,8 +1194,8 @@ package body lm_util_pkg is
       severity failure;
     return v_a xor ("0" & v_a(v_a'length - 1 downto 1));
   end function;
-  -- -- gray-code to binary decoder
-  -- function f_gray2bin(a : std_logic_vector) return std_logic_vector is
+  -- gray-code to binary decoder
+  function f_gray2bin(a : std_logic_vector) return std_logic_vector is
     variable v_a   : std_logic_vector(a'length-1 downto 0) := a;
     variable v_bin : std_logic_vector(v_a'range);
     variable v_int : std_logic;
