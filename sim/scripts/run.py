@@ -51,10 +51,6 @@ vu = VUnit.from_argv(argv=remaining_argv)
 # Optionally add VUnit's builtin HDL utilities for checking, logging, communication...
 vu.add_vhdl_builtins()
 
-if os.environ.get("VUNIT_SIMULATOR") == "ghdl":
-    vu.set_compile_option("ghdl.a_flags", ["--std=08", "-fsynopsys"])
-    vu.set_sim_option("ghdl.elab_flags", ["--std=08", "-fsynopsys"])
-
 # Create library 'lib'
 lib = vu.add_library("lm_util_lib")
 
@@ -70,6 +66,10 @@ lib.add_source_files([
     str(path)
     for path in sorted(TB_DIR.glob("*.vhd"))
 ])
+
+if os.environ.get("VUNIT_SIMULATOR") == "ghdl":
+    vu.set_compile_option("ghdl.a_flags", ["--std=08", "-fsynopsys"])
+    vu.set_sim_option("ghdl.elab_flags", ["--std=08", "-fsynopsys"])
 
 # Manual test handling
 
