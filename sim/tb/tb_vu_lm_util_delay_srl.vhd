@@ -33,8 +33,8 @@ use lm_util_lib.tb_vu_lm_pkg.all;
 entity tb_vu_lm_util_delay_srl is
   generic (
     g_delay    : natural := 2; -- actual delay can be different from a power of 2
-    g_data_w   : natural := 32; -- input data width
-    g_srl_depth : natural := 5; -- Shift register depth for the target platform
+    g_data_w   : positive := 32; -- input data width
+    g_srl_depth : positive := 5; -- Shift register depth for the target platform
     runner_cfg : string
   );
 end;

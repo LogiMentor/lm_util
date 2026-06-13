@@ -162,6 +162,8 @@ generate_tests(test, g_delay = [0, 1, 2, 3, 8], g_data_w = [10, 32])
 # lm_util_delay_srl
 test = lib.test_bench("tb_vu_lm_util_delay_srl").test("sequence")
 generate_tests(test, g_delay = [0, 1, 2, 3, 8], g_data_w = [10, 32])
+generate_tests(test, g_delay = [4, 5, 6], g_data_w = [10], g_srl_depth = [5])
+generate_tests(test, g_delay = [31, 32, 33], g_data_w = [8], g_srl_depth = [32])
 
 # lm_util_delay_pulse
 test = lib.test_bench("tb_vu_lm_util_delay_pulse").test("pulse")

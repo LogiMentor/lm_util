@@ -129,15 +129,15 @@ def port_name(port_decl: str) -> str:
     return port_decl.split(":", 1)[0].strip()
 
 
-def wrapper_name(case: SynthCase) -> str:
-    return re.sub(r"[^a-zA-Z0-9_]", "_", f"{case.name}_top")
+def wrapper_name() -> str:
+    return "lm_synth_top"
 
 
 def write_wrapper(case: SynthCase, case_dir: Path) -> tuple[str, Path]:
     if not case.ports:
         raise ValueError(f"Case {case.name} requires concrete wrapper ports.")
 
-    top = wrapper_name(case)
+    top = wrapper_name()
     wrapper = case_dir / f"{top}.vhd"
     lines = [
         "-- SPDX-License-Identifier: Apache-2.0",
@@ -198,6 +198,7 @@ def write_vivado_script(path: Path, target: Target, top: str, sources: list[Path
         f"set script_dir {tcl(script_dir)}",
         "file mkdir [file join $script_dir reports]",
         f"create_project -force {tcl(top)} [file join $script_dir project] -part {tcl(part)}",
+        "set_param general.maxThreads 1",
         "set_property target_language VHDL [current_project]",
     ]
     lines.extend(f"read_vhdl -library lm_util_lib -vhdl2008 {tcl(src)}" for src in sources)

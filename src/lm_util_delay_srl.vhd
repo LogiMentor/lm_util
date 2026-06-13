@@ -42,9 +42,9 @@ entity lm_util_delay_srl is
     -- actual delay can be different from a power of 2
     g_delay : natural;
     -- input data width
-    g_data_w : natural;
+    g_data_w : positive;
     -- Shift register depth for the target platform
-    g_srl_depth: natural
+    g_srl_depth : positive
   );
   port(
     -- input clock
@@ -84,47 +84,27 @@ begin
   -- delay greater than one
   gen_delay : if g_delay > 1 generate
     -- vendor and family from lm_util_pkg
-    constant C_NUM_SRL   : integer := f_div_ceil(g_delay, g_srl_depth);
-    constant C_SRL_ADDR  : integer := g_delay mod g_srl_depth;
+    constant C_NUM_SRL     : integer := f_div_ceil(g_delay, g_srl_depth);
+    constant C_DELAY_DEPTH : integer := C_NUM_SRL * g_srl_depth;
 
     -- SRL instantiation
-    type t_array_srl_depth_by_width is array (g_srl_depth - 1 downto 0) of std_logic_vector(din_i'range);
-    type t_array_numsrl_by_srl is array (C_NUM_SRL - 1 downto 0) of t_array_srl_depth_by_width;
-    signal s_delay_line : t_array_numsrl_by_srl;
+    type t_array_delay_by_width is array (0 to C_DELAY_DEPTH - 1) of std_logic_vector(din_i'range);
+    signal s_delay_line : t_array_delay_by_width;
   begin
-    -- generates WIDTH bit wide, NUM_SRL*SRL_DEPTH deep shift register array
-    -- with one addressable output per SRL
+    -- Generates a WIDTH bit wide, NUM_SRL*SRL_DEPTH deep shift register array.
+    proc_srl : process(clk_i)
+    begin
+      if rising_edge(clk_i) then
+        if (ce_i = '1') then
+          s_delay_line(0) <= din_i;
+          for i in 1 to C_DELAY_DEPTH - 1 loop
+            s_delay_line(i) <= s_delay_line(i - 1);
+          end loop;
+        end if;
+      end if;
+    end process proc_srl;
 
-    gen_srls : for i in 0 to C_NUM_SRL - 1 generate
-      gen_stage_0 : if (i = 0) generate
-        proc_srl_0 : process(clk_i)
-        begin
-          if rising_edge(clk_i) then
-            if (ce_i = '1') then
-              s_delay_line(i)(0) <= din_i;
-              for j in 1 to g_srl_depth - 1 loop
-                s_delay_line(i)(j) <= s_delay_line(i)(j - 1);
-              end loop;
-            end if;
-          end if;
-        end process proc_srl_0;
-      end generate gen_stage_0;
-
-      gen_stage_n : if (i /= 0) generate
-        proc_srl : process(clk_i)
-        begin
-          if rising_edge(clk_i) then
-            if (ce_i = '1') then
-              s_delay_line(i)(0) <= s_delay_line(i - 1)(g_srl_depth - 1);
-              for j in 1 to g_srl_depth - 1 loop
-                s_delay_line(i)(j) <= s_delay_line(i)(j - 1);
-              end loop;
-            end if;
-          end if;
-        end process proc_srl;
-      end generate gen_stage_n;
-    end generate gen_srls;
-    dout_o <= s_delay_line(C_NUM_SRL - 1)(C_SRL_ADDR - 1);
+    dout_o <= s_delay_line(g_delay - 1);
 
 
   end generate gen_delay;
