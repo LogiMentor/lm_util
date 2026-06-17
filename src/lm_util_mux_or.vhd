@@ -61,7 +61,6 @@ entity lm_util_mux_or is
 end lm_util_mux_or;
 
 architecture a_rtl of lm_util_mux_or is
-  --`protect begin
 
   signal s_muxor_tmp : std_logic_vector(g_num_inputs*g_data_width-1 downto 0);
   signal s_dout      : std_logic_vector(g_data_width-1 downto 0);
@@ -105,6 +104,5 @@ begin
   end if;
 end process proc_reg_out;
 
-  --`protect end
 end a_rtl;
 

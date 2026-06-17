@@ -40,7 +40,6 @@ library lm_util_lib;
 -- constants. This package, togheter with the lm_util_lib
 -- library shoud be re-used as base library in every project
 package lm_util_pkg is
-  --`protect begin
 
   -- TYPE DECLARATIONS --------------------------------------------------------
   type t_boolean_arr is array (natural range <>) of boolean;  -- natural left index starts default at 0
@@ -3046,6 +3045,5 @@ function f_slv2string (slv : std_logic_vector) return string is
   end function;
 
 
---`protect end
 end lm_util_pkg;
 

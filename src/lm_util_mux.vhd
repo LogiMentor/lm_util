@@ -54,7 +54,6 @@ entity lm_util_mux is
 end entity lm_util_mux;
 
 architecture a_rtl of lm_util_mux is
-  --`protect begin
   type t_mux_array is array (natural range 0 to g_nof_inputs - 1) of std_logic_vector(g_data_w - 1 downto 0);
   signal s_array_val : t_mux_array;
 
@@ -83,7 +82,6 @@ begin
 
     dout_o <= s_array_val(f_slv2nat(sel_i));
   end generate gen_sync;
---`protect end
 end architecture a_rtl;
 
 

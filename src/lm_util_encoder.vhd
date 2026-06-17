@@ -54,7 +54,6 @@ entity lm_util_encoder is
 end entity lm_util_encoder;
 
 architecture a_rtl of lm_util_encoder is
---`protect begin
 begin
   proc_enc : process(clk_i)
   begin
@@ -69,7 +68,6 @@ begin
       end if;
     end if;
   end process proc_enc;
---`protect end
 end a_rtl;
 
 

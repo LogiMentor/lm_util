@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -56,8 +55,13 @@ class SynthCase:
 
 
 def load_toml(path: Path) -> dict[str, Any]:
-    with path.open("rb") as fh:
-        return tomllib.load(fh)
+    try:
+        with path.open("rb") as fh:
+            return tomllib.load(fh)
+    except FileNotFoundError as exc:
+        raise SystemExit(f"TOML file not found: {path}") from exc
+    except tomllib.TOMLDecodeError as exc:
+        raise SystemExit(f"Invalid TOML in {path}: {exc}") from exc
 
 
 def rel_to_repo(path: str | Path) -> Path:
@@ -81,10 +85,10 @@ def source_files(cases_data: dict[str, Any]) -> list[Path]:
     files: list[Path] = []
 
     for pattern in patterns:
-      matches = sorted(REPO_ROOT.glob(pattern))
-      if not matches:
-          raise SystemExit(f"No files matched source pattern: {pattern}")
-      files.extend(path.resolve() for path in matches if path.is_file())
+        matches = sorted(REPO_ROOT.glob(pattern))
+        if not matches:
+            raise SystemExit(f"No files matched source pattern: {pattern}")
+        files.extend(path.resolve() for path in matches if path.is_file())
 
     seen: set[Path] = set()
     ordered: list[Path] = []
@@ -280,8 +284,10 @@ def write_script(target: Target, case: SynthCase, case_dir: Path, sources: list[
     raise ValueError(f"Unsupported tool kind: {target.tool}")
 
 
-def command_exists(command: str) -> bool:
-    return Path(command).exists() or shutil.which(command) is not None
+def resolve_executable(command: str) -> str | None:
+    if Path(command).exists():
+        return command
+    return shutil.which(command)
 
 
 def expectation_patterns(target: Target, case: SynthCase) -> list[str]:
@@ -378,10 +384,13 @@ def run_one(target: Target, case: SynthCase, out_root: Path, sources: list[Path]
     if dry_run:
         return result
 
-    if not command_exists(command[0]):
+    executable = resolve_executable(command[0])
+    if executable is None:
         message = f"Tool executable not found: {command[0]}"
         result.update(status="skipped", error=message, message=message)
         return result
+    command[0] = executable
+    result["command"] = command
 
     started = time.monotonic()
     with (case_dir / "stdout.log").open("w", encoding="utf-8") as stdout, (case_dir / "stderr.log").open("w", encoding="utf-8") as stderr:

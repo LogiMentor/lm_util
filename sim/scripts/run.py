@@ -83,9 +83,7 @@ test = lib.test_bench("tb_vu_lm_util_barrel_shifter").test("rotate_left_test")
 generate_tests(test, g_data_w = [32], g_shift = [0, 2, 5, 7, 11, 15, 31])
 if args.level == 'full':
     generate_tests(test, g_data_w = [64], g_shift = [0, 2, 5, 7, 11, 15, 31, 32, 48, 63])
-    # Disabled: this case currently fails with 24-bit data width.
     generate_tests(test, g_data_w = [16], g_shift = [0, 3, 8, 15])
-    # Disabled: this case currently fails with 15-bit data width.
     generate_tests(test, g_data_w = [8], g_shift = [0, 3, 7])
     generate_tests(test, g_data_w = [4], g_shift = [0, 3])
 

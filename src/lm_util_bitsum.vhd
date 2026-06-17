@@ -64,7 +64,6 @@ entity lm_util_bitsum is
 end lm_util_bitsum;
 
 architecture a_rtl of lm_util_bitsum is
-  --`protect begin
   constant C_NOF_FIRST_STAGE_ADDERS : integer := f_max(2, f_div_ceil_2pwr(g_din_w, g_nof_first_stage_chunk));
   constant C_NOF_STAGES  : integer := f_get_bitsum_stages(g_din_w, g_nof_first_stage_chunk);
 
@@ -138,6 +137,5 @@ begin
   end generate;
 
   bitsum_o <= s_one_cnt(C_NOF_STAGES-1)(0);
-  --`protect end
 end a_rtl;
 

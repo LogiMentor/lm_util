@@ -2,7 +2,7 @@
 
 # Questasim design settings
 set worklib lm_util_lib
-set vhdl_ver 2002
+set vhdl_ver 2008
 set src_dir ../../src
 
 vlib $worklib

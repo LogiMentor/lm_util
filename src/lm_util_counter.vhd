@@ -63,7 +63,6 @@ entity lm_util_counter is
     );
 end entity lm_util_counter;
 
---`protect begin
 architecture a_rtl of lm_util_counter is
   signal s_cnt   : unsigned(g_data_w - 1 downto 0);
   signal s_timer : std_logic;
@@ -111,6 +110,5 @@ begin
   -- output assignments
   cnt_o   <= std_logic_vector(s_cnt);
   timer_o <= s_timer;
---`protect end
 end architecture a_rtl;
 

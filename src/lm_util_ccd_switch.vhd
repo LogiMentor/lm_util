@@ -87,7 +87,6 @@ end lm_util_ccd_switch;
 -- ARCHITECTURE
 -------------------------------------------------------------------------------
 architecture a_rtl of lm_util_ccd_switch is
-  --`protect begin
   signal s_switch_level      : std_logic;
   signal s_next_switch_level : std_logic;
 
@@ -141,6 +140,5 @@ begin
       end if;
     end if;
   end process proc_switch_level;
---`protect end
 end a_rtl;
 

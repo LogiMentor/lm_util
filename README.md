@@ -1,5 +1,7 @@
 # LogiMentor VHDL Utility Library
 
+[![CI](https://github.com/LogiMentor/lm_util/actions/workflows/ci.yml/badge.svg)](https://github.com/LogiMentor/lm_util/actions/workflows/ci.yml)
+
 Reusable, vendor-independent VHDL utility blocks used across LogiMentor FPGA
 designs.
 

@@ -74,7 +74,6 @@ entity lm_util_ccd_sync_pulse is
 end lm_util_ccd_sync_pulse;
 
 architecture a_rtl of lm_util_ccd_sync_pulse is
-  --`protect begin
   signal s_in_level       : std_logic;
   signal s_meta_level     : std_logic_vector(g_delay_len-1 downto 0);
   signal s_out_level      : std_logic;
@@ -131,6 +130,5 @@ begin
   end process proc_in_clk;
 
   s_next_out_pulse <= s_out_level and not s_prev_out_level;
---`protect end
 end a_rtl;
 

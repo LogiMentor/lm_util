@@ -59,7 +59,6 @@ end lm_util_delay;
 -- ARCHITECTURE
 -------------------------------------------------------------------------------
 architecture a_rtl of lm_util_delay is
---`protect begin
 begin
 
   gen_no_delay : if g_delay = 0 generate
@@ -102,6 +101,5 @@ begin
         dout_o <= s_mem_ary_srl(g_delay - 1);
 
   end generate gen_delay;
---`protect end
 end architecture a_rtl;
 

@@ -1,6 +1,6 @@
 ## VHDL Coding Standard
 
-### 1. Scope
+## 1. Scope
 
 This coding standard applies to:
 

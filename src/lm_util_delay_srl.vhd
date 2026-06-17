@@ -62,7 +62,6 @@ end lm_util_delay_srl;
 -- ARCHITECTURE
 -------------------------------------------------------------------------------
 architecture a_rtl of lm_util_delay_srl is
---`protect begin
 begin
 
   gen_no_delay : if g_delay = 0 generate
@@ -108,6 +107,5 @@ begin
 
 
   end generate gen_delay;
---`protect end
 end architecture a_rtl;
 

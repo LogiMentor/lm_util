@@ -61,7 +61,6 @@ end lm_util_delay_pulse;
 -- ARCHITECTURE
 -------------------------------------------------------------------------------
 architecture a_rtl of lm_util_delay_pulse is
---`protect begin
 begin
 
   gen_no_delay : if g_delay = 0 generate
@@ -121,6 +120,5 @@ begin
     end process proc_cnt;
 
   end generate gen_delay;
---`protect end
 end architecture a_rtl;
 
