@@ -89,6 +89,20 @@ Vendor synthesis smoke tests for Vivado, Quartus, and Diamond are defined under
 configuration, and collect synthesis reports for SRL, CDC, and clocking-sensitive
 modules.
 
+## Local Safety Hooks
+
+Install the development dependencies and enable pre-commit before contributing:
+
+```sh
+python -m pip install -r requirements-dev.txt
+pre-commit install
+pre-commit run --all-files
+```
+
+The safety hook checks tracked files for generated outputs, private keys,
+credential-like assignments, private IPs, machine-local paths, and legacy
+internal markers before they reach the public repository.
+
 ## VHDL Standard
 
 The synthesizable sources avoid vendor primitives and use standard IEEE
