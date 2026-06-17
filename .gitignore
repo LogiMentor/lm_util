@@ -1,8 +1,27 @@
-/projects/*
-/doc/*
-/macro/*
-!macro/*.tcl
-!macro/*.do
-!macro/*.bat
-!macro/*.sh
-!macro/*.py
+# Editor / backup files
+*.bak
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pip-cache/
+
+# VUnit and simulator output
+sim/work/
+vunit_out/
+vendor_synth_out/
+vunit_xunit.xml
+*.cf
+*.ghw
+*.vcd
+*.wlf
+modelsim.ini
+transcript
+work/
+vivado*.jou
+vivado*.log
+quartus*.log
+
+# Local vendor synthesis configuration
+tools/synth/local.toml

@@ -1,55 +1,50 @@
 --==============================================================================
 -- Module Name : lm_util_pulse_stretch
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 --------------------------------------------------------------------------------
 -- Description: Stretch a pulse from an edge defining a fixed length or an overlength
--- 
+--
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --==============================================================================
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
--- User Library: Utility Library
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
 --pulse stretcher
 entity lm_util_pulse_stretch is
   generic (
-    --* 1: out pulse shall have fixed length specified by the g_pulse_length generic
-    --* 0: out pulse shall be stretched of g_pulse_overlength clock cycles
+    -- 1: out pulse shall have fixed length specified by the g_pulse_length generic
+    -- 0: out pulse shall be stretched of g_pulse_overlength clock cycles
     g_has_fixed_length : natural;
-    --* defines the length of the output pulse in clock cycles when g_has_fixed_length = 1
+    -- defines the length of the output pulse in clock cycles when g_has_fixed_length = 1
     g_pulse_length     : natural;
-    --* defines the pulse lengthening in clock cycles when g_has_fixed_length = 0
-    --* out pulse is stretched for additional g_pulse_overlength clock cycles when g_has_fixed_length = 0
+    -- defines the pulse lengthening in clock cycles when g_has_fixed_length = 0
+    -- out pulse is stretched for additional g_pulse_overlength clock cycles when g_has_fixed_length = 0
     g_pulse_overlength : natural;
-    --* 0: do not include a 2-FFD resync stage on the input pulse
-    --* 1: include a 2-FFD resync stage on the input pulse
+    -- 0: do not include a 2-FFD resync stage on the input pulse
+    -- 1: include a 2-FFD resync stage on the input pulse
     g_has_resync_stage : natural;
     -- defines the logic level ('1' or '0') that represents the active state of the output pulse
     g_out_level        : std_logic
@@ -122,7 +117,7 @@ begin
           pulse_o <= not g_out_level;
         else
           if (s_cnt_ena = '1') then     -- counter enabled
-            if (s_cnt < g_pulse_length-1) then  --count g_pulse_length* clk_i period          
+            if (s_cnt < g_pulse_length-1) then  --count g_pulse_length* clk_i period
               pulse_o <= g_out_level;
               s_cnt   <= s_cnt + 1;
             else

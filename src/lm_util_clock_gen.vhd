@@ -1,34 +1,30 @@
 --==============================================================================
 -- Module Name : lm_util_clock_gen
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
 -- Description: clock generator, generate an output clock with programmable duty cycle
---            only if g_clock_div is even. If odd the duty cycle is less than 
+--            only if g_clock_div is even. If odd the duty cycle is less than
 --            50% ( e.g. g_clock_div 7, high for 3 clock cycles and low for 4 )
 --            the phase of the output clock can also be configured
 --------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --==============================================================================
 
 library ieee;
@@ -41,22 +37,22 @@ use lm_util_lib.lm_util_pkg.all;
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
---* @brief generate an output clock with 50 % duty cycle
---* only if g_clock_div is even. If odd the duty cycle is less than 
---* 50% ( e.g. g_clock_div 7, high for 3 clock cycles and low for 4
+-- generate an output clock with 50 % duty cycle
+-- only if g_clock_div is even. If odd the duty cycle is less than
+-- 50% ( e.g. g_clock_div 7, high for 3 clock cycles and low for 4
 entity lm_util_clock_gen is
   generic(
-    --* input clock frequency divider
+    -- input clock frequency divider
     g_clock_div      : integer;
-    --* output clock phase  
+    -- output clock phase
     g_clock_phase    : integer;
-    --* positive output clock cycles 
+    -- positive output clock cycles
     g_pos_duty_cycle : integer
     );
   port(
-    clk_i   : in  std_logic;            --* input clock
-    rst_n_i : in  std_logic;            --* input reset
-    clk_o   : out std_logic             --* output pulse
+    clk_i   : in  std_logic;            -- input clock
+    rst_n_i : in  std_logic;            -- input reset
+    clk_o   : out std_logic             -- output pulse
     );
 end lm_util_clock_gen;
 
@@ -79,7 +75,7 @@ begin
   -- generate delay if phase is greater than 0
   gen_delay : if g_clock_phase > 0 generate
     -----------------------------------------------------------------------------
-    --* delay on the output clock to adjust output phase
+    -- delay on the output clock to adjust output phase
     -----------------------------------------------------------------------------
     proc_delay : process(clk_i)
     begin
@@ -104,8 +100,8 @@ begin
   end generate gen_wire;
 
   -----------------------------------------------------------------------------
-  --* this process divides the input frequency to generate the
-  --* desired output clock rate
+  -- this process divides the input frequency to generate the
+  -- desired output clock rate
   -----------------------------------------------------------------------------
   proc_m_counter : process(clk_i)
   begin

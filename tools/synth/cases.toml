@@ -1,0 +1,165 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[sources]
+library = "lm_util_lib"
+standard = "2008"
+files = [
+  "src/lm_util_pkg.vhd",
+  "src/*.vhd",
+]
+
+[[cases]]
+name = "delay_shift_reg_32x8"
+entity = "lm_util_delay"
+category = "storage"
+description = "Generic fixed delay inferred from a VHDL shift-register array."
+tags = ["storage", "shift-register", "inference"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+expect_vivado_regex = ["(?i)shift register|\\bSRL\\b|LUT as Shift Register"]
+expect_quartus_regex = ["(?i)shift register|registers|ALM"]
+expect_diamond_regex = ["(?i)shift register|distributed ram|slice"]
+
+[[cases]]
+name = "delay_srl_31x8_depth32"
+entity = "lm_util_delay_srl"
+category = "storage"
+description = "SRL-style delay below the 32-deep boundary."
+tags = ["storage", "srl", "xilinx", "inference"]
+generics = { g_delay = 31, g_data_w = 8, g_srl_depth = 32 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+expect_vivado_regex = ["(?i)\\bSRL\\b|LUT as Shift Register|Shift Register"]
+expect_quartus_regex = ["(?i)shift register|registers|ALM"]
+expect_diamond_regex = ["(?i)shift register|distributed ram|slice"]
+
+[[cases]]
+name = "delay_srl_32x8_depth32_boundary"
+entity = "lm_util_delay_srl"
+category = "storage"
+description = "Boundary case where delay equals SRL depth; useful to catch address/index issues."
+tags = ["storage", "srl", "boundary", "xilinx", "inference"]
+generics = { g_delay = 32, g_data_w = 8, g_srl_depth = 32 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+expect_vivado_regex = ["(?i)\\bSRL\\b|LUT as Shift Register|Shift Register"]
+expect_quartus_regex = ["(?i)shift register|registers|ALM"]
+expect_diamond_regex = ["(?i)shift register|distributed ram|slice"]
+
+[[cases]]
+name = "delay_srl_33x8_depth32"
+entity = "lm_util_delay_srl"
+category = "storage"
+description = "SRL-style delay that spans more than one SRL-depth chunk."
+tags = ["storage", "srl", "xilinx", "inference"]
+generics = { g_delay = 33, g_data_w = 8, g_srl_depth = 32 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+expect_vivado_regex = ["(?i)\\bSRL\\b|LUT as Shift Register|Shift Register"]
+expect_quartus_regex = ["(?i)shift register|registers|ALM"]
+expect_diamond_regex = ["(?i)shift register|distributed ram|slice"]
+
+[[cases]]
+name = "delay_var_srl_16x8"
+entity = "lm_util_delay_var"
+category = "storage"
+description = "Variable delay in SRL/shift-register mode."
+tags = ["storage", "srl", "variable-delay", "inference"]
+generics = { g_delay_max = 16, g_data_w = 8, g_arch_type = 0, g_pulse_level = 1 }
+ports = [
+  "clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "dv_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "delay_i : in std_logic_vector(4 downto 0)",
+  "dv_o : out std_logic",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+expect_vivado_regex = ["(?i)\\bSRL\\b|LUT as Shift Register|Shift Register|register"]
+expect_quartus_regex = ["(?i)shift register|registers|ALM"]
+expect_diamond_regex = ["(?i)shift register|distributed ram|slice"]
+
+[[cases]]
+name = "delay_var_pulse_16"
+entity = "lm_util_delay_var"
+category = "storage"
+description = "Variable delay in pulse/counter mode."
+tags = ["storage", "pulse", "counter", "inference"]
+generics = { g_delay_max = 16, g_data_w = 1, g_arch_type = 2, g_pulse_level = 1 }
+ports = [
+  "clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "dv_i : in std_logic",
+  "din_i : in std_logic_vector(0 downto 0)",
+  "delay_i : in std_logic_vector(4 downto 0)",
+  "dv_o : out std_logic",
+  "dout_o : out std_logic_vector(0 downto 0)",
+]
+expect_vivado_regex = ["(?i)Register|FDRE|FDCE|Slice"]
+expect_quartus_regex = ["(?i)registers|flipflop|ALM"]
+expect_diamond_regex = ["(?i)register|slice"]
+
+[[cases]]
+name = "ccd_resync_2ff"
+entity = "lm_util_ccd_resync"
+category = "cdc"
+description = "Two-stage CDC synchronizer; reports must be checked for FF implementation rather than SRL extraction."
+tags = ["cdc", "ff-chain", "no-srl"]
+generics = { g_meta_levels = 2 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+expect_vivado_regex = ["(?i)FDRE|FDCE|Register|Slice"]
+expect_quartus_regex = ["(?i)registers|flipflop|ALM"]
+expect_diamond_regex = ["(?i)register|slice"]
+
+[[cases]]
+name = "async_reset_2ff"
+entity = "lm_util_async_reset"
+category = "reset"
+description = "Asynchronous assertion and synchronous release reset synchronizer."
+tags = ["reset", "cdc", "ff-chain"]
+generics = { g_delay_len = 2, g_rst_lvl = "'0'" }
+ports = [
+  "arst_i : in std_logic",
+  "clk_i : in std_logic",
+  "rst_n_o : out std_logic",
+]
+expect_vivado_regex = ["(?i)FDRE|FDCE|Register|Slice"]
+expect_quartus_regex = ["(?i)registers|flipflop|ALM"]
+expect_diamond_regex = ["(?i)register|slice"]
+
+[[cases]]
+name = "clock_mux_2"
+entity = "lm_util_clock_mux"
+category = "clocking"
+description = "Glitch-free style clock mux with clock gating and keep attribute."
+tags = ["clocking", "clock-mux", "keep", "tool-sensitive"]
+generics = { g_num_clocks = 2 }
+ports = [
+  "clk_i : in std_logic_vector(1 downto 0)",
+  "clk_sel_i : in std_logic_vector(1 downto 0)",
+  "clk_o : out std_logic",
+]
+expect_vivado_regex = ["(?i)keep|LUT|BUFG|clock"]
+expect_quartus_regex = ["(?i)keep|preserve|clock|ALM"]
+expect_diamond_regex = ["(?i)keep|syn_keep|clock|slice"]

@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  safety:
+    name: Safety checks
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install safety dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
+
+      - name: Generate vendor synthesis dry-run scripts
+        run: >
+          python tools/synth/run_vendor_synth.py
+          --config tools/synth/local.example.toml
+          --case delay_srl_32x8_depth32_boundary
+          --dry-run
+          --include-disabled
+          --out vendor_synth_out/ci-dry-run
+
+  vunit:
+    name: VUnit regression
+    runs-on: ubuntu-24.04
+    env:
+      VUNIT_SIMULATOR: ghdl
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install GHDL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ghdl
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Show tool versions
+        run: |
+          python --version
+          ghdl --version
+
+      - name: Run fast VUnit regression
+        run: >
+          python sim/scripts/run.py
+          --level fast
+          --clean
+          --xunit-xml vunit_xunit.xml
+          --output-path vunit_out
+
+      - name: Upload VUnit artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vunit-results
+          path: |
+            vunit_xunit.xml
+            vunit_out/

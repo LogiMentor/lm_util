@@ -1,33 +1,29 @@
 --=============================================================================
 -- Module Name : lm_util_pkg
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description:    common package with utility functions, procedures, types and
 --                 constants. This package, together with the lm_util_lib
 --                 library shoud be re-used as base library in every project
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --=============================================================================
 
 library ieee;
@@ -40,15 +36,12 @@ use std.textio.all;
 
 library lm_util_lib;
 
---* @brief common package with utility functions, procedures, types and
---* constants. This package, togheter with the lm_util_lib
---* library shoud be re-used as base library in every project
---* @version 1.0.0
+-- common package with utility functions, procedures, types and
+-- constants. This package, togheter with the lm_util_lib
+-- library shoud be re-used as base library in every project
 package lm_util_pkg is
-  --`protect begin
 
   -- TYPE DECLARATIONS --------------------------------------------------------
-
   type t_boolean_arr is array (natural range <>) of boolean;  -- natural left index starts default at 0
   type t_integer_arr is array (natural range <>) of integer;  -- natural left index starts default at 0
   type t_natural_arr is array (natural range <>) of natural;  -- natural left index starts default at 0
@@ -59,13 +52,12 @@ package lm_util_pkg is
   type t_sl_matrix is array (natural range <>, natural range <>) of std_logic;
 
   -- structure declarations ---------------------------------------------------
-
-  --* define a record with parameters for memory instantiation
-  --* read latency (1 is standard, 2 adds a register to the output)
-  --* memory address width
-  --* memory data width
-  --* memory depth (optional, if omitted the depth is assumed to be 2**addr_w)
-  --* memory initial value for all cells (i.e. others => init_sl)
+  -- define a record with parameters for memory instantiation
+  -- read latency (1 is standard, 2 adds a register to the output)
+  -- memory address width
+  -- memory data width
+  -- memory depth (optional, if omitted the depth is assumed to be 2**addr_w)
+  -- memory initial value for all cells (i.e. others => init_sl)
   type t_c_mem is record
     latency : natural;
     addr_w  : natural;
@@ -75,28 +67,27 @@ package lm_util_pkg is
   end record;
 
   -- END OF TYPE DECLARATIONS -------------------------------------------------
-
   -- CONSTANT DECLARATIONS ----------------------------------------------------
-  --+ integer mnemonic constants for circuit type, combinatorial or sequential
-  constant C_CES_COMB : integer := 0;
-  constant C_CES_SYNC : integer := 1;
+  -- integer mnemonic constants for circuit type, combinatorial or sequential
+  constant C_LM_COMB : integer := 0;
+  constant C_LM_SYNC : integer := 1;
 
-  --+ integer mnemonic constants for delay architectures
-  constant C_CES_SRL   : integer := 0;
-  constant C_CES_MEM   : integer := 1;
-  constant C_CES_PULSE : integer := 2;
+  -- integer mnemonic constants for delay architectures
+  constant C_LM_SRL   : integer := 0;
+  constant C_LM_MEM   : integer := 1;
+  constant C_LM_PULSE : integer := 2;
 
-  --+ integer mnemonic constants for arithmentical operations
-  constant C_CES_ADD    : integer := 0;
-  constant C_CES_SUB    : integer := 1;
-  constant C_CES_ADDSUB : integer := 2;
+  -- integer mnemonic constants for arithmentical operations
+  constant C_LM_ADD    : integer := 0;
+  constant C_LM_SUB    : integer := 1;
+  constant C_LM_ADDSUB : integer := 2;
 
-  --* integer mnemonic constants for logical operations
-  constant C_CES_AND : integer := 0;
-  constant C_CES_OR  : integer := 1;
-  constant C_CES_XOR : integer := 2;
+  -- integer mnemonic constants for logical operations
+  constant C_LM_AND : integer := 0;
+  constant C_LM_OR  : integer := 1;
+  constant C_LM_XOR : integer := 2;
 
-  --+ ASCII characters
+  -- ASCII characters
   constant C_ASCII_A     : std_logic_vector (7 downto 0) := "01100001";
   constant C_ASCII_A_UC  : std_logic_vector (7 downto 0) := "01000001";
   constant C_ASCII_B     : std_logic_vector (7 downto 0) := "01100010";
@@ -146,7 +137,7 @@ package lm_util_pkg is
   constant C_ASCII_Y     : std_logic_vector (7 downto 0) := "01111001";
   constant C_ASCII_0     : std_logic_vector (7 downto 0) := "00110000";
 
-  --+ integer mnemonic constants
+  -- integer mnemonic constants
   constant C_ZERO    : natural                        := 0;
   constant C_ONE     : natural                        := 1;
   constant C_TWO     : natural                        := 2;
@@ -156,14 +147,14 @@ package lm_util_pkg is
   --
   constant C_SRL2MEM_THRESH : integer := 512;
 
-  --+ rising or falling edge event
+  -- rising or falling edge event
   constant C_RISING_EDGE  : integer := 1;
   constant C_FALLING_EDGE : integer := 0;
 
-  -- ff, block ram, fifo                      
-  --* default nof f_flipflops (ff) in meta stability recovery delay line (e.g. for clock domain crossing)
+  -- ff, block ram, fifo
+  -- default nof f_flipflops (ff) in meta stability recovery delay line (e.g. for clock domain crossing)
   constant C_META_DELAY_LEN     : natural := 2;
-  --* default use 16 word deep fifo to cross clock domain, typically > 2*c_meta_delay_len or >~ 8 is enough
+  -- default use 16 word deep fifo to cross clock domain, typically > 2*c_meta_delay_len or >~ 8 is enough
   constant C_META_FIFO_DEPTH    : natural := 16;
   constant C_MEM_RAM_RD_LATENCY : natural := 2;
   --constant c_mem_ram            : t_c_mem := (c_mem_ram_rd_latency, 10, 36, 2 ** 10, 'X');  -- 1 M36K
@@ -173,347 +164,307 @@ package lm_util_pkg is
   constant C_MEM_REG_RD_LATENCY : natural := 1;
   constant C_MEM_REG            : t_c_mem := (C_MEM_REG_RD_LATENCY, 1, 32, 1, 'X');
 
-  --* default or minimal fifo almost full margin
+  -- default or minimal fifo almost full margin
   constant C_FIFO_AFULL_MARGIN : natural := 4;
 
 
   -- CONSTANT DECLARATIONS ----------------------------------------------------
-
-
   -- FUNCTION DECLARATIONS ----------------------------------------------------
-
   -- all functions assume [high downto low] input ranges
 
-  --* @brief this function computes ceil(log2(n)), but force ceil(log2(1)) = 1, 
-  --*   which is needed to support the vector width width for 1 address, to 
-  --*   avoid null array for single word register address.
-  --*
-  --* Example: f_ceil_log2(13) = 4
-  --* @param n natural input for the log2 function
-  --* @return natural output, ceil(log2(n))
+  -- this function computes ceil(log2(n)), but force ceil(log2(1)) = 1,
+  -- which is needed to support the vector width width for 1 address, to
+  -- avoid null array for single word register address.
+  -- Example: f_ceil_log2(13) = 4
+  -- n natural input for the log2 function
+  -- natural output, ceil(log2(n))
   function f_ceil_log2(n : natural) return natural;
 
-  --* @brief this function computes floor(log2(n))
-  --*
-  --* Example: f_floor_log2(13) = 3
-  --* @param n natural input for the log2 function
-  --* @return natural output, floor(log2(n))
+  -- this function computes floor(log2(n))
+  -- Example: f_floor_log2(13) = 3
+  -- n natural input for the log2 function
+  -- natural output, floor(log2(n))
   function f_floor_log2(n : natural) return natural;
 
   -------------------------------------------------------------------------------
-  --* @brief standard logic to boolean
-  --*
-  --* Example: f_sl2bool('0') = false, 
-  --* @param n std_logic input 
-  --* @return boolean equivalent to the std_logic input
-  -------------------------------------------------------------------------------  
+  -- standard logic to boolean
+  -- Example: f_sl2bool('0') = false,
+  -- n std_logic input
+  -- boolean equivalent to the std_logic input
+  -------------------------------------------------------------------------------
   function f_sl2bool(n : in std_logic) return boolean;
 
   -------------------------------------------------------------------------------
-  --* @brief standard logic to character
-  --*
-  --* Example: f_sl2char('0') = '0', 
-  --* @param n std_logic input 
-  --* @return character representing the std_logic input
+  -- standard logic to character
+  -- Example: f_sl2char('0') = '0',
+  -- n std_logic input
+  -- character representing the std_logic input
   function f_sl2char(n : in std_logic) return character;
-  
+
   -------------------------------------------------------------------------------
-  --* @brief convert hex char to slv
-  --*
-  --* Example: f_hex2slv('f') = "1111"
-  --* @param input character 
-  --* @return std_logic_vector(3 downto 0)
-  -------------------------------------------------------------------------------  
+  -- convert hex char to slv
+  -- Example: f_hex2slv('f') = "1111"
+  -- input character
+  -- std_logic_vector(3 downto 0)
+  -------------------------------------------------------------------------------
   function f_hex2slv(c: character) return std_logic_vector;
 
-  --* @brief Hex string to standard logic vector conversion
-  --* Example: f_hex2slv('12FA') = x"12FA"
-  --* @param - string (slv in hex format) to convert
-  --* @return slv: standard logic vector
+  -- Hex string to standard logic vector conversion
+  -- Example: f_hex2slv('12FA') = x"12FA"
+  -- - string (slv in hex format) to convert
+  -- slv: standard logic vector
   function f_hex2slv(hex : string) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief boolean to integer
-  --*
-  --* Example: f_bool2sl(false) = '0', 
-  --* @param n boolean input 
-  --* @return integer equivalent to the boolean input
-  -------------------------------------------------------------------------------  
+  -- boolean to integer
+  -- Example: f_bool2sl(false) = '0',
+  -- n boolean input
+  -- integer equivalent to the boolean input
+  -------------------------------------------------------------------------------
   function f_bool2int(n : in boolean) return integer;
 
   -------------------------------------------------------------------------------
-  --* @brief boolean to standard logic
-  --*
-  --* Example: f_bool2sl(false) = '0', 
-  --* @param n boolean input 
-  --* @return std_logic equivalent to the boolean input
-  -------------------------------------------------------------------------------  
+  -- boolean to standard logic
+  -- Example: f_bool2sl(false) = '0',
+  -- n boolean input
+  -- std_logic equivalent to the boolean input
+  -------------------------------------------------------------------------------
   function f_bool2sl(n : in boolean) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief standard logic to 1 element standard logic vector
-  --*
-  --* Example: f_sl2slv('0') = "0", std_logic_vector(0 downto 0)
-  --* @param n std_logic input 
-  --* @return std_logic_vector(0 downto 0) equivalent to the std_logic input
-  -------------------------------------------------------------------------------  
+  -- standard logic to 1 element standard logic vector
+  -- Example: f_sl2slv('0') = "0", std_logic_vector(0 downto 0)
+  -- n std_logic input
+  -- std_logic_vector(0 downto 0) equivalent to the std_logic input
+  -------------------------------------------------------------------------------
   function f_sl2slv(n : in std_logic) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief standard logic to integer conversion
-  --*
-  --* Example: f_sl2int('0') = 0, integer
-  --* @param n std_logic input
-  --* @return integer equivalent to the std_logic input
-  -------------------------------------------------------------------------------  
+  -- standard logic to integer conversion
+  -- Example: f_sl2int('0') = 0, integer
+  -- n std_logic input
+  -- integer equivalent to the std_logic input
+  -------------------------------------------------------------------------------
   function f_sl2int(n : in std_logic) return integer;
 
   -------------------------------------------------------------------------------
-  --* @brief integer to standard logic conversion
-  --*
-  --* Example: f_int2sl(1) = '1', std_logic
-  --* @param n std_logic input (only 0 and 1 are allowed)
-  --* @return std_logic equivalent to the integer input
+  -- integer to standard logic conversion
+  -- Example: f_int2sl(1) = '1', std_logic
+  -- n std_logic input (only 0 and 1 are allowed)
+  -- std_logic equivalent to the integer input
   -------------------------------------------------------------------------------
   function f_int2sl(n : in integer) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief integer to standard logic vector conversion
-  --*
-  --* Example: f_int2sl(1) = "1", std_logic_vector
-  --* @param n std_logic input (only 0 and 1 are allowed)
-  --* @return std_logic_vector equivalent to the integer input
+  -- integer to standard logic vector conversion
+  -- Example: f_int2sl(1) = "1", std_logic_vector
+  -- n std_logic input (only 0 and 1 are allowed)
+  -- std_logic_vector equivalent to the integer input
   -------------------------------------------------------------------------------
   function f_int2slv(n : in integer; dim : in natural) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief 1 element standard logic vector to standard logic
-  --*
-  --* Example: f_sl2slv("0") = '0', std_logic
-  --* @param n std_logic_vector(0 downto 0) input 
-  --* @return std_logoc equivalent to the std_logic_vector input
+  -- 1 element standard logic vector to standard logic
+  -- Example: f_sl2slv("0") = '0', std_logic
+  -- n std_logic_vector(0 downto 0) input
+  -- std_logoc equivalent to the std_logic_vector input
   -------------------------------------------------------------------------------
   function f_slv2sl(n : in std_logic_vector) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts std_logic_vector into a natural 
-  --* beware: natural'high = 2**31-1, not 2*32-1, use f_slv2int to avoid warning
-  --*
-  --* Example: f_slv2nat("1000") = 8
-  --* @param vec, input vector
-  --* @return natural
-  -------------------------------------------------------------------------------  
+  -- this function converts std_logic_vector into a natural
+  -- beware: natural'high = 2**31-1, not 2*32-1, use f_slv2int to avoid warning
+  -- Example: f_slv2nat("1000") = 8
+  -- vec, input vector
+  -- natural
+  -------------------------------------------------------------------------------
   function f_slv2nat(vec : std_logic_vector) return natural;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts std_logic_vector into a integer 
-  --*
-  --* Example: f_slv2int("1000") = -8
-  --* @param vec, input vector
-  --* @return integer
-  -------------------------------------------------------------------------------  
+  -- this function converts std_logic_vector into a integer
+  -- Example: f_slv2int("1000") = -8
+  -- vec, input vector
+  -- integer
+  -------------------------------------------------------------------------------
   function f_slv2int(vec : std_logic_vector) return integer;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a natural into a std_logic_vector
-  --*
-  --* Example: f_nat2slv("1000") = 8
-  --* @param vec, input vector
-  --* @return natural
+  -- this function converts a natural into a std_logic_vector
+  -- Example: f_nat2slv("1000") = 8
+  -- vec, input vector
+  -- natural
   -------------------------------------------------------------------------------
   function f_nat2slv(dec, w : natural) return std_logic_vector;
 
   ------------------------------------------------------------------------------
   -- Arithmetic conversion functions
-  ------------------------------------------------------------------------------ 
-
+  ------------------------------------------------------------------------------
   -------------------------------------------------------------------------------
-  --* @brief this function converts a std_logic_vector into a unsigned
-  --*
-  --* Example: trivial
-  --* @param inp, std_logic_vector input vector
-  --* @return unsigned
+  -- this function converts a std_logic_vector into a unsigned
+  -- Example: trivial
+  -- inp, std_logic_vector input vector
+  -- unsigned
   -------------------------------------------------------------------------------
   function f_slv2uns(inp : std_logic_vector) return unsigned;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a unsigned into a unsigned
-  --*
-  --* Example: trivial
-  --* @param inp, unsigned input vector
-  --* @return std_logic_vector
+  -- this function converts a unsigned into a unsigned
+  -- Example: trivial
+  -- inp, unsigned input vector
+  -- std_logic_vector
   -------------------------------------------------------------------------------
   function f_uns2slv(inp : unsigned) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a integer into a unsigned (abs if input in negative)
-  --*
-  --* Example: trivial
-  --* @param inp, integer input, width of output
-  --* @return unsigned
+  -- this function converts a integer into a unsigned (abs if input in negative)
+  -- Example: trivial
+  -- inp, integer input, width of output
+  -- unsigned
   -------------------------------------------------------------------------------
   function f_int2uns(inp : integer; width : integer) return unsigned;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a unsigned into a integer
-  --*
-  --* Example: trivial
-  --* @param inp, unsigned
-  --* @return integer
+  -- this function converts a unsigned into a integer
+  -- Example: trivial
+  -- inp, unsigned
+  -- integer
   -------------------------------------------------------------------------------
   function f_uns2int(inp : unsigned) return integer;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a integer into a signed
-  --*
-  --* Example: trivial
-  --* @param inp, integer, width of output 
-  --* @return signed
+  -- this function converts a integer into a signed
+  -- Example: trivial
+  -- inp, integer, width of output
+  -- signed
   -------------------------------------------------------------------------------
   function f_int2sig(inp : integer; width : integer) return signed;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a signed into a signed
-  --*
-  --* Example: trivial
-  --* @param inp, signed 
-  --* @return integer
+  -- this function converts a signed into a signed
+  -- Example: trivial
+  -- inp, signed
+  -- integer
   -------------------------------------------------------------------------------
   function f_sig2int(inp : signed) return integer;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a std_logic_vector into a signed
-  --*
-  --* Example: trivial
-  --* @param inp, std_logic_vector 
-  --* @return signed
+  -- this function converts a std_logic_vector into a signed
+  -- Example: trivial
+  -- inp, std_logic_vector
+  -- signed
   -------------------------------------------------------------------------------
   function f_slv2sig(inp : std_logic_vector) return signed;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a signed into a std_logic_vector
-  --*
-  --* Example: trivial
-  --* @param inp, signed 
-  --* @return std_logic_vector
+  -- this function converts a signed into a std_logic_vector
+  -- Example: trivial
+  -- inp, signed
+  -- std_logic_vector
   -------------------------------------------------------------------------------
   function f_sig2slv(inp : signed) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a unsigned into a signed
-  --*
-  --* Example: trivial
-  --* @param inp, unsigned, desired output sign
-  --* @return signed
+  -- this function converts a unsigned into a signed
+  -- Example: trivial
+  -- inp, unsigned, desired output sign
+  -- signed
   -------------------------------------------------------------------------------
   function f_uns2sig(inp : unsigned; sign : std_logic) return signed;
 
   -------------------------------------------------------------------------------
-  --* @brief this function converts a signed into a unsigned
-  --*
-  --* Example: trivial
-  --* @param inp, signed, sign of the input
-  --* @return unsigned
+  -- this function converts a signed into a unsigned
+  -- Example: trivial
+  -- inp, signed, sign of the input
+  -- unsigned
   -------------------------------------------------------------------------------
   function f_sig2uns(inp : signed; sign : std_logic) return unsigned;
 
   -------------------------------------------------------------------------------
-  --* @brief binary to gray-code converter
-  --*
-  --* Example: f_bin2gray("1011") =  
-  --* @param a std_logic vector binary coded input
-  --* @return std_logic vector gray coded output
-  -------------------------------------------------------------------------------  
+  -- binary to gray-code converter
+  -- Example: f_bin2gray("1011") =
+  -- a std_logic vector binary coded input
+  -- std_logic vector gray coded output
+  -------------------------------------------------------------------------------
   function f_bin2gray(a : std_logic_vector) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief gray-code to binary converter
-  --*
-  --* Example: f_gray2biny("1011") =  
-  --* @param a std_logic vector gray coded input
-  --* @return std_logic vector binary coded output
+  -- gray-code to binary converter
+  -- Example: f_gray2biny("1011") =
+  -- a std_logic vector gray coded input
+  -- std_logic vector binary coded output
   -------------------------------------------------------------------------------
   function f_gray2bin(a : std_logic_vector) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief convert an array of integer into an array of natural
-  --*
-  --* Example: 
-  --* @param n input integer array
-  --* @return t_natural_arr type natural equivalent array 
-  -------------------------------------------------------------------------------  
+  -- convert an array of integer into an array of natural
+  -- Example:
+  -- n input integer array
+  -- t_natural_arr type natural equivalent array
+  -------------------------------------------------------------------------------
   function f_int2nat_arr(n : t_integer_arr) return t_natural_arr;
 
   -------------------------------------------------------------------------------
-  --* @brief convert an array of natural into an array of integer
-  --*
-  --* Example: 
-  --* @param n input natural array
-  --* @return t_integer_arr type integer equivalent array 
+  -- convert an array of natural into an array of integer
+  -- Example:
+  -- n input natural array
+  -- t_integer_arr type integer equivalent array
   -------------------------------------------------------------------------------
   function f_nat2int_arr(n : t_natural_arr) return t_integer_arr;
 
   -------------------------------------------------------------------------------
-  --* @brief core operation tree function for vector "and", "or", "xor"
-  --*
-  --* Example: f_vector_tree("111", "and") = '1'
-  --* @param slv std_logic_vector input, logical operation and, or, xor 
-  --* @return std_logic
-  -------------------------------------------------------------------------------    
+  -- core operation tree function for vector "and", "or", "xor"
+  -- Example: f_vector_tree("111", "and") = '1'
+  -- slv std_logic_vector input, logical operation and, or, xor
+  -- std_logic
+  -------------------------------------------------------------------------------
   function f_vector_tree(slv : std_logic_vector; operation : integer) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief '1' when all slv bits are '1' else '0'
-  --*
-  --* Example: f_vector_and("111") = '1'
-  --* @param slv std_logic_vector input
-  --* @return std_logic
+  -- '1' when all slv bits are '1' else '0'
+  -- Example: f_vector_and("111") = '1'
+  -- slv std_logic_vector input
+  -- std_logic
   -------------------------------------------------------------------------------
   function f_vector_and(slv : std_logic_vector) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief '0' when all slv bits are '0' else '1'
-  --*
-  --* Example: f_vector_or("000") = '0'
-  --* @param slv std_logic_vector input
-  --* @return std_logic
+  -- '0' when all slv bits are '0' else '1'
+  -- Example: f_vector_or("000") = '0'
+  -- slv std_logic_vector input
+  -- std_logic
   -------------------------------------------------------------------------------
   function f_vector_or(slv : std_logic_vector) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief '1' when the slv has an odd number of '1' bits else '0'
-  --*
-  --* Example: f_vector_xor("010") = '1'
-  --* @param slv std_logic_vector input
-  --* @return std_logic
+  -- '1' when the slv has an odd number of '1' bits else '0'
+  -- Example: f_vector_xor("010") = '1'
+  -- slv std_logic_vector input
+  -- std_logic
   -------------------------------------------------------------------------------
   function f_vector_xor(slv : std_logic_vector) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief '1' when all matrix bits are '1' else '0'
-  --*
-  --* Example: 
-  --* @param mat t_sl_matrix input
-  --* @return std_logic
+  -- '1' when all matrix bits are '1' else '0'
+  -- Example:
+  -- mat t_sl_matrix input
+  -- std_logic
   -------------------------------------------------------------------------------
   function f_matrix_and(mat : t_sl_matrix; wi, wj : natural) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief '0' when all matrix bits are '0' else '1'
-  --*
-  --* Example: 
-  --* @param mat t_sl_matrix input
-  --* @return std_logic
+  -- '0' when all matrix bits are '0' else '1'
+  -- Example:
+  -- mat t_sl_matrix input
+  -- std_logic
   -------------------------------------------------------------------------------
   function f_matrix_or(mat : t_sl_matrix; wi, wj : natural) return std_logic;
 
   -------------------------------------------------------------------------------
-  --+ @brief return the smallest natural among inputs. The function is overloaded
-  --+ for 2, 3 or n natural inputs
-  --+
-  --+ Example: f_smallest(2,3) = 2
-  --+ @param n,m natural input
-  --+ @return natural
+  -- return the smallest natural among inputs. The function is overloaded
+  -- for 2, 3 or n natural inputs
+  -- Example: f_smallest(2,3) = 2
+  -- n,m natural input
+  -- natural
   -------------------------------------------------------------------------------
   function f_smallest(n, m    : natural) return natural;
   function f_smallest(n, m, l : natural) return natural;
@@ -521,45 +472,41 @@ package lm_util_pkg is
   --  function f_smallest(n       : t_integer_arr) return integer;
 
   -------------------------------------------------------------------------------
-  --+ @brief return the largest natural among inputs. The function is overloaded
-  --+ for 2 or n natural inputs
-  --+
-  --+ Example: f_largest(2,3) = 3
-  --+ @param n,m natural input
-  --+ @return natural
+  -- return the largest natural among inputs. The function is overloaded
+  -- for 2 or n natural inputs
+  -- Example: f_largest(2,3) = 3
+  -- n,m natural input
+  -- natural
   -------------------------------------------------------------------------------
   function f_largest(n, m : natural) return natural;
   function f_largest(n    : t_natural_arr) return natural;
   --  function f_largest(n    : t_integer_arr) return integer;
 
   -------------------------------------------------------------------------------
-  --* @brief sum of all elements in array
-  --*
-  --* Example: 
-  --* @param n, t_natural_arr type array of natural input
-  --* @return natural, sum of all elements of the input array
-  -------------------------------------------------------------------------------  
+  -- sum of all elements in array
+  -- Example:
+  -- n, t_natural_arr type array of natural input
+  -- natural, sum of all elements of the input array
+  -------------------------------------------------------------------------------
   function f_sum_natural_arr(n : t_natural_arr) return natural;
-  --  function f_sum_natural_arr(    n : t_integer_arr) return integer; 
+  --  function f_sum_natural_arr(    n : t_integer_arr) return integer;
 
   -------------------------------------------------------------------------------
-  --* @brief product of all elements in array
-  --*
-  --* Example: 
-  --* @param n, t_natural_arr type array of natural input
-  --* @return natural, product of all elements of the input array
+  -- product of all elements in array
+  -- Example:
+  -- n, t_natural_arr type array of natural input
+  -- natural, product of all elements of the input array
   -------------------------------------------------------------------------------
   function f_prod_natural_arr(n : t_natural_arr) return natural;
   --  function f_prod_natural_arr(n : t_integer_arr) return integer;
 
   -------------------------------------------------------------------------------
-  --+ @brief element wise sum with array of natural. The function is overloaded
-  --+ to sum 2 array, one array and one integer
-  --+
-  --+ Example: 
-  --+ @param l,r t_natural_arr 
-  --+ @return t_natural_arr 
-  -------------------------------------------------------------------------------  
+  -- element wise sum with array of natural. The function is overloaded
+  -- to sum 2 array, one array and one integer
+  -- Example:
+  -- l,r t_natural_arr
+  -- t_natural_arr
+  -------------------------------------------------------------------------------
   function "+"(l, r : t_natural_arr) return t_natural_arr;
   -- element wise sum
   function "+"(l    : t_natural_arr; r : integer) return t_natural_arr;
@@ -567,12 +514,11 @@ package lm_util_pkg is
   function "+"(l    : integer; r : t_natural_arr) return t_natural_arr;
 
   -------------------------------------------------------------------------------
-  --+ @brief element wise subtract with array of natural. The function is 
-  --+ overloaded to subtract 2 array, one array and one integer
-  --+
-  --+ Example: 
-  --+ @param l,r t_natural_arr 
-  --+ @return t_natural_arr 
+  -- element wise subtract with array of natural. The function is
+  -- overloaded to subtract 2 array, one array and one integer
+  -- Example:
+  -- l,r t_natural_arr
+  -- t_natural_arr
   -------------------------------------------------------------------------------
   function "-"(l, r : t_natural_arr) return t_natural_arr;
   -- element wise subtract, support negative result
@@ -583,12 +529,11 @@ package lm_util_pkg is
   function "-"(l    : integer; r : t_natural_arr) return t_natural_arr;
 
   -------------------------------------------------------------------------------
-  --+ @brief element wise product with array of natural. The function is 
-  --+ overloaded to multiply 2 array, one array and one integer
-  --+
-  --+ Example: 
-  --+ @param l,r t_natural_arr 
-  --+ @return t_natural_arr 
+  -- element wise product with array of natural. The function is
+  -- overloaded to multiply 2 array, one array and one integer
+  -- Example:
+  -- l,r t_natural_arr
+  -- t_natural_arr
   -------------------------------------------------------------------------------
   function "*"(l, r : t_natural_arr) return t_natural_arr;
   -- element wise product
@@ -597,12 +542,11 @@ package lm_util_pkg is
   function "*"(l    : natural; r : t_natural_arr) return t_natural_arr;
 
   -------------------------------------------------------------------------------
-  --+ @brief element wise division with array of natural. The function is 
-  --+ overloaded to divide 2 array, one array and one integer
-  --+
-  --+ Example: 
-  --+ @param l,r t_natural_arr 
-  --+ @return t_natural_arr 
+  -- element wise division with array of natural. The function is
+  -- overloaded to divide 2 array, one array and one integer
+  -- Example:
+  -- l,r t_natural_arr
+  -- t_natural_arr
   -------------------------------------------------------------------------------
   function "/"(l, r : t_natural_arr) return t_natural_arr;
   -- element wise division
@@ -611,15 +555,14 @@ package lm_util_pkg is
   function "/"(l    : natural; r : t_natural_arr) return t_natural_arr;
 
   -------------------------------------------------------------------------------
-  --+ @brief this function check if the input data is equivalent to a true
-  --+ condition and return the results of the check. Input can be boolean, 
-  --+ std_logic ('0' means false, '1' true) or integer (0 means false, 1 true)
-  --+ The returned value can be boolean, natural or std_logic
-  --+
-  --+ Example: f_is_true('0') = false
-  --+ @param a, boolean, std_logic or integer
-  --+ @return boolean, natural or std_logic
-  -------------------------------------------------------------------------------  
+  -- this function check if the input data is equivalent to a true
+  -- condition and return the results of the check. Input can be boolean,
+  -- std_logic ('0' means false, '1' true) or integer (0 means false, 1 true)
+  -- The returned value can be boolean, natural or std_logic
+  -- Example: f_is_true('0') = false
+  -- a, boolean, std_logic or integer
+  -- boolean, natural or std_logic
+  -------------------------------------------------------------------------------
   function f_is_true(a : std_logic) return boolean;
   function f_is_true(a : std_logic) return natural;
   function f_is_true(a : boolean) return std_logic;
@@ -630,13 +573,12 @@ package lm_util_pkg is
   function f_is_true(a : integer) return std_logic;
 
   -------------------------------------------------------------------------------
-  --+ @brief select among two inputs, depending on another input. It is the 
-  --+ equivalent of a if-then-else function, which can be used also for constants
-  --+ initialization. 
-  --+
-  --+ Example: f_sel_a_b(5>2,'0','1') = '0' 
-  --+ @param sel,a,b sel shall be boolean or integer, a,b are overloaded 
-  --+ @return overloaded to return all VHDL defined types
+  -- select among two inputs, depending on another input. It is the
+  -- equivalent of a if-then-else function, which can be used also for constants
+  -- initialization.
+  -- Example: f_sel_a_b(5>2,'0','1') = '0'
+  -- sel,a,b sel shall be boolean or integer, a,b are overloaded
+  -- overloaded to return all VHDL defined types
   -------------------------------------------------------------------------------
   function f_sel_a_b(sel, a, b : boolean) return boolean;
   function f_sel_a_b(sel, a, b : integer) return integer;
@@ -653,14 +595,13 @@ package lm_util_pkg is
   function f_sel_a_b(sel       : boolean; a, b : string) return string;
   function f_sel_a_b(sel       : boolean; a, b : time) return time;
   -------------------------------------------------------------------------------
-  --+ @brief select among n boolean inputs depending on a natural input used as 
-  --+ selector. It is equivalent to a multiplexer of boolean inputs with a 
-  --+ natural selector input
-  --+
-  --+ Example: f_sel_n(1,false,true,false) = true
-  --+ @param sel natural, a,b,c,... boolean
-  --+ @return boolean
-  -------------------------------------------------------------------------------  
+  -- select among n boolean inputs depending on a natural input used as
+  -- selector. It is equivalent to a multiplexer of boolean inputs with a
+  -- natural selector input
+  -- Example: f_sel_n(1,false,true,false) = true
+  -- sel natural, a,b,c,... boolean
+  -- boolean
+  -------------------------------------------------------------------------------
   function f_sel_n(sel : natural; a, b, c : boolean) return boolean;     --  3
   function f_sel_n(sel : natural; a, b, c, d : boolean) return boolean;  --  4
   function f_sel_n(sel : natural; a, b, c, d, e : boolean) return boolean;  --  5
@@ -671,13 +612,12 @@ package lm_util_pkg is
   function f_sel_n(sel : natural; a, b, c, d, e, f, g, h, i, j : boolean) return boolean;  -- 10
 
   -------------------------------------------------------------------------------
-  --+ @brief select among n integer inputs depending on a natural input used as 
-  --+ selector. It is equivalent to a multiplexer of integer inputs with a 
-  --+ natural selector input
-  --+
-  --+ Example: f_sel_n(1,3,5,9) = 5
-  --+ @param sel natural, a,b,c,... integer
-  --+ @return integer
+  -- select among n integer inputs depending on a natural input used as
+  -- selector. It is equivalent to a multiplexer of integer inputs with a
+  -- natural selector input
+  -- Example: f_sel_n(1,3,5,9) = 5
+  -- sel natural, a,b,c,... integer
+  -- integer
   -------------------------------------------------------------------------------
   function f_sel_n(sel : natural; a, b, c : integer) return integer;     --  3
   function f_sel_n(sel : natural; a, b, c, d : integer) return integer;  --  4
@@ -695,14 +635,13 @@ package lm_util_pkg is
   function f_array_init(init, nof, incr : natural) return t_natural_arr;
 
   -------------------------------------------------------------------------------
-  --+ @brief concatenate two or more std_logic_vectors into a single 
-  --+ std_logic_vector. The function is overloaded for up to 7 inputs
-  --+
-  --+ Example: f_slv_concat(true, true, "01","10") = "0110"
-  --+ @param use_a,use_b boolean to select which inputs to use
-  --+ a,b input std_logic_vector to be concatenated
-  --+ @return std_logic_vector
-  -------------------------------------------------------------------------------  
+  -- concatenate two or more std_logic_vectors into a single
+  -- std_logic_vector. The function is overloaded for up to 7 inputs
+  -- Example: f_slv_concat(true, true, "01","10") = "0110"
+  -- use_a,use_b boolean to select which inputs to use
+  -- a,b input std_logic_vector to be concatenated
+  -- std_logic_vector
+  -------------------------------------------------------------------------------
   function f_slv_concat(use_a, use_b, use_c, use_d, use_e, use_f, use_g : boolean; a, b, c, d, e, f, g : std_logic_vector) return std_logic_vector;
   function f_slv_concat(use_a, use_b, use_c, use_d, use_e, use_f        : boolean; a, b, c, d, e, f : std_logic_vector) return std_logic_vector;
   function f_slv_concat(use_a, use_b, use_c, use_d, use_e               : boolean; a, b, c, d, e : std_logic_vector) return std_logic_vector;
@@ -711,14 +650,13 @@ package lm_util_pkg is
   function f_slv_concat(use_a, use_b                                    : boolean; a, b : std_logic_vector) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --+ @brief sum the width of concatenated std_logic_vectors into a single 
-  --+ natural. The function is overloaded for up to 7 inputs and shall be used
-  --+ in conjuntion with f_slv_concat
-  --+
-  --+ Example: f_slv_concat(true,true,2,2) = 4
-  --+ @param use_a,use_b boolean to select which inputs to use
-  --+ a_w,b_w input widths to be summed
-  --+ @return natural
+  -- sum the width of concatenated std_logic_vectors into a single
+  -- natural. The function is overloaded for up to 7 inputs and shall be used
+  -- in conjuntion with f_slv_concat
+  -- Example: f_slv_concat(true,true,2,2) = 4
+  -- use_a,use_b boolean to select which inputs to use
+  -- a_w,b_w input widths to be summed
+  -- natural
   -------------------------------------------------------------------------------
   function f_slv_concat_w(use_a, use_b, use_c, use_d, use_e, use_f, use_g : boolean; a_w, b_w, C_W, d_w, e_w, f_w, g_w : natural) return natural;
   function f_slv_concat_w(use_a, use_b, use_c, use_d, use_e, use_f        : boolean; a_w, b_w, C_W, d_w, e_w, f_w : natural) return natural;
@@ -729,16 +667,15 @@ package lm_util_pkg is
 
   --or extract one of them from a concatenated std_logic_vector
   -------------------------------------------------------------------------------
-  --+ @brief extract one of them from a concatenated std_logic_vector. 
-  --+ The function is overloaded for up to 7 inputs  
-  --+
-  --+ Example: f_slv_extract(true,true,2,2,"0111",0) = "01"
-  --+ @param use_a,use_b boolean to select which inputs to use
-  --+ a_w,b_w input widths of the concatenated data
-  --+ vec, input concatenated std_logic_vector data
-  --+ sel, select which data to extract
-  --+ @return std_logic_vector
-  -------------------------------------------------------------------------------  
+  -- extract one of them from a concatenated std_logic_vector.
+  -- The function is overloaded for up to 7 inputs
+  -- Example: f_slv_extract(true,true,2,2,"0111",0) = "01"
+  -- use_a,use_b boolean to select which inputs to use
+  -- a_w,b_w input widths of the concatenated data
+  -- vec, input concatenated std_logic_vector data
+  -- sel, select which data to extract
+  -- std_logic_vector
+  -------------------------------------------------------------------------------
   function f_slv_extract(use_a, use_b, use_c, use_d, use_e, use_f, use_g : boolean; a_w, b_w, C_W, d_w, e_w, f_w, g_w : natural; vec : std_logic_vector; sel : natural) return std_logic_vector;
   function f_slv_extract(use_a, use_b, use_c, use_d, use_e, use_f        : boolean; a_w, b_w, C_W, d_w, e_w, f_w : natural; vec : std_logic_vector; sel : natural) return std_logic_vector;
   function f_slv_extract(use_a, use_b, use_c, use_d, use_e               : boolean; a_w, b_w, C_W, d_w, e_w : natural; vec : std_logic_vector; sel : natural) return std_logic_vector;
@@ -747,60 +684,55 @@ package lm_util_pkg is
   function f_slv_extract(use_a, use_b                                    : boolean; a_w, b_w : natural; vec : std_logic_vector; sel : natural) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief this function concatenate the vector in n times to form a longer 
-  --* out vector
-  --*
-  --* Example:
-  --* @param n number of repetition, din input vector
-  --* @return std_logic_vector concatenation of n in vectors
-  ------------------------------------------------------------------------------- 
+  -- this function concatenate the vector in n times to form a longer
+  -- out vector
+  -- Example:
+  -- n number of repetition, din input vector
+  -- std_logic_vector concatenation of n in vectors
+  -------------------------------------------------------------------------------
   function f_concat_repeat(n : natural; din : std_logic_vector) return std_logic_vector;
 
-  --+ @brief the resize for signed in ieee.numeric_std extends the sign bit or it keeps the sign bit and ls part. this
-  --+ behaviour of preserving the sign bit is less suitable for dsp and not necessary in general. a more
-  --+ appropriate approach is to ignore the msbit sign and just keep the ls part. for too large values this
-  --+ means that the result gets wrapped, but that is fine for default behaviour, because that is also what
-  --+ happens for resize of unsigned. therefor this is what the f_ces_resize for signed and the f_resize_svec do
-  --+ and better not use resize for signed anymore.      
-  --+
-  --+ Example: define a signed s_a_signal and initialize it with "10101111"
-  --+          f_resize_svec(s_a_signal,5) returns "01111"
-  function f_ces_resize(u    : unsigned; w : natural) return unsigned;  -- left extend with '0' or keep ls part (same as resize for unsigned)
-  function f_ces_resize(s    : signed; w : natural) return signed;  -- extend sign bit or keep ls part
+  -- the resize for signed in ieee.numeric_std extends the sign bit or it keeps the sign bit and ls part. this
+  -- behaviour of preserving the sign bit is less suitable for dsp and not necessary in general. a more
+  -- appropriate approach is to ignore the msbit sign and just keep the ls part. for too large values this
+  -- means that the result gets wrapped, but that is fine for default behaviour, because that is also what
+  -- happens for resize of unsigned. therefor this is what the f_lm_resize for signed and the f_resize_svec do
+  -- and better not use resize for signed anymore.
+  -- Example: define a signed s_a_signal and initialize it with "10101111"
+  -- f_resize_svec(s_a_signal,5) returns "01111"
+  function f_lm_resize(u    : unsigned; w : natural) return unsigned;  -- left extend with '0' or keep ls part (same as resize for unsigned)
+  function f_lm_resize(s    : signed; w : natural) return signed;  -- extend sign bit or keep ls part
   function f_resize_uvec(sl  : std_logic; w : natural) return std_logic_vector;  -- left extend with '0' into slv
   function f_resize_uvec(vec : std_logic_vector; w : natural) return std_logic_vector;  -- left extend with '0' or keep ls part
   function f_resize_svec(vec : std_logic_vector; w : natural) return std_logic_vector;  -- extend sign bit or keep ls part
 
   -------------------------------------------------------------------------------
-  --+ @brief this function return the ceil of the division between two integers.
-  --+ the f_div_ceil_2pwr function return the ceil of the division to the 
-  --+ nearest power of 2
-  --+
-  --+ Example:  f_div_ceil (5,3) = 2
-  --+           f_div_ceil_2pwr(7,2) = 4
-  --+ @param n number of repetition, din input vector
-  --+ @return std_logic_vector concatenation of n in vectors
-  ------------------------------------------------------------------------------- 
+  -- this function return the ceil of the division between two integers.
+  -- the f_div_ceil_2pwr function return the ceil of the division to the
+  -- nearest power of 2
+  -- Example:  f_div_ceil (5,3) = 2
+  -- f_div_ceil_2pwr(7,2) = 4
+  -- n number of repetition, din input vector
+  -- std_logic_vector concatenation of n in vectors
+  -------------------------------------------------------------------------------
   function f_div_ceil (a      : integer; b : integer) return integer;
   function f_div_ceil (a      : time; b : time) return integer;
   function f_div_ceil_2pwr (a : integer; b : integer) return integer;
 
   -------------------------------------------------------------------------------
-  --+ @brief this function return the rounded value of the division between two integers.
-  --+
-  --+ Example:  f_div_round (5,4) = 1; f_div_round (7,4) = 2; f_div_round (500,3) = 167;
-  ------------------------------------------------------------------------------- 
+  -- this function return the rounded value of the division between two integers.
+  -- Example:  f_div_round (5,4) = 1; f_div_round (7,4) = 2; f_div_round (500,3) = 167;
+  -------------------------------------------------------------------------------
   function f_div_round (a : integer; b : integer) return integer;
 
   -------------------------------------------------------------------------------
-  --+ @brief this function return the shifted version of the input vector. It is
-  --+ overloaded for unsigned and signed
-  --+ < 0 shift left, > 0 shift right
-  --+
-  --+ Example:  f_shift_uvec("11001",3) = "00011"
-  --+           f_shift_svec("11001",-2) = "11110"
-  --+ @param shift amount of shift, vec input vector
-  --+ @return std_logic_vector
+  -- this function return the shifted version of the input vector. It is
+  -- overloaded for unsigned and signed
+  -- < 0 shift left, > 0 shift right
+  -- Example:  f_shift_uvec("11001",3) = "00011"
+  -- f_shift_svec("11001",-2) = "11110"
+  -- shift amount of shift, vec input vector
+  -- std_logic_vector
   -------------------------------------------------------------------------------
   function f_shift_uvec(vec : std_logic_vector; shift : integer) return std_logic_vector;
   function f_shift_svec(vec : std_logic_vector; shift : integer) return std_logic_vector;
@@ -810,146 +742,138 @@ package lm_util_pkg is
   function f_ror(arg : std_logic_vector; count : natural) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief  this function bit flip a vector, map a[h:0] to [0:h]
-  --*
-  --* Example: f_flip("1100") = "0011"
-  --* @param a, input std_logic_vector data
-  --* @return std_logic_vector
-  -------------------------------------------------------------------------------  
+  -- this function bit flip a vector, map a[h:0] to [0:h]
+  -- Example: f_flip("1100") = "0011"
+  -- a, input std_logic_vector data
+  -- std_logic_vector
+  -------------------------------------------------------------------------------
   function f_flip(a : std_logic_vector) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief transpose a vector, map a[i*row+j] to output index [j*col+i]
-  --*
-  --* Example: 
-  --* @param a std_logic_vector input vector; row, col natural
-  --* @return std_logic_vector
-  -------------------------------------------------------------------------------  
+  -- transpose a vector, map a[i*row+j] to output index [j*col+i]
+  -- Example:
+  -- a std_logic_vector input vector; row, col natural
+  -- std_logic_vector
+  -------------------------------------------------------------------------------
   function f_transpose(a : std_logic_vector; row, col : natural) return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --* @brief convert digit to char to write into file (.txt)
-  --*
-  --* Example: f_digit_to_char("0000") = '0'
-  --* @param input std_logic_vector(3 downto 0)
-  --* @return character
-  -------------------------------------------------------------------------------  
+  -- convert digit to char to write into file (.txt)
+  -- Example: f_digit_to_char("0000") = '0'
+  -- input std_logic_vector(3 downto 0)
+  -- character
+  -------------------------------------------------------------------------------
   function f_digit_to_char(slv : std_logic_vector(3 downto 0)) return character;
 
   -------------------------------------------------------------------------------
-  --* @brief pad with zeroes a std_logic_vector on the left
-  --*
-  --* Example: f_zero_pad("1100",2) = "001100"
-  --* @param input std_logic_vector, size of pad, to_left ndicates whether to pad on
-  --* on the left or on the right, init_val set the value for padding
-  --* @return std_logic_vector
+  -- pad with zeroes a std_logic_vector on the left
+  -- Example: f_zero_pad("1100",2) = "001100"
+  -- input std_logic_vector, size of pad, to_left ndicates whether to pad on
+  -- on the left or on the right, init_val set the value for padding
+  -- std_logic_vector
   -------------------------------------------------------------------------------
   function f_zero_pad(vec     : std_logic_vector; size : positive;
                       to_left : boolean := true; init_val : std_logic := '0') return std_logic_vector;
 
   -------------------------------------------------------------------------------
-  --+ @brief ectract a value from an input vector which represents an unrolled 
-  --+ matrix. This functions are useful in VHDL 93 where there is less support for
-  --+ matrix operations on unconstrained arrays. It is overloaded also to extract
-  --+ a value from a concatenated array
-  --+
-  --+ Example: 
-  --+ @param arr input unrolled array, data_size width of data, row_dim, col_dim
-  --+ i index of row for extraction, j index of column for extraction
-  --+ @return std_logic_vector
-  -------------------------------------------------------------------------------    
+  -- ectract a value from an input vector which represents an unrolled
+  -- matrix. This functions are useful in VHDL 93 where there is less support for
+  -- matrix operations on unconstrained arrays. It is overloaded also to extract
+  -- a value from a concatenated array
+  -- Example:
+  -- arr input unrolled array, data_size width of data, row_dim, col_dim
+  -- i index of row for extraction, j index of column for extraction
+  -- std_logic_vector
+  -------------------------------------------------------------------------------
   function f_arr2mat(arr     : std_logic_vector; data_size : natural; row_dim : natural;
                      col_dim : natural; i : natural; j : natural) return std_logic_vector;
   function f_arr2mat(arr : std_logic_vector; data_size : natural; row_dim : natural;
                      i   : natural) return std_logic_vector;
   function f_arr2mat(arr : signed; data_size : natural; row_dim : natural; i : natural) return signed;
 
-  --* @brief counts the number of 1 into std_logic_vector input
-  --* @param - in_slv: std_logic_vector which 1 to be counted
-  --* @return number of 1
+  -- counts the number of 1 into std_logic_vector input
+  -- - in_slv: std_logic_vector which 1 to be counted
+  -- number of 1
   function f_count_ones(in_slv : std_logic_vector) return integer;
-  
-  --* @brief check if the integere input if a power of two
-  --* @param input: integer 
-  --* @return boolean
+
+  -- check if the integere input if a power of two
+  -- input: integer
+  -- boolean
   function f_is_power_of_two(input : integer) return boolean;
 
   -------------------------------------------------------------------------------
-  --+ @brief Maximum and minimum on integers
-  --+
-  --+ Example: f_max(19,3) = 19
-  --+ @param l,r input integers
-  --+ @return integer
-  -------------------------------------------------------------------------------  
+  -- Maximum and minimum on integers
+  -- Example: f_max(19,3) = 19
+  -- l,r input integers
+  -- integer
+  -------------------------------------------------------------------------------
   function f_max(l, r : integer) return integer;
   function f_min(l, r : integer) return integer;
 
   -------------------------------------------------------------------------------
-  --+ @brief the following funtions shall not be directly used by end users, 
-  --+ they contains internal functions used to implement modules in other libraries
-  --+ @param  N.A.
-  --+ @return N.A.
-  -------------------------------------------------------------------------------  
+  -- the following funtions shall not be directly used by end users,
+  -- they contains internal functions used to implement modules in other libraries
+  -- N.A.
+  -- N.A.
+  -------------------------------------------------------------------------------
   ------------------------------------------------------------------------------
   -- latency of modules
   ------------------------------------------------------------------------------
   function f_get_bitsum_stages (g_din_w : integer; g_adder_w : integer) return integer;
 
   -------------------------------------------------------------------------------
-  --+ @brief pull up
-  --+ @param  input std_logic
-  --+ @return output std_logic
-  ------------------------------------------------------------------------------- 
+  -- pull up
+  -- input std_logic
+  -- output std_logic
+  -------------------------------------------------------------------------------
   function f_pullup(input : std_logic) return std_logic;
 
   -------------------------------------------------------------------------------
-  --+ @brief pull down
-  --+ @param  input std_logic
-  --+ @return output std_logic
-  ------------------------------------------------------------------------------- 
+  -- pull down
+  -- input std_logic
+  -- output std_logic
+  -------------------------------------------------------------------------------
   function f_pulldown(input : std_logic) return std_logic;
 
   -------------------------------------------------------------------------------
-  --* @brief log on console
-  --*
-  --* Example: 
-  --* @param input string
-  --* @return 
-  -------------------------------------------------------------------------------  
+  -- log on console
+  -- Example:
+  -- input string
+  -- -------------------------------------------------------------------------------
   procedure p_console_log(
     text_string : in string);
 
-  --* @brief String to std_logic_vector convert in 8-bit format using character'pos(c)
-  --* @param - str: String to convert
-  --* @return std_logic_vector(8 * str'length - 1 downto 0) with left-most
-  --* character at MSBs.
+  -- String to std_logic_vector convert in 8-bit format using character'pos(c)
+  -- - str: String to convert
+  -- std_logic_vector(8 * str'length - 1 downto 0) with left-most
+  -- character at MSBs.
   function f_string2slv(str : string) return std_logic_vector;
 
-  --* @brief String to std_logic_vector convert in 8-bit format using character'pos(c)
-  --* @param - str: String to convert
-  --* @return std_logic_vector(8 * str'length - 1 downto 0) with left-most
-  --* character at MSBs. starting from characters lsb
+  -- String to std_logic_vector convert in 8-bit format using character'pos(c)
+  -- - str: String to convert
+  -- std_logic_vector(8 * str'length - 1 downto 0) with left-most
+  -- character at MSBs. starting from characters lsb
   function f_string2slv_lsb(str : string) return std_logic_vector;
 
-  --* @brief std_logic_vector to character convert in ASCII format 
-  --* @param - slv8: std_logic_vector to convert
-  --* @return character
+  -- std_logic_vector to character convert in ASCII format
+  -- - slv8: std_logic_vector to convert
+  -- character
   function f_slv2char (slv8 : std_logic_vector (7 downto 0)) return character;
 
-  --* @brief std_logic_vector to character convert in ASCII format 
-  --* @param - slv4: std_logic_vector to convert
-  --* @return character
+  -- std_logic_vector to character convert in ASCII format
+  -- - slv4: std_logic_vector to convert
+  -- character
   function f_slv2ascii_hex (slv4 : std_logic_vector(3 downto 0)) return std_logic_vector;
 
-  --* @brief Standard logic vector to hex string conversion
-  --* @param - slv: standard logic vector to convert
-  --* @return string (slv in hex format)
+  -- Standard logic vector to hex string conversion
+  -- - slv: standard logic vector to convert
+  -- string (slv in hex format)
   function f_slv2hex (slv : std_logic_vector) return string;
-  
-  --* @brief Standard logic vector to string conversion: print a sequence of 1s or 0s characters
-  --* @param - slv: standard logic vector to convert
-  --* @return string (slv in ascii format)
-  function f_slv2string (slv : std_logic_vector) return string;  
+
+  -- Standard logic vector to string conversion: print a sequence of 1s or 0s characters
+  -- - slv: standard logic vector to convert
+  -- string (slv in ascii format)
+  function f_slv2string (slv : std_logic_vector) return string;
 
   function f_char_is_digit(chr           : character) return boolean;
   function f_char_is_lower_hex_digit(chr : character) return boolean;
@@ -999,7 +923,7 @@ package body lm_util_pkg is
     variable v_i, v_bitcount : natural;
   begin
     assert n > 0 report "f_ceil_log2(0) called!" severity failure;
-        -- todo: positive instead of natural???
+        -- Natural is kept here to preserve zero-width edge-case handling.
     if n = 1 then
       v_bitcount := 1;
     else
@@ -1049,7 +973,7 @@ package body lm_util_pkg is
       when 'H' => return 'H';  -- Weak 1
       when '-' => return '-';  -- Don't care
       when others => return '?'; -- Just in case
-    end case;   
+    end case;
   end;
 
   function f_hex2slv(c: character) return std_logic_vector is
@@ -1079,13 +1003,13 @@ package body lm_util_pkg is
   end function;
 
   function f_hex2slv (hex : string) return std_logic_vector is
-    constant NIBBLE_WIDTH : integer := 4;
-    variable result : std_logic_vector((hex'length * NIBBLE_WIDTH) - 1 downto 0);
+    constant C_NIBBLE_WIDTH : integer := 4;
+    variable v_result : std_logic_vector((hex'length * C_NIBBLE_WIDTH) - 1 downto 0);
   begin
     for i in hex'range loop
-      result((hex'length-i+1)*NIBBLE_WIDTH - 1  downto (hex'length-i)*NIBBLE_WIDTH) := f_hex2slv(hex(i));
+      v_result((hex'length-i+1)*C_NIBBLE_WIDTH - 1  downto (hex'length-i)*C_NIBBLE_WIDTH) := f_hex2slv(hex(i));
     end loop;
-    return result;
+    return v_result;
   end;
 
   function f_bool2int(n : in boolean) return integer is
@@ -1094,7 +1018,7 @@ package body lm_util_pkg is
       return 1;
     else
       return 0;
-    end if;  
+    end if;
   end function;
 
   function f_bool2sl(n : in boolean) return std_logic is
@@ -1206,7 +1130,7 @@ package body lm_util_pkg is
     return to_integer(inp);
   end;  --f_uns2int
 
-  -- convert an integer to a signed 
+  -- convert an integer to a signed
   function f_int2sig(inp : integer; width : integer) return signed is
   begin
     return to_signed(inp, width);
@@ -1260,9 +1184,7 @@ package body lm_util_pkg is
   end;  --f_sig2uns
 
 
-  --**************************************************************************
   -- binary to gray-code encoder
-  --**************************************************************************
   function f_bin2gray(a : std_logic_vector) return std_logic_vector is
     variable v_a : std_logic_vector(a'length-1 downto 0) := a;
   begin
@@ -1271,9 +1193,7 @@ package body lm_util_pkg is
       severity failure;
     return v_a xor ("0" & v_a(v_a'length - 1 downto 1));
   end function;
-  --**************************************************************************
   -- gray-code to binary decoder
-  --**************************************************************************
   function f_gray2bin(a : std_logic_vector) return std_logic_vector is
     variable v_a   : std_logic_vector(a'length-1 downto 0) := a;
     variable v_bin : std_logic_vector(v_a'range);
@@ -1313,7 +1233,7 @@ package body lm_util_pkg is
   end;
 
 
-  --todo: use enum for operation?
+  -- Operation is encoded as an integer to keep the package API compact.
   function f_vector_tree(slv : std_logic_vector; operation : integer) return std_logic is
     -- linear loop to determine result takes combinatorial delay that is proportional to slv'length:
     --   for i in slv'range loop
@@ -1329,11 +1249,11 @@ package body lm_util_pkg is
     variable v_result     : std_logic := '0';
   begin
     -- default any unused, the stage results will be kept in the lsbits and the last result in bit 0
-    if operation = C_CES_AND then
+    if operation = C_LM_AND then
       v_stage_arr := (others => (others => '1'));
-    elsif operation = C_CES_OR then
+    elsif operation = C_LM_OR then
       v_stage_arr := (others => (others => '0'));
-    elsif operation = C_CES_XOR then
+    elsif operation = C_LM_XOR then
       v_stage_arr := (others => (others => '0'));
     else
       assert true report "common_pkg: unsupported f_vector_tree operation" severity failure;
@@ -1341,11 +1261,11 @@ package body lm_util_pkg is
     v_stage_arr(-1)(C_SLV_W - 1 downto 0) := slv;  -- any unused input C_W : C_SLV_W bits have void default value
     for j in 0 to C_NOF_STEGES - 1 loop
       for i in 0 to C_W / (2 ** (j + 1)) - 1 loop
-        if operation = C_CES_AND then
+        if operation = C_LM_AND then
           v_stage_arr(j)(i) := v_stage_arr(j - 1)(2 * i) and v_stage_arr(j - 1)(2 * i + 1);
-        elsif operation = C_CES_OR then
+        elsif operation = C_LM_OR then
           v_stage_arr(j)(i) := v_stage_arr(j - 1)(2 * i) or v_stage_arr(j - 1)(2 * i + 1);
-        elsif operation = C_CES_XOR then
+        elsif operation = C_LM_XOR then
           v_stage_arr(j)(i) := v_stage_arr(j - 1)(2 * i) xor v_stage_arr(j - 1)(2 * i + 1);
         end if;
       end loop;
@@ -1356,17 +1276,17 @@ package body lm_util_pkg is
 
   function f_vector_and(slv : std_logic_vector) return std_logic is
   begin
-    return f_vector_tree(slv, C_CES_AND);
+    return f_vector_tree(slv, C_LM_AND);
   end;
 
   function f_vector_or(slv : std_logic_vector) return std_logic is
   begin
-    return f_vector_tree(slv, C_CES_OR);
+    return f_vector_tree(slv, C_LM_OR);
   end;
 
   function f_vector_xor(slv : std_logic_vector) return std_logic is
   begin
-    return f_vector_tree(slv, C_CES_XOR);
+    return f_vector_tree(slv, C_LM_XOR);
   end;
 
   function f_matrix_and(mat : t_sl_matrix; wi, wj : natural) return std_logic is
@@ -1812,7 +1732,7 @@ package body lm_util_pkg is
     else
       return b;
     end if;
-  end;  
+  end;
 
   -- f_sel_n : boolean
   function f_sel_n(sel : natural; a, b, c : boolean) return boolean is
@@ -2228,13 +2148,13 @@ package body lm_util_pkg is
     return v_ret;
   end f_concat_repeat;
 
-  function f_ces_resize(u : unsigned; w : natural) return unsigned is
+  function f_lm_resize(u : unsigned; w : natural) return unsigned is
   begin
     -- left extend with '0' or keep ls part (same as resize for unsigned)
     return resize(u, w);
   end;
 
-  function f_ces_resize(s : signed; w : natural) return signed is
+  function f_lm_resize(s : signed; w : natural) return signed is
   begin
     -- extend sign bit or keep ls part
     if w > s'length then
@@ -2252,16 +2172,15 @@ package body lm_util_pkg is
 
   function f_resize_uvec(vec : std_logic_vector; w : natural) return std_logic_vector is
   begin
-    return std_logic_vector(f_ces_resize(unsigned(vec), w));
+    return std_logic_vector(f_lm_resize(unsigned(vec), w));
   end;
 
   function f_resize_svec(vec : std_logic_vector; w : natural) return std_logic_vector is
   begin
-    return std_logic_vector(f_ces_resize(signed(vec), w));
+    return std_logic_vector(f_lm_resize(signed(vec), w));
   end;
 
   -- ------------------------------------------------------------------------
-
   function f_div_ceil(a : integer; b : integer)
     return integer is
     variable v_div_res : integer;
@@ -2299,7 +2218,6 @@ package body lm_util_pkg is
 
 
   -- ------------------------------------------------------------------------
-
   function f_div_ceil_2pwr(a : integer; b : integer)
     return integer is
     variable v_res : integer;
@@ -2338,7 +2256,6 @@ package body lm_util_pkg is
 --   return v_res;
 -- end;
   -- ------------------------------------------------------------------------
-
   function f_div_round(a : integer; b : integer)
     return integer is
     variable v_floor : integer;
@@ -2360,7 +2277,6 @@ package body lm_util_pkg is
   end;
 
   -- ------------------------------------------------------------------------
-
   function f_shift_uvec(vec : std_logic_vector; shift : integer) return std_logic_vector is
   begin
     if shift < 0 then
@@ -2539,11 +2455,11 @@ package body lm_util_pkg is
     end loop;
     return v_cnt;
   end function f_count_ones;
-  
+
   function f_is_power_of_two(input : integer) return boolean is
     variable v_input_slv : std_logic_vector(f_ceil_log2(input)-1 downto 0);
     variable v_ret : boolean;
-  begin          
+  begin
     -- to check if an integere is a power of two the function convert it to a std_logic_vector
       -- and check if there is only one '1' or none (zero is 2^0)
     v_input_slv := f_int2slv(input,f_ceil_log2(input));
@@ -2553,7 +2469,7 @@ package body lm_util_pkg is
       v_ret := false;
     end if;
     return v_ret;
-  end function f_is_power_of_two; 
+  end function f_is_power_of_two;
 
 
   -------------------------------------------------------------------------------
@@ -2652,12 +2568,12 @@ package body lm_util_pkg is
 
   function f_string2slv_lsb(str : string) return std_logic_vector is
     variable v_res : std_logic_vector(8 * str'length - 1 downto 0);
-    variable v: std_logic_vector(7 downto 0);
+    variable v_char : std_logic_vector(7 downto 0);
   begin
     for idx in str'range loop
-      v := std_logic_vector(to_unsigned(character'pos(str(idx)), 8));
+      v_char := std_logic_vector(to_unsigned(character'pos(str(idx)), 8));
       for b in 0 to 7 loop
-        v_res(8 * (str'length - idx + 1) - b - 1) := v(b);
+        v_res(8 * (str'length - idx + 1) - b - 1) := v_char(b);
       end loop;
     end loop;
     return v_res;
@@ -2938,7 +2854,7 @@ function f_slv2string (slv : std_logic_vector) return string is
         return true;
       end if;
     end loop;
-    -- check special cases, 
+    -- check special cases,
     return (((str1'length = C_LEN) and (str2'length = C_LEN)) or  -- both strings are fully consumed and equal
             ((str1'length > C_LEN) and (str1(str1'low + C_LEN) = NUL)) or  -- str1 is longer, but str_length equals len
             ((str2'length > C_LEN) and (str2(str2'low + C_LEN) = NUL)));  -- str2 is longer, but str_length equals len
@@ -2992,18 +2908,18 @@ function f_slv2string (slv : std_logic_vector) return string is
   --                      while ((j >= 0) and str2(j + 1) /= str2(i)) loop
   --                              j               := PrefixTable(j);
   --                      end loop;
-  --              
+  --
   --                      j                                                                               := j + 1;
   --                      PrefixTable(i - 1)      := j + 1;
   --              end loop;
-  --              
+  --
   --              -- search pattern str2 in text str1
   --              j := 0;
   --              for i in str1'range loop
   --                      while ((j >= 0) and str1(i) /= str2(j + 1)) loop
   --                              j               := PrefixTable(j);
   --                      end loop;
-  --              
+  --
   --                      j := j + 1;
   --                      if ((j + 1) = str2'high) then
   --                              return i - str2'length + 1;
@@ -3129,6 +3045,5 @@ function f_slv2string (slv : std_logic_vector) return string is
   end function;
 
 
---`protect end
 end lm_util_pkg;
 

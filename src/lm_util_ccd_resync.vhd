@@ -1,41 +1,37 @@
 --=============================================================================
 -- Module Name : lm_util_ccd_resync
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
--- Description: this module implements a re-synchronizer circuit, used in cross 
+-- Description: this module implements a re-synchronizer circuit, used in cross
 --              clock domain for std_logic signals. The circuit is done with
---              g_meta_levels (usually 2) registers in the destination clock 
+--              g_meta_levels (usually 2) registers in the destination clock
 --              domain.
 --              Synthesis tools might infer SRL and not true registers, making
---              the clock domain crossing no implemented. To prevent this 
---              special attributes shall be used. One way to use those 
---              attributes is via HDL attribute keyword, another way would be to 
---              include the constraint in a specific contraint file. 
---              In both cases this process is vendor dependent 
+--              the clock domain crossing no implemented. To prevent this
+--              special attributes shall be used. One way to use those
+--              attributes is via HDL attribute keyword, another way would be to
+--              include the constraint in a specific contraint file.
+--              In both cases this process is vendor dependent
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --=============================================================================
 
 -------------------------------------------------------------------------------
@@ -49,22 +45,21 @@ use lm_util_lib.lm_util_pkg.all;
 
 -------------------------------------------------------------------------------
 -- ENTITY
-------------------------------------------------------------------------------- 
---* @brief this module implements a re-synchronizer circuit, used in cross 
---* clock domain for std_logic signals. The circuit is done with
---* g_meta_levels (usually 2) registers in the destination clock domain 
---* @version 1.0.0
+-------------------------------------------------------------------------------
+-- this module implements a re-synchronizer circuit, used in cross
+-- clock domain for std_logic signals. The circuit is done with
+-- g_meta_levels (usually 2) registers in the destination clock domain
 entity lm_util_ccd_resync is
   generic(
-    --* default nof flipflops (ff) in meta stability recovery delay line
+    -- default nof flipflops (ff) in meta stability recovery delay line
     g_meta_levels : integer
     );
   port(
-    --* input clock
+    -- input clock
     clk_i     : in  std_logic;
-    --* input signal on the source clock domain
+    -- input signal on the source clock domain
     ccd_din_i : in  std_logic;
-    --* output signal on the destination clock domain
+    -- output signal on the destination clock domain
     ccd_din_o : out std_logic
     );
 end lm_util_ccd_resync;
@@ -86,7 +81,7 @@ begin
       s_din_meta <= s_din_meta(s_din_meta'left-1 downto 0) & ccd_din_i;
     end if;
   end process proc_resync;
-  
+
   ccd_din_o <= s_din_meta(g_meta_levels-1);
 
 end a_rtl;

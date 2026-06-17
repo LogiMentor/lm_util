@@ -1,33 +1,29 @@
 --==============================================================================
 -- Module Name : lm_util_tick_gen
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
--- Description: pulse generator, generate an output pulse for one clock cycle 
+-- Description: pulse generator, generate an output pulse for one clock cycle
 --              every g_clock_div clock pulses. Ideal to generate a clock enable
 --              pulse
 --------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --==============================================================================
 
 library ieee;
@@ -40,17 +36,17 @@ use lm_util_lib.lm_util_pkg.all;
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
---* @brief pulse generator, generate a pulse of one clock cycle every 
---* g_clock_div clock cycles
+-- pulse generator, generate a pulse of one clock cycle every
+-- g_clock_div clock cycles
 entity lm_util_tick_gen is
   generic(
-    --* input clock frequency divider,  must be >= 1
+    -- input clock frequency divider,  must be >= 1
     g_clock_div : positive
   );
   port(
-    clk_i   : in  std_logic; --* input clock
-    rst_n_i : in  std_logic; --* input reset, synchronous active low
-    pulse_o : out std_logic  --* output pulse
+    clk_i   : in  std_logic; -- input clock
+    rst_n_i : in  std_logic; -- input reset, synchronous active low
+    pulse_o : out std_logic  -- output pulse
   );
 end lm_util_tick_gen;
 
@@ -60,8 +56,8 @@ begin
 
   assert g_clock_div > 1 report "g_clock_div must be > 1"  severity FAILURE;
   -----------------------------------------------------------------------------
-  --* this process divides the input frequency to generate the
-  --* desired output clock rate
+  -- this process divides the input frequency to generate the
+  -- desired output clock rate
   -----------------------------------------------------------------------------
   proc_m_counter : process(clk_i)
   begin

@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+
+-r requirements.txt
+pre-commit>=4.0.0

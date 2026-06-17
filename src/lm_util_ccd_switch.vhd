@@ -1,8 +1,8 @@
 --=============================================================================
 -- Module Name : lm_util_ccd_switch
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description:
@@ -17,25 +17,21 @@
 --
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --=============================================================================
 
 -------------------------------------------------------------------------------
@@ -49,41 +45,40 @@ use lm_util_lib.lm_util_pkg.all;
 
 -------------------------------------------------------------------------------
 -- ENTITY
-------------------------------------------------------------------------------- 
---* @brief The output goes high when switch_high_i='1' and low when
---* switch_low_i='1'.
---* If g_or_high is true then the output follows the switch_high_i immediately,
---* else it goes high in the next clk cycle.
---* If g_and_low is true then the output follows the switch_low_i immediately,
---* else it goes low in the next clk cycle.
---* The g_priority_lo defines which input has priority when switch_high_i and
---* switch_low_i are active simultaneously.
---* @version 1.0.0
+-------------------------------------------------------------------------------
+-- The output goes high when switch_high_i='1' and low when
+-- switch_low_i='1'.
+-- If g_or_high is true then the output follows the switch_high_i immediately,
+-- else it goes high in the next clk cycle.
+-- If g_and_low is true then the output follows the switch_low_i immediately,
+-- else it goes low in the next clk cycle.
+-- The g_priority_lo defines which input has priority when switch_high_i and
+-- switch_low_i are active simultaneously.
 entity lm_util_ccd_switch is
   generic(
-    --* When TRUE then input switch_low_i has priority, else switch_high_i.
-    --* Don't care when switch_high_i and switch_low_i are pulses that do not occur
-    --* simultaneously.
+    -- When TRUE then input switch_low_i has priority, else switch_high_i.
+    -- Don't care when switch_high_i and switch_low_i are pulses that do not occur
+    -- simultaneously.
     g_priority_lo : boolean;
-    --* When TRUE and priority hi then the registered switch_level is OR-ed with the
-    --* input switch_high_i to get out_level_o, else out_level_o is the registered
-    --* switch_level
+    -- When TRUE and priority hi then the registered switch_level is OR-ed with the
+    -- input switch_high_i to get out_level_o, else out_level_o is the registered
+    -- switch_level
     g_or_high     : boolean;
-    --* When TRUE and priority lo then the registered switch_level is AND-ed with the
-    --* input switch_low_i to get out_level_o, else out_level_o is the registered
-    --* switch_level
+    -- When TRUE and priority lo then the registered switch_level is AND-ed with the
+    -- input switch_low_i to get out_level_o, else out_level_o is the registered
+    -- switch_level
     g_and_low     : boolean
     );
   port(
-    --* input clock
+    -- input clock
     clk_i         : in  std_logic;
-    --* input reset
+    -- input reset
     rst_n_i       : in  std_logic;
-    --* A pulse on switch_high_i makes the out_level go high
+    -- A pulse on switch_high_i makes the out_level go high
     switch_high_i : in  std_logic;
-    --* A pulse on switch_low_i makes the out_level go low
+    -- A pulse on switch_low_i makes the out_level go low
     switch_low_i  : in  std_logic;
-    --* output data
+    -- output data
     out_level_o   : out std_logic
     );
 end lm_util_ccd_switch;
@@ -92,31 +87,30 @@ end lm_util_ccd_switch;
 -- ARCHITECTURE
 -------------------------------------------------------------------------------
 architecture a_rtl of lm_util_ccd_switch is
-  --`protect begin
   signal s_switch_level      : std_logic;
   signal s_next_switch_level : std_logic;
 
 begin
-  wire_gen : if g_or_high = false and g_and_low = false generate
+  gen_wire : if g_or_high = false and g_and_low = false generate
     out_level_o <= s_switch_level;
-  end generate wire_gen;
+  end generate gen_wire;
 
-  or_gen : if g_or_high = true and g_and_low = false generate
+  gen_or : if g_or_high = true and g_and_low = false generate
     out_level_o <= s_switch_level or switch_high_i;
-  end generate or_gen;
+  end generate gen_or;
 
-  and_gen : if g_or_high = false and g_and_low = true generate
+  gen_and : if g_or_high = false and g_and_low = true generate
     out_level_o <= s_switch_level and (not switch_low_i);
-  end generate and_gen;
+  end generate gen_and;
 
-  or_and_gen : if g_or_high = true and g_and_low = true generate
-    or_and_gen_priority_lo : if g_priority_lo generate
-    out_level_o <= (s_switch_level or switch_high_i) and (not switch_low_i);
-    end generate or_and_gen_priority_lo;
-    or_and_gen_priority_high : if not g_priority_lo generate
+  gen_or_and : if g_or_high = true and g_and_low = true generate
+    gen_or_and_priority_lo : if g_priority_lo generate
+      out_level_o <= (s_switch_level or switch_high_i) and (not switch_low_i);
+    end generate gen_or_and_priority_lo;
+    gen_or_and_priority_high : if not g_priority_lo generate
       out_level_o <= switch_high_i or (s_switch_level and not switch_low_i);
-    end generate or_and_gen_priority_high;
-  end generate or_and_gen;
+    end generate gen_or_and_priority_high;
+  end generate gen_or_and;
 
   proc_reg : process(clk_i)
   begin
@@ -146,6 +140,5 @@ begin
       end if;
     end if;
   end process proc_switch_level;
---`protect end
 end a_rtl;
 

@@ -1,33 +1,29 @@
 --=============================================================================
--- Module Name : lm_util_delay
+-- Module Name : lm_util_delay_pulse
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
--- Description: Fixed delay for std_logic_vector signals. 
+-- Description: Fixed delay for std_logic_vector signals.
 --              simple counter (for pulses) implementation
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --=============================================================================
 
 library ieee;
@@ -37,27 +33,26 @@ use ieee.numeric_std.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief Variable delay for std_logic_vector signals
---* Input signal is delayed by a specific amount
---* The input is valid and is entered in the delay FIFO when ce_i is true
---* @version 1.1.1
+-- Variable delay for std_logic_vector signals
+-- Input signal is delayed by a specific amount
+-- The input is valid and is entered in the delay FIFO when ce_i is true
 entity lm_util_delay_pulse is
   generic(
-    --* actual delay can be different from a power of 2
+    -- actual delay can be different from a power of 2
     g_delay       : natural;
-    --* input pulse active level, used only in "pulse" mode
+    -- input pulse active level, used only in "pulse" mode
     g_pulse_level : std_logic
     );
   port(
-    --* input clock
+    -- input clock
     clk_i   : in  std_logic;
-    --* input reset
+    -- input reset
     rst_n_i : in  std_logic;
-    --* clock enable
+    -- clock enable
     ce_i    : in  std_logic := '1';
-    --* input data
+    -- input data
     din_i   : in  std_logic;
-    --* output delayed data
+    -- output delayed data
     dout_o  : out std_logic
     );
 end lm_util_delay_pulse;
@@ -66,7 +61,6 @@ end lm_util_delay_pulse;
 -- ARCHITECTURE
 -------------------------------------------------------------------------------
 architecture a_rtl of lm_util_delay_pulse is
---`protect begin
 begin
 
   gen_no_delay : if g_delay = 0 generate
@@ -126,6 +120,5 @@ begin
     end process proc_cnt;
 
   end generate gen_delay;
---`protect end
 end architecture a_rtl;
 

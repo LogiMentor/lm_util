@@ -1,33 +1,29 @@
 --=============================================================================
 -- Module Name : lm_util_debouncer
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : ACA
 -------------------------------------------------------------------------------
 -- Description  : general purpose debouncer circuit with configurable length
--- 
--- 
+--
+--
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --=============================================================================
 
 library ieee;
@@ -74,7 +70,7 @@ begin
     end if;
   end process proc_sample;
 
-  --xor 
+  --xor
   gen_debounce_both : if g_debounce_lvl = 2 generate
     s_diff <= s_din_d xor s_din_d2;
 
@@ -83,9 +79,9 @@ begin
     proc_debounce : process (clk_i)
     begin
       if rising_edge(clk_i) then
-        if (rst_n_i = '0') then           --sync reset 
+        if (rst_n_i = '0') then           --sync reset
           s_debounced <= din_i;
-        else  
+        else
           if (s_cnt = g_debounce_length - 1) then
             s_debounced <= s_din_d2;
           end if;
@@ -104,9 +100,9 @@ begin
     proc_debounce : process (clk_i)
     begin
       if rising_edge(clk_i) then
-        if (rst_n_i = '0') then           --sync reset 
+        if (rst_n_i = '0') then           --sync reset
           s_debounced <= din_i;
-        else  
+        else
           if (s_cnt = g_debounce_length - 1) then
             s_debounced <= s_din_d2;
           elsif s_din_d2 = '1' then
@@ -126,9 +122,9 @@ begin
     proc_debounce : process (clk_i)
     begin
       if rising_edge(clk_i) then
-        if (rst_n_i = '0') then           --sync reset 
+        if (rst_n_i = '0') then           --sync reset
           s_debounced <= din_i;
-        else  
+        else
           if (s_cnt = g_debounce_length - 1) then
             s_debounced <= s_din_d2;
           elsif s_din_d2 = '0' then
@@ -144,7 +140,7 @@ begin
   proc_counter : process (clk_i)
   begin
     if rising_edge(clk_i) then
-      if (rst_n_i = '0') then           --sync reset 
+      if (rst_n_i = '0') then           --sync reset
         s_cnt <= (others => '0');
       else
         --change detected or end of counter

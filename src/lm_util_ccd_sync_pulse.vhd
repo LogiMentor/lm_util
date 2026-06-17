@@ -1,8 +1,8 @@
 --=============================================================================
--- Module Name : lm_util_sync_pulse 
+-- Module Name : lm_util_ccd_sync_pulse
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: cross clock domain re-synchronizer circuit
@@ -15,25 +15,21 @@
 --   the out_clk rate.
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --=============================================================================
 
 -------------------------------------------------------------------------------
@@ -44,18 +40,17 @@ use ieee.std_logic_1164.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief cross clock domain re-synchronizer circuit
---* The in_pulse is captured in the in_clk_i domain and then transfered to the
---* out_clk_i domain. The out_pulse_o is also only one cycle wide and transfered
---* back to the in_clk_i domain to serve as an acknowledge signal to ensure
---* that the in_pulse was recognized also in case the in_clk_i is faster than
---* the out_clk_i. The in_busy_o is active during the entire transfer. Hence the
---* rate of pulses that can be transfered is limited by g_delay_len and by
---* the out_clk_i rate.
---* @version 1.0.0
+-- cross clock domain re-synchronizer circuit
+-- The in_pulse is captured in the in_clk_i domain and then transfered to the
+-- out_clk_i domain. The out_pulse_o is also only one cycle wide and transfered
+-- back to the in_clk_i domain to serve as an acknowledge signal to ensure
+-- that the in_pulse was recognized also in case the in_clk_i is faster than
+-- the out_clk_i. The in_busy_o is active during the entire transfer. Hence the
+-- rate of pulses that can be transfered is limited by g_delay_len and by
+-- the out_clk_i rate.
 entity lm_util_ccd_sync_pulse is
   generic(
-    --* number of resync stage to reduce metastability
+    -- number of resync stage to reduce metastability
     g_delay_len : natural
   );
   port(
@@ -63,9 +58,9 @@ entity lm_util_ccd_sync_pulse is
     in_clk_i : in std_logic;
     -- input reset
     in_rst_n_i : in std_logic;
-    --* input pulse
+    -- input pulse
     in_pulse_i : in std_logic;
-    -- indicates whether the module is busy 
+    -- indicates whether the module is busy
     in_busy_o : out std_logic;
     -- output reset
     out_rst_n_i : in std_logic;
@@ -79,7 +74,6 @@ entity lm_util_ccd_sync_pulse is
 end lm_util_ccd_sync_pulse;
 
 architecture a_rtl of lm_util_ccd_sync_pulse is
-  --`protect begin
   signal s_in_level       : std_logic;
   signal s_meta_level     : std_logic_vector(g_delay_len-1 downto 0);
   signal s_out_level      : std_logic;
@@ -89,7 +83,7 @@ architecture a_rtl of lm_util_ccd_sync_pulse is
   signal s_next_out_pulse : std_logic;
 
 begin
-  capture_in_pulse_inst : entity lm_util_lib.lm_util_ccd_switch
+  inst_capture_in_pulse : entity lm_util_lib.lm_util_ccd_switch
     generic map(
       g_priority_lo => true,
       g_or_high     => false,
@@ -136,6 +130,5 @@ begin
   end process proc_in_clk;
 
   s_next_out_pulse <= s_out_level and not s_prev_out_level;
---`protect end
 end a_rtl;
 

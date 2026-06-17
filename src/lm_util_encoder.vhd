@@ -1,33 +1,29 @@
 --=============================================================================
 -- Module Name : lm_util_encoder
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
 -- Description: general purpose encoder
 --
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --=============================================================================
 
 library ieee;
@@ -37,29 +33,27 @@ use ieee.numeric_std.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---* @brief general purpose encoder
---* @version 1.0.0
+-- general purpose encoder
 entity lm_util_encoder is
   generic(
-    --* input data width
+    -- input data width
     g_data_w : integer
     );
   port(
-    --* input clock
+    -- input clock
     clk_i   : in  std_logic;
-    --* input data valid
+    -- input data valid
     dv_i    : in  std_logic;
-    --* input data
+    -- input data
     din_i   : in  std_logic_vector(g_data_w - 1 downto 0);
-    --* output data valid
+    -- output data valid
     dv_o    : out std_logic;
-    --* output encoded data
+    -- output encoded data
     dout_o  : out std_logic_vector(f_ceil_log2(g_data_w) - 1 downto 0)
     );
 end entity lm_util_encoder;
 
 architecture a_rtl of lm_util_encoder is
---`protect begin
 begin
   proc_enc : process(clk_i)
   begin
@@ -74,7 +68,6 @@ begin
       end if;
     end if;
   end process proc_enc;
---`protect end
 end a_rtl;
 
 

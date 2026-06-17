@@ -1,32 +1,28 @@
 --==============================================================================
 -- Module Name : lm_util_clock_measure
 -- Library     : lm_util_lib
--- Project     : UTILITY
--- Company     : Logimentor Srl
+-- Project     : lm_util
+-- Company     : LogiMentor Srl
 -- Author      : Andrea Campera
 --------------------------------------------------------------------------------
--- Description: clock measurement module, count the number of transition of an 
+-- Description: clock measurement module, count the number of transition of an
 --              input clock in 1 sec with a reference clock, known frequency.
 --------------------------------------------------------------------------------
--- Copyright (c) 2025 Logimentor Srl
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
+-- Copyright 2025 LogiMentor Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
 --==============================================================================
 
 library ieee;
@@ -39,23 +35,23 @@ use lm_util_lib.lm_util_pkg.all;
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
---* @brief count the number of transition of an 
---*        input clock in 1 sec with a reference clock, known frequency.
+-- count the number of transition of an
+-- input clock in 1 sec with a reference clock, known frequency.
 entity lm_util_clock_measure is
   generic(
-    --* reference clock frequency Herts
+    -- reference clock frequency Herts
     g_ref_clock_freq : integer;
-    --* clock count width, number of bits of the clock cycles counter  
+    -- clock count width, number of bits of the clock cycles counter
     g_clock_width : integer
   );
   port(
-    --* reference input known clock
+    -- reference input known clock
     ref_clk_i : in std_logic;
-    --* input reset, active low, synchronous with ref_clk_i
+    -- input reset, active low, synchronous with ref_clk_i
     rst_n_i : in std_logic;
-    --* input, clock to be measured
+    -- input, clock to be measured
     clock_to_measure_i : in std_logic;
-    --* output pulse
+    -- output pulse
     output_frequency_hz_o : out std_logic_vector(g_clock_width-1 downto 0)
   );
 end lm_util_clock_measure;
@@ -70,7 +66,7 @@ architecture a_rtl of lm_util_clock_measure is
   signal s_rst_n_resync : std_logic;
   -- shift register
   type t_meta_regs is array (1 downto 0) of std_logic;
-  signal s_resync_reg                 : t_meta_regs := (others => '0');  
+  signal s_resync_reg                 : t_meta_regs := (others => '0');
   -- measured clock domain
   signal s_1s_tick_tgl_d  : std_logic;
   signal s_1s_tick_tgl_d2 : std_logic;
@@ -132,12 +128,12 @@ begin
         s_resync_reg(1) <= s_resync_reg(0);
       end if;
     end if;
-  end process proc_resync; 
-  
+  end process proc_resync;
+
   s_rst_n_resync <= s_resync_reg(1);
 
   -----------------------------------------------------------------------------
-  --* this process count with the measured clock and is reset every second
+  -- this process count with the measured clock and is reset every second
   -----------------------------------------------------------------------------
   proc_1s_counter : process(clock_to_measure_i)
   begin
@@ -154,7 +150,7 @@ begin
       end if;
     end if;
   end process proc_1s_counter;
-  
+
   --###########################################################################
   -- back to ref_clk clock domain
 
@@ -165,10 +161,10 @@ begin
       s_out_freq_rdy_d2 <= s_out_freq_rdy_d;
       s_out_freq_rdy_d3 <= s_out_freq_rdy_d2;
     end if;
-  end process proc_rdy_resample; 
+  end process proc_rdy_resample;
 
   -----------------------------------------------------------------------------
-  --* this process samples the output frequency in the reference clock domain
+  -- this process samples the output frequency in the reference clock domain
   -----------------------------------------------------------------------------
   proc_out_freq : process(ref_clk_i)
   begin

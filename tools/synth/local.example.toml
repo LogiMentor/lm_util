@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[run]
+output_dir = "vendor_synth_out"
+
+[[targets]]
+name = "vivado-artix7"
+tool = "vivado"
+enabled = false
+executable = "vivado"
+part = "xc7a35tcsg324-1"
+family = "artix7"
+
+[[targets]]
+name = "vivado-ultrascale"
+tool = "vivado"
+enabled = false
+executable = "vivado"
+part = "xcku035-fbva676-2"
+family = "ultrascale"
+
+[[targets]]
+name = "quartus-cyclone10"
+tool = "quartus"
+enabled = false
+executable = "quartus_sh"
+family = "Cyclone 10 LP"
+device = "10CL025YU256C8G"
+
+[[targets]]
+name = "quartus-max10"
+tool = "quartus"
+enabled = false
+executable = "quartus_sh"
+family = "MAX 10"
+device = "10M08SAE144C8G"
+
+[[targets]]
+name = "diamond-ecp5"
+tool = "diamond"
+enabled = false
+executable = "pnmainc"
+arguments = []
+device = "LFE5U-25F-6CABGA381C"
+implementation = "synth"
+synthesis = "synplify"
