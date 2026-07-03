@@ -63,12 +63,12 @@ architecture a_tb of tb_vu_lm_util_crc_serial is
   constant C_CRC_CHECK     : std_logic_vector                     := f_hex2slv(g_crc_check);
   constant C_POLY_LEN      : integer                              := C_POLYNOMIAL'length;
   constant C_FLIP_OUT      : integer                              := f_bool2int(g_refout);
-  constant C_CRC_ZERO      : std_logic_vector(C_POLYNOMIAL'range) := (others => '0');
 
   -- Stimulus signals - signals mapped to the input and inout ports of tested entity
 
   signal clk_i   : std_logic := '1'; -- input clock
   signal rst_n_i : std_logic := '0'; -- synchronous rst, active low
+  signal init_i  : std_logic := '0'; -- synchronous crc initialization
   signal dv_i    : std_logic := '0'; -- data valid
 
   signal data_i  : std_logic; -- data input serial
@@ -77,8 +77,32 @@ architecture a_tb of tb_vu_lm_util_crc_serial is
   signal match_o : std_logic; -- CRC match flag
   signal crc_o   : std_logic_vector(C_POLYNOMIAL'length - 1 downto 0); -- serail CRC output
 
-  -- auxilary signals
-  signal s_crc : std_logic_vector(C_POLYNOMIAL'length - 1 downto 0); -- calculated CRC
+  function f_expected_flush_crc(
+    p_crc_o  : std_logic_vector;
+    p_xor    : std_logic_vector;
+    p_refout : boolean
+    ) return std_logic_vector is
+    variable v_internal : std_logic_vector(p_crc_o'length - 1 downto 0);
+    variable v_shifted  : std_logic_vector(p_crc_o'length - 1 downto 0);
+    variable v_output   : std_logic_vector(p_crc_o'length - 1 downto 0);
+  begin
+    if p_refout then
+      v_internal := f_flip(p_crc_o xor p_xor);
+    else
+      v_internal := p_crc_o xor p_xor;
+    end if;
+
+    v_shifted(0)                         := '0';
+    v_shifted(v_shifted'left downto 1)   := v_internal(v_internal'left - 1 downto 0);
+
+    if p_refout then
+      v_output := f_flip(v_shifted);
+    else
+      v_output := v_shifted;
+    end if;
+
+    return v_output xor p_xor;
+  end function f_expected_flush_crc;
 begin
   assert g_test_str'length > 0 report "g_test_string must be provided" severity error;
 
@@ -94,6 +118,7 @@ begin
     (
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
+      init_i  => init_i,
       dv_i    => dv_i,
       data_i  => data_i,
       match_o => match_o,
@@ -106,6 +131,8 @@ begin
 
   proc_main : process
     variable v_msg     : std_logic_vector(C_TOTAL_BITS - 1 downto 0);
+    variable v_crc     : std_logic_vector(C_POLY_LEN - 1 downto 0);
+    variable v_flush   : std_logic_vector(C_POLY_LEN - 1 downto 0);
   begin
     test_runner_setup(runner, runner_cfg);
 
@@ -127,6 +154,7 @@ begin
       -- reset
       dv_i    <= '0';
       flush_i <= '0';
+      init_i  <= '0';
       p_wait_clk(clk_i);
       rst_n_i <= '0';
       -- deassert reset
@@ -140,12 +168,7 @@ begin
         p_wait_clk(clk_i);
       end loop;
       wait for 1 ps;
-
-      if (g_refin) then
-        s_crc <= f_flip(crc_o xor C_XOR_OUT); -- store crc in unxored form and reversed
-      else
-        s_crc <= crc_o xor C_XOR_OUT; -- store crc in unxored form
-      end if;
+      v_crc := crc_o; -- transmitted CRC, including refout/xorout
 
       -- check crc output against check "reference" value
       check_equal(crc_o, C_CRC_CHECK, "Serial CRC output (" & f_slv2hex(crc_o) & ") does not match check value (" & f_slv2hex(C_CRC_CHECK) & ")");
@@ -160,12 +183,13 @@ begin
       dv_i    <= '0'; -- Deassert data valid
 
       --Check crc
-      -- reset
-      rst_n_i <= '0';
+      -- reload initial value without pulsing reset
+      init_i <= '1';
       p_wait_clk(clk_i);
-      -- deassert reset
-      rst_n_i <= '1';
+      init_i <= '0';
       p_wait_clk(clk_i);
+      wait for 1 ps;
+      check_equal(match_o, '0', "Serial init_i did not clear match_o");
 
       -- clock-in data
       dv_i <= '1';
@@ -174,26 +198,40 @@ begin
         p_wait_clk(clk_i);
       end loop;
 
-      -- clock-in crc (unxored)
+      -- clock-in transmitted crc
       dv_i <= '1';
-      for i in C_POLY_LEN - 1 downto 0 loop
-        data_i <= s_crc(i);
-        p_wait_clk(clk_i);
-      end loop;
+      if (g_refout) then
+        for i in 0 to C_POLY_LEN - 1 loop
+          data_i <= v_crc(i);
+          p_wait_clk(clk_i);
+        end loop;
+      else
+        for i in C_POLY_LEN - 1 downto 0 loop
+          data_i <= v_crc(i);
+          p_wait_clk(clk_i);
+        end loop;
+      end if;
       wait for 1 ps;
 
-      -- check crc output and match_o
-      check_equal(crc_o, C_CRC_ZERO xor C_XOR_OUT, "Serial CRC output (" & f_slv2hex(crc_o) & ") is not zero after crc check");
+      -- check match_o, hold while dv_i is low, and clear through init_i
       check_equal(match_o, '1', "Serial match_o was not set");
-
-      --flush crc
-      -- Flush behavior is intentionally preserved by the current reference vector.
+      v_flush := f_expected_flush_crc(crc_o, C_XOR_OUT, g_refout);
       flush_i <= '1';
-      for i in 0 to g_polynomial'length - 1 loop
-        p_wait_clk(clk_i);
-      end loop;
+      p_wait_clk(clk_i);
       flush_i <= '0';
       dv_i    <= '0'; -- Deassert data valid
+      wait for 1 ps;
+      check_equal(crc_o, v_flush, "Serial flush_i did not shift crc_o as expected");
+      check_equal(match_o, '1', "Serial match_o changed during flush_i");
+      p_wait_clk(clk_i);
+      wait for 1 ps;
+      check_equal(match_o, '1', "Serial match_o was not held when dv_i was low");
+
+      init_i <= '1';
+      p_wait_clk(clk_i);
+      init_i <= '0';
+      wait for 1 ps;
+      check_equal(match_o, '0', "Serial init_i did not clear match_o after a match");
     end if;
 
     test_runner_cleanup(runner);
