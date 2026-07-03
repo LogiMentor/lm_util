@@ -62,26 +62,56 @@ architecture a_tb of tb_vu_lm_util_crc_parallel is
   constant C_CRC_CHECK     : std_logic_vector                     := f_hex2slv(g_crc_check);
   constant C_FLIP_OUT      : integer                              := f_bool2int(g_refout);
   constant C_POLY_LEN      : integer                              := C_POLYNOMIAL'length;
-  constant C_CRC_ZERO      : std_logic_vector(C_POLYNOMIAL'range) := (others => '0');
 
   -- Stimulus signals - signals mapped to the input and inout ports of tested entity
 
   signal clk_i   : std_logic := '1'; -- input clock
   signal rst_n_i : std_logic := '0'; -- synchronous rst, active low
+  signal init_i  : std_logic := '0'; -- synchronous crc initialization
   signal dv_i    : std_logic := '0'; -- data valid
 
   signal data_i  : std_logic_vector (g_data_w - 1 downto 0); -- data input parallel
-  signal flush_i : std_logic := '0'; -- flush crc, when '1' crc is flushed out on crc_o
   -- Observed signals - signals mapped to the output ports of tested entity
   signal match_o : std_logic; -- CRC match flag
   signal crc_o   : std_logic_vector(C_POLY_LEN - 1 downto 0); -- paralle CRC output
 
-  -- auxilary signals
-  signal s_crc : std_logic_vector(C_POLY_LEN - 1 downto 0); -- calculated CRC
+  function f_crc_word(
+    p_crc       : std_logic_vector;
+    p_word_idx  : natural;
+    p_word_w    : positive;
+    p_flip_in   : integer;
+    p_refout    : boolean
+    ) return std_logic_vector is
+    constant C_CRC_W : integer := p_crc'length;
+    variable v_crc   : std_logic_vector(C_CRC_W - 1 downto 0) := p_crc;
+    variable v_word  : std_logic_vector(p_word_w - 1 downto 0);
+    variable v_seq   : integer;
+    variable v_src   : integer;
+    variable v_dst   : integer;
+  begin
+    for bit_idx in 0 to p_word_w - 1 loop
+      v_seq := p_word_idx * p_word_w + bit_idx;
+      if p_refout then
+        v_src := v_seq;
+      else
+        v_src := C_CRC_W - 1 - v_seq;
+      end if;
+
+      if p_flip_in = 1 then
+        v_dst := p_word_w - 1 - (bit_idx / 8) * 8 - 7 + (bit_idx mod 8);
+      else
+        v_dst := p_word_w - 1 - bit_idx;
+      end if;
+
+      v_word(v_dst) := v_crc(v_src);
+    end loop;
+    return v_word;
+  end function f_crc_word;
 begin
   assert g_test_str'length > 0 report "g_test_string must be provided" severity error;
   assert C_TOTAL_BITS mod g_data_w = 0 report "C_TOTAL_BITS must be multiple of g_data_w" severity error;
   assert C_POLY_LEN mod g_data_w = 0 report "C_POLY_LEN must be multiple of g_data_w" severity error;
+  assert (g_flip_in = 0) or (g_data_w mod 8 = 0) report "g_flip_in requires g_data_w to be a multiple of 8" severity error;
 
   -- Unit Under Test port map
   inst_dut : entity lm_util_lib.lm_util_crc_par
@@ -97,6 +127,7 @@ begin
     (
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
+      init_i  => init_i,
       dv_i    => dv_i,
       data_i  => data_i,
       match_o => match_o,
@@ -108,11 +139,12 @@ begin
 
   proc_main : process
     variable v_msg     : std_logic_vector(C_TOTAL_BITS - 1 downto 0);
+    variable v_crc     : std_logic_vector(C_POLY_LEN - 1 downto 0);
   begin
     test_runner_setup(runner, runner_cfg);
 
     --Convert g_test_str to bit vector
-    if (g_refin) then
+    if (g_refin and (g_flip_in = 0)) then
       v_msg := f_string2slv_lsb(g_test_str); -- reflected input bits in bytes
     else
       v_msg := f_string2slv(g_test_str);
@@ -125,7 +157,7 @@ begin
 
       -- reset
       dv_i    <= '0';
-      flush_i <= '0';
+      init_i  <= '0';
       p_wait_clk(clk_i);
       rst_n_i <= '0';
       -- deassert reset
@@ -140,23 +172,19 @@ begin
       end loop;
       dv_i <= '0'; -- Deassert data valid
       wait for 1 ps;
-      if (g_refin) then
-        s_crc <= f_flip(crc_o xor C_XOR_OUT); -- store crc in unxored form and reversed
-      else
-        s_crc <= crc_o xor C_XOR_OUT; -- store crc in unxored form
-      end if;
-      dv_i <= '0';
+      v_crc := crc_o; -- transmitted CRC, including refout/xorout
 
       -- check crc output against check "reference" value
       check_equal(crc_o, C_CRC_CHECK, "Parallel CRC output (" & f_slv2hex(crc_o) & ") does not match check value (" & f_slv2hex(C_CRC_CHECK) & ")");
 
       --Check crc
-      -- reset
-      rst_n_i <= '0';
+      -- reload initial value without pulsing reset
+      init_i <= '1';
       p_wait_clk(clk_i);
-      -- deassert reset
-      rst_n_i <= '1';
+      init_i <= '0';
       p_wait_clk(clk_i);
+      wait for 1 ps;
+      check_equal(match_o, '0', "Parallel init_i did not clear match_o");
 
       -- clock-in data
       dv_i <= '1';
@@ -164,17 +192,26 @@ begin
         data_i <= v_msg(i * g_data_w - 1 downto (i - 1) * g_data_w);
         p_wait_clk(clk_i);
       end loop;
-      -- clock-in crc (unxored)
-      for i in C_POLY_LEN / g_data_w downto 1 loop
-        data_i <= s_crc(i * g_data_w - 1 downto (i - 1) * g_data_w);
+
+      -- clock-in transmitted crc
+      for word_idx in 0 to C_POLY_LEN / g_data_w - 1 loop
+        data_i <= f_crc_word(v_crc, word_idx, g_data_w, g_flip_in, g_refout);
         p_wait_clk(clk_i);
       end loop;
       wait for 1 ps;
 
-      -- check crc output and match_o
-      check_equal(crc_o, C_CRC_ZERO xor C_XOR_OUT, "Parallel CRC output (" & f_slv2hex(crc_o) & ") is not zero after crc check");
+      -- check match_o, hold while dv_i is low, and clear through init_i
       check_equal(match_o, '1', "Parallel match_o was not set");
       dv_i <= '0'; -- Deassert data valid
+      p_wait_clk(clk_i);
+      wait for 1 ps;
+      check_equal(match_o, '1', "Parallel match_o was not held when dv_i was low");
+
+      init_i <= '1';
+      p_wait_clk(clk_i);
+      init_i <= '0';
+      wait for 1 ps;
+      check_equal(match_o, '0', "Parallel init_i did not clear match_o after a match");
 
     end if;
 

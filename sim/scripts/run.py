@@ -135,16 +135,22 @@ generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin  = [Tru
 generate_tests(test, g_polynomial = ["1021"], g_init = ["c6c6"], g_refin  = [True],  g_refout = [True],  g_xor_out = ["0000"], g_crc_check = ["bf05"]) #CRC-16/ISO-IEC-14443-3-A
 generate_tests(test, g_polynomial = ["0589"], g_init = ["0000"], g_refin  = [False], g_refout = [False], g_xor_out = ["0001"], g_crc_check = ["007e"]) #CRC-16/DECT-R
 generate_tests(test, g_polynomial = ["8005"], g_init = ["800d"], g_refin  = [False], g_refout = [False], g_xor_out = ["0000"], g_crc_check = ["9ecf"]) #CRC-16/DDS-110
+generate_tests(test, g_polynomial = ["04C11DB7"], g_init = ["FFFFFFFF"], g_refin = [True],  g_refout = [True],  g_xor_out = ["FFFFFFFF"], g_crc_check = ["cbf43926"]) #CRC-32/ISO-HDLC
+generate_tests(test, g_polynomial = ["42F0E1EBA9EA3693"], g_init = ["FFFFFFFFFFFFFFFF"], g_refin = [False], g_refout = [False], g_xor_out = ["FFFFFFFFFFFFFFFF"], g_crc_check = ["62ec59e3f1a4f00a"]) #CRC-64/WE
 
 # lm_util_crc_parallel
 test = lib.test_bench("tb_vu_lm_util_crc_parallel").test("parallel")
-generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin  = [False], g_refout = [False], g_xor_out = ["FFFF"], g_crc_check = ["d64e"]) #CRC-16/GENIBUS
-generate_tests(test, g_polynomial = ["1021"], g_init = ["0000"], g_refin  = [False], g_refout = [False], g_xor_out = ["FFFF"], g_crc_check = ["ce3c"]) #CRC-16/GSM
-generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin  = [False], g_refout = [False], g_xor_out = ["0000"], g_crc_check = ["29b1"]) #CRC-16/IBM-3740
-generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin  = [True],  g_refout = [True],  g_xor_out = ["FFFF"], g_crc_check = ["906e"]) #CRC-16/IBM-SDLC
-generate_tests(test, g_polynomial = ["1021"], g_init = ["c6c6"], g_refin  = [True],  g_refout = [True],  g_xor_out = ["0000"], g_crc_check = ["bf05"]) #CRC-16/ISO-IEC-14443-3-A
-generate_tests(test, g_polynomial = ["0589"], g_init = ["0000"], g_refin  = [False], g_refout = [False], g_xor_out = ["0001"], g_crc_check = ["007e"]) #CRC-16/DECT-R
-generate_tests(test, g_polynomial = ["8005"], g_init = ["800d"], g_refin  = [False], g_refout = [False], g_xor_out = ["0000"], g_crc_check = ["9ecf"]) #CRC-16/DDS-110
+generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin  = [False], g_refout = [False], g_flip_in = [0], g_xor_out = ["FFFF"], g_crc_check = ["d64e"]) #CRC-16/GENIBUS
+generate_tests(test, g_polynomial = ["1021"], g_init = ["0000"], g_refin  = [False], g_refout = [False], g_flip_in = [0], g_xor_out = ["FFFF"], g_crc_check = ["ce3c"]) #CRC-16/GSM
+generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin  = [False], g_refout = [False], g_flip_in = [0], g_xor_out = ["0000"], g_crc_check = ["29b1"]) #CRC-16/IBM-3740
+generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin  = [True],  g_refout = [True],  g_flip_in = [1], g_xor_out = ["FFFF"], g_crc_check = ["906e"]) #CRC-16/IBM-SDLC
+generate_tests(test, g_polynomial = ["1021"], g_init = ["c6c6"], g_refin  = [True],  g_refout = [True],  g_flip_in = [1], g_xor_out = ["0000"], g_crc_check = ["bf05"]) #CRC-16/ISO-IEC-14443-3-A
+generate_tests(test, g_polynomial = ["0589"], g_init = ["0000"], g_refin  = [False], g_refout = [False], g_flip_in = [0], g_xor_out = ["0001"], g_crc_check = ["007e"]) #CRC-16/DECT-R
+generate_tests(test, g_polynomial = ["8005"], g_init = ["800d"], g_refin  = [False], g_refout = [False], g_flip_in = [0], g_xor_out = ["0000"], g_crc_check = ["9ecf"]) #CRC-16/DDS-110
+generate_tests(test, g_polynomial = ["04C11DB7"], g_init = ["FFFFFFFF"], g_refin = [True],  g_refout = [True],  g_flip_in = [1], g_xor_out = ["FFFFFFFF"], g_crc_check = ["cbf43926"]) #CRC-32/ISO-HDLC
+generate_tests(test, g_polynomial = ["42F0E1EBA9EA3693"], g_init = ["FFFFFFFFFFFFFFFF"], g_refin = [False], g_refout = [False], g_flip_in = [0], g_xor_out = ["FFFFFFFFFFFFFFFF"], g_crc_check = ["62ec59e3f1a4f00a"]) #CRC-64/WE
+generate_tests(test, g_polynomial = ["1021"], g_init = ["FFFF"], g_refin = [True], g_refout = [True], g_flip_in = [1], g_data_w = [16], g_test_str = ["12345678"], g_xor_out = ["FFFF"], g_crc_check = ["086a"]) #CRC-16/IBM-SDLC, wide bus
+generate_tests(test, g_polynomial = ["04C11DB7"], g_init = ["FFFFFFFF"], g_refin = [True], g_refout = [True], g_flip_in = [1], g_data_w = [32], g_test_str = ["12345678"], g_xor_out = ["FFFFFFFF"], g_crc_check = ["9ae0daaf"]) #CRC-32/ISO-HDLC, wide bus
 
 # lm_util_debouncer
 test = lib.test_bench("tb_vu_lm_util_debouncer").test("length")

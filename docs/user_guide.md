@@ -164,6 +164,15 @@ When synthesis completes, Vivado reports include:
 | `lm_util_rr_arbiter` | Round-robin request arbiter. | `g_units` |
 | `lm_util_tick_gen` | Periodic one-cycle tick generator. | `g_clock_div` |
 
+CRC engines support polynomial widths from 4 to 64 bits. `init_i` reloads
+`g_init_value` synchronously between messages and clears `match_o`; reset keeps
+the same behavior. For the parallel engine, `g_flip_data_in` reflects bits
+within each input byte, so reflected wide buses keep byte order intact and
+require `g_data_w` to be a multiple of 8. `match_o` compares against the CRC
+residue derived from `g_xor_out`/`g_flip_out`, which allows checking streams
+that include the transmitted CRC field rather than the internal un-xored CRC
+register value.
+
 `lm_util_pkg` contains shared constants, types, and utility functions. Common
 configuration constants include:
 
