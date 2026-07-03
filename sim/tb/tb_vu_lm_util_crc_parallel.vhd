@@ -111,7 +111,7 @@ begin
   assert g_test_str'length > 0 report "g_test_string must be provided" severity error;
   assert C_TOTAL_BITS mod g_data_w = 0 report "C_TOTAL_BITS must be multiple of g_data_w" severity error;
   assert C_POLY_LEN mod g_data_w = 0 report "C_POLY_LEN must be multiple of g_data_w" severity error;
-  assert (g_flip_in = 0) or (g_data_w mod 8 = 0) report "g_flip_in requires g_data_w to be a multiple of 8" severity error;
+  assert (g_flip_in = 0) or (g_data_w mod 8 = 0) report "g_flip_in requires g_data_w to be a multiple of 8" severity failure;
 
   -- Unit Under Test port map
   inst_dut : entity lm_util_lib.lm_util_crc_par

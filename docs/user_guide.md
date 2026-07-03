@@ -166,12 +166,17 @@ When synthesis completes, Vivado reports include:
 
 CRC engines support polynomial widths from 4 to 64 bits. `init_i` reloads
 `g_init_value` synchronously between messages and clears `match_o`; reset keeps
-the same behavior. For the parallel engine, `g_flip_data_in` reflects bits
-within each input byte, so reflected wide buses keep byte order intact and
-require `g_data_w` to be a multiple of 8. `match_o` compares against the CRC
-residue derived from `g_xor_out`/`g_flip_out`, which allows checking streams
-that include the transmitted CRC field rather than the internal un-xored CRC
-register value.
+the same behavior. `init_i` has priority over `dv_i`, so callers must not assert
+it on the same cycle as a data word they intend to keep. For the parallel
+engine, `g_flip_data_in` reflects bits within each input byte, so reflected wide
+buses keep byte order intact and require `g_data_w` to be a multiple of 8.
+`match_o` compares against the CRC residue derived from `g_xor_out`/`g_flip_out`,
+which allows checking streams that include the transmitted CRC field rather than
+the internal un-xored CRC register value. `match_o` is a level that is held
+until reset, `init_i`, or the next checked data update; qualify it with the
+protocol boundary that marks the end of the CRC field. In the serial engine,
+`flush_i` shifts the CRC register for output serialization and does not update
+`match_o`.
 
 `lm_util_pkg` contains shared constants, types, and utility functions. Common
 configuration constants include:

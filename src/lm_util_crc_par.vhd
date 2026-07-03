@@ -64,15 +64,6 @@ end entity lm_util_crc_par;
 
 architecture a_rtl of lm_util_crc_par is
 
-  function f_to_crc_width(p_value : std_logic_vector; p_width : integer) return std_logic_vector is
-    variable v_ret : std_logic_vector(p_width - 1 downto 0) := (others => '0');
-  begin
-    if p_value'length = p_width then
-      v_ret := p_value;
-    end if;
-    return v_ret;
-  end function f_to_crc_width;
-
   function f_crc_step(
     p_crc        : std_logic_vector;
     p_data       : std_logic;
@@ -117,8 +108,8 @@ architecture a_rtl of lm_util_crc_par is
   constant C_INIT_MSB : integer                          := g_init_value'length - 1;
   constant C_XOR_MSB  : integer                          := g_xor_out'length - 1;
   constant C_P        : std_logic_vector(C_MSB downto 0) := g_polynomial;
-  constant C_INIT     : std_logic_vector(C_MSB downto 0) := f_to_crc_width(g_init_value, C_MSB + 1);
-  constant C_XOR_OUT  : std_logic_vector(C_MSB downto 0) := f_to_crc_width(g_xor_out, C_MSB + 1);
+  constant C_INIT     : std_logic_vector(C_MSB downto 0) := g_init_value;
+  constant C_XOR_OUT  : std_logic_vector(C_MSB downto 0) := g_xor_out;
   constant C_RESIDUE  : std_logic_vector(C_MSB downto 0) := f_crc_residue(C_P, C_XOR_OUT, g_flip_out);
   constant C_DW       : integer                          := g_data_w;
   type t_fb_array is array (C_DW downto 1) of std_logic_vector(C_MSB downto 0);

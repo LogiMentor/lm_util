@@ -77,6 +77,32 @@ architecture a_tb of tb_vu_lm_util_crc_serial is
   signal match_o : std_logic; -- CRC match flag
   signal crc_o   : std_logic_vector(C_POLYNOMIAL'length - 1 downto 0); -- serail CRC output
 
+  function f_expected_flush_crc(
+    p_crc_o  : std_logic_vector;
+    p_xor    : std_logic_vector;
+    p_refout : boolean
+    ) return std_logic_vector is
+    variable v_internal : std_logic_vector(p_crc_o'length - 1 downto 0);
+    variable v_shifted  : std_logic_vector(p_crc_o'length - 1 downto 0);
+    variable v_output   : std_logic_vector(p_crc_o'length - 1 downto 0);
+  begin
+    if p_refout then
+      v_internal := f_flip(p_crc_o xor p_xor);
+    else
+      v_internal := p_crc_o xor p_xor;
+    end if;
+
+    v_shifted(0)                         := '0';
+    v_shifted(v_shifted'left downto 1)   := v_internal(v_internal'left - 1 downto 0);
+
+    if p_refout then
+      v_output := f_flip(v_shifted);
+    else
+      v_output := v_shifted;
+    end if;
+
+    return v_output xor p_xor;
+  end function f_expected_flush_crc;
 begin
   assert g_test_str'length > 0 report "g_test_string must be provided" severity error;
 
@@ -106,6 +132,7 @@ begin
   proc_main : process
     variable v_msg     : std_logic_vector(C_TOTAL_BITS - 1 downto 0);
     variable v_crc     : std_logic_vector(C_POLY_LEN - 1 downto 0);
+    variable v_flush   : std_logic_vector(C_POLY_LEN - 1 downto 0);
   begin
     test_runner_setup(runner, runner_cfg);
 
@@ -188,7 +215,14 @@ begin
 
       -- check match_o, hold while dv_i is low, and clear through init_i
       check_equal(match_o, '1', "Serial match_o was not set");
+      v_flush := f_expected_flush_crc(crc_o, C_XOR_OUT, g_refout);
+      flush_i <= '1';
+      p_wait_clk(clk_i);
+      flush_i <= '0';
       dv_i    <= '0'; -- Deassert data valid
+      wait for 1 ps;
+      check_equal(crc_o, v_flush, "Serial flush_i did not shift crc_o as expected");
+      check_equal(match_o, '1', "Serial match_o changed during flush_i");
       p_wait_clk(clk_i);
       wait for 1 ps;
       check_equal(match_o, '1', "Serial match_o was not held when dv_i was low");
