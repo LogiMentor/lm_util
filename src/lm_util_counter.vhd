@@ -7,8 +7,10 @@
 -------------------------------------------------------------------------------
 -- Description: general-purpose synchronous counter with optional load,
 --              direction, and watchdog capabilities.
---              When counter reaches g_wd_timer - 1, it is reseted to zero and
---              generates a pulse on timer_o output.
+--              Counting up, the counter runs 0 .. g_wd_timer-1, then wraps to
+--              zero and generates a pulse on timer_o. Counting down it runs
+--              g_wd_timer-1 .. 0 (reset loads g_wd_timer-1), then wraps to
+--              g_wd_timer-1 and generates a pulse on timer_o.
 --
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
@@ -64,23 +66,33 @@ entity lm_util_counter is
 end entity lm_util_counter;
 
 architecture a_rtl of lm_util_counter is
+  -- terminal count generating the watchdog pulse and the value reloaded after
+  -- it (also the reset value), per direction
+  constant C_CNT_TERMINAL : integer := f_sel_a_b(g_dir = 1, g_wd_timer - 1, 0);
+  constant C_CNT_RELOAD   : integer := f_sel_a_b(g_dir = 1, 0, g_wd_timer - 1);
+
   signal s_cnt   : unsigned(g_data_w - 1 downto 0);
   signal s_timer : std_logic;
 begin
 
   -- check direction
-  assert g_dir = 1 or g_dir = 0 report "direction should be an integer 1: up, 0:down" severity error;
+  assert g_dir = 1 or g_dir = 0 report "direction should be an integer 1: up, 0:down" severity failure;
+
+  -- check watchdog range against the counter width
+  assert (g_wd_timer >= 1) and (g_wd_timer <= 2**g_data_w)
+  report "g_wd_timer must be in range 1 to 2**g_data_w!"
+  severity failure;
 
   proc_count : process(clk_i)
   begin
     if rising_edge(clk_i) then
       if (rst_n_i = '0') then
-        s_cnt <= (others => '0');
+        s_cnt <= to_unsigned(C_CNT_RELOAD, s_cnt'length);
       elsif (ce_i = '1') then
         if load_i = '1' then
           s_cnt <= unsigned(load_dat_i);
-        elsif (s_cnt = to_unsigned(g_wd_timer-1, s_cnt'length)) then
-          s_cnt <= (others => '0');
+        elsif (s_cnt = to_unsigned(C_CNT_TERMINAL, s_cnt'length)) then
+          s_cnt <= to_unsigned(C_CNT_RELOAD, s_cnt'length);
         elsif g_dir = 1 then
           s_cnt <= s_cnt + 1;
         else
@@ -98,7 +110,7 @@ begin
         s_timer <= '0';
       elsif (ce_i = '1') then
         -- check the watchdog
-        if s_cnt = to_unsigned(g_wd_timer-1, s_cnt'length) then
+        if s_cnt = to_unsigned(C_CNT_TERMINAL, s_cnt'length) then
           s_timer <= '1';
         else
           s_timer <= '0';
