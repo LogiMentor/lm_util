@@ -1256,7 +1256,7 @@ package body lm_util_pkg is
     elsif operation = C_LM_XOR then
       v_stage_arr := (others => (others => '0'));
     else
-      assert true report "common_pkg: unsupported f_vector_tree operation" severity failure;
+      assert false report "lm_util_pkg: unsupported f_vector_tree operation" severity failure;
     end if;
     v_stage_arr(-1)(C_SLV_W - 1 downto 0) := slv;  -- any unused input C_W : C_SLV_W bits have void default value
     for j in 0 to C_NOF_STEGES - 1 loop
@@ -1336,7 +1336,7 @@ package body lm_util_pkg is
   end;
 
   function f_smallest(n : t_natural_arr) return natural is
-    variable v_m : natural := 0;
+    variable v_m : natural := natural'high;
   begin
     for i in n'range loop
       if n(i) < v_m then
@@ -2203,12 +2203,10 @@ package body lm_util_pkg is
   function f_div_ceil(a : time; b : time)
     return integer is
     variable v_div_res : integer;
-    variable v_div_mod : integer;
     variable v_res     : integer;
   begin
     v_div_res := a/b;
-    v_div_mod := (a/1 ns) mod (b/1 ns);
-    if (v_div_mod = 0) then
+    if (v_div_res * b = a) then
       v_res := v_div_res;
     else
       v_res := v_div_res + 1;
@@ -2220,41 +2218,19 @@ package body lm_util_pkg is
   -- ------------------------------------------------------------------------
   function f_div_ceil_2pwr(a : integer; b : integer)
     return integer is
+    variable v_div : integer;
     variable v_res : integer;
   begin
-    v_res := f_div_ceil(a, b);
-    if v_res /= 1 then
-      for i in 0 to 63 loop
-        if (2**f_floor_log2(v_res) /= v_res) then
-          v_res := v_res + 1;
-        end if;
-      end loop;
+    v_div := f_div_ceil(a, b);
+    if v_div <= 1 then
+      v_res := 1;
+    elsif (2**f_floor_log2(v_div) = v_div) then
+      v_res := v_div;
+    else
+      v_res := 2**(f_floor_log2(v_div) + 1);
     end if;
     return v_res;
   end;
-
-
--- function f_div_ceil_2pwr(a : integer; b : integer) return integer is
---   variable v_div   : integer;
---   variable v_log2  : integer;
---   variable v_res   : integer;
--- begin
---   -- Ceiling division
---   v_div := f_div_ceil(a, b);
-
---   -- Check if result is already a power of two
---   if v_div <= 1 then
---     v_res := 1;  -- 2^0 = 1
---   elsif (2**f_floor_log2(v_div) = v_div) then
---     v_res := v_div;
---   else
---     -- Round up to next power of two
---     v_log2 := f_floor_log2(v_div) + 1;
---     v_res := 2**v_log2;
---   end if;
-
---   return v_res;
--- end;
   -- ------------------------------------------------------------------------
   function f_div_round(a : integer; b : integer)
     return integer is
@@ -2457,18 +2433,15 @@ package body lm_util_pkg is
   end function f_count_ones;
 
   function f_is_power_of_two(input : integer) return boolean is
-    variable v_input_slv : std_logic_vector(f_ceil_log2(input)-1 downto 0);
-    variable v_ret : boolean;
+    variable v_val : integer := input;
   begin
-    -- to check if an integere is a power of two the function convert it to a std_logic_vector
-      -- and check if there is only one '1' or none (zero is 2^0)
-    v_input_slv := f_int2slv(input,f_ceil_log2(input));
-    if (f_count_ones(v_input_slv) = 0 or f_count_ones(v_input_slv) = 1) then
-      v_ret := true;
-    else
-      v_ret := false;
+    if (input <= 0) then
+      return false;
     end if;
-    return v_ret;
+    while v_val mod 2 = 0 loop
+      v_val := v_val / 2;
+    end loop;
+    return v_val = 1;
   end function f_is_power_of_two;
 
 
@@ -2812,8 +2785,12 @@ function f_slv2string (slv : std_logic_vector) return string is
   function f_string_format(value : real; precision : natural := 3) return string is
     constant C_S        : real    := sign(value);
     constant C_VAL      : real    := value * C_S;
-    constant C_INT      : integer := integer(floor(C_VAL));
-    constant C_FRAC     : integer := integer(round((C_VAL - real(C_INT)) * 10.0**precision));
+    -- round once on the scaled value so a fraction that rounds up to 10**precision
+    -- carries into the integer part instead of widening the fraction field
+    constant C_SCALE    : integer := integer(10.0**precision);
+    constant C_SCALED   : integer := integer(round(C_VAL * real(C_SCALE)));
+    constant C_INT      : integer := C_SCALED / C_SCALE;
+    constant C_FRAC     : integer := C_SCALED mod C_SCALE;
     constant C_FRAC_STR : string  := integer'image(C_FRAC);
     constant C_RES      : string  := integer'image(C_INT) & "." & (2 to (precision - C_FRAC_STR'length + 1) => '0') & C_FRAC_STR;
   begin
@@ -2996,7 +2973,7 @@ function f_slv2string (slv : std_logic_vector) return string is
     end if;
 
     if (v_StartOfString < str'low) then report "v_StartOfString is out of str's range. (str=" & str & ")" severity error; end if;
-    if (v_EndOfString < str'high) then report "v_EndOfString is out of str's range. (str=" & str & ")" severity error; end if;
+    if (v_EndOfString > str'high) then report "v_EndOfString is out of str's range. (str=" & str & ")" severity error; end if;
 
     return str(v_StartOfString to v_EndOfString);
   end function;
