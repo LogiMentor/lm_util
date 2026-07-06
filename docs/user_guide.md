@@ -153,7 +153,7 @@ When synthesis completes, Vivado reports include:
 | `lm_util_delay` | Generic fixed delay line. | `g_delay`, `g_data_w` |
 | `lm_util_delay_pulse` | Delays a single-bit pulse or level event. | `g_delay`, `g_pulse_level` |
 | `lm_util_delay_srl` | Fixed delay line written for SRL/shift-register inference. | `g_delay`, `g_data_w`, `g_srl_depth` |
-| `lm_util_delay_var` | Variable delay line with SRL, memory, or pulse/counter architecture. | `g_delay_max`, `g_data_w`, `g_arch_type`, `g_pulse_level` |
+| `lm_util_delay_var` | Variable delay line with SRL or pulse/counter architecture. | `g_delay_max`, `g_data_w`, `g_arch_type`, `g_pulse_level` |
 | `lm_util_edge_detector` | Single-clock edge detector. | `g_event_edge` |
 | `lm_util_encoder` | Registered one-hot to binary encoder. | `g_data_w` |
 | `lm_util_lfsr` | LFSR/xorshift pseudo-random sequence generator. | `g_data_w` |
@@ -208,7 +208,7 @@ Some modules need vendor report review even when simulation passes:
 | Module | What to Check |
 | --- | --- |
 | `lm_util_delay_srl` | SRL/shift-register inference and boundary delays such as 31/32/33 on Xilinx. |
-| `lm_util_delay_var` | SRL versus memory versus pulse/counter implementation. |
+| `lm_util_delay_var` | SRL versus pulse/counter implementation. |
 | `lm_util_ccd_resync`, `lm_util_async_reset` | Flip-flop chains must not be converted into SRLs. |
 | `lm_util_clock_mux` | Clock mux and keep/preserve handling on each target family. |
 
