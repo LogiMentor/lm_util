@@ -182,6 +182,8 @@ generate_tests(test, g_delay = [31, 32, 33], g_data_w = [8], g_srl_depth = [32])
 test = lib.test_bench("tb_vu_lm_util_delay_pulse").test("pulse")
 generate_tests(test, g_delay = [0, 1, 2, 3, 4, 5], g_pulse_width = [1])
 generate_tests(test, g_delay = [2, 3, 4, 5], g_pulse_width = [2])
+# input pulses wider than the delay must not retrigger the output
+generate_tests(test, g_delay = [2, 3], g_pulse_width = [4])
 
 # lm_util_delay_var
 # note: the "mem" architecture (C_LM_MEM) is not implemented and rejected at elaboration

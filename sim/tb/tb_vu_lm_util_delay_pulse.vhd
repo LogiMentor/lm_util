@@ -93,14 +93,22 @@ begin
         check_equal(dout_o, g_pulse_level, "Mismatch output for delay = 1");
       else
         --g_delay>1
-        din_i <= g_pulse_level;
-        p_wait_clk(clk_i, g_pulse_width);
-        din_i <= not g_pulse_level;
-        p_wait_clk(clk_i, g_delay - g_pulse_width);
+        -- drive the input active for g_pulse_width cycles with a scheduled
+        -- release, so pulses wider than the delay are also covered
+        din_i <= g_pulse_level, not g_pulse_level after C_CLK_PERIOD * g_pulse_width + 1 ps;
+        p_wait_clk(clk_i, g_delay);
         -- Check immediate output
         check_equal(dout_o, not g_pulse_level, "Mismatch immediate output for delay = " & integer'image(g_delay));
         wait for 1 ps;
         check_equal(dout_o, g_pulse_level, "Mismatch output for delay = " & integer'image(g_delay));
+
+        -- the output pulse is one cycle wide
+        p_wait_clk(clk_i);
+        wait for 1 ps;
+        check_equal(dout_o, not g_pulse_level, "Output pulse should be one cycle wide for delay = " & integer'image(g_delay));
+
+        -- an input held active beyond the delay must not retrigger a second pulse
+        p_check_held_for(dout_o, not g_pulse_level, C_CLK_PERIOD * (g_delay + g_pulse_width) - 1 ps, "Unexpected retrigger for delay = " & integer'image(g_delay) & ", width = " & integer'image(g_pulse_width));
       end if;
     end if;
 

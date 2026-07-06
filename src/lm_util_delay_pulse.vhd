@@ -72,7 +72,10 @@ begin
     proc_unit_delay : process(clk_i)
     begin
       if rising_edge(clk_i) then
-        if (ce_i = '1') then
+        if (rst_n_i = '0') then
+          -- reset to the inactive level of the configured pulse polarity
+          dout_o <= not g_pulse_level;
+        elsif (ce_i = '1') then
           dout_o <= din_i;
         end if;
       end if;
@@ -90,6 +93,8 @@ begin
     signal s_pulse_cnt : unsigned(C_LOG_DELAY - 1 downto 0) := (others => '0');
     -- this signal force the cou nter to start after the first sof received
     signal s_cnt_ena   : std_logic;
+    -- previous input sample, for leading edge detection
+    signal s_din_d     : std_logic;
 
   begin
     proc_cnt : process(clk_i)
@@ -98,12 +103,15 @@ begin
         if (rst_n_i = '0') then
           -- reset to the inactive level of the configured pulse polarity
           dout_o      <= not g_pulse_level;
+          s_din_d     <= not g_pulse_level;
           s_cnt_ena   <= '0';
           s_pulse_cnt <= (others => '0');
         elsif ce_i = '1' then
+          s_din_d <= din_i;
           -- trigger on the pulse leading edge only, so pulses wider than one
-          -- clock cycle are delayed from their leading edge
-          if (din_i = g_pulse_level and s_cnt_ena = '0') then
+          -- clock cycle are delayed from their leading edge and an input held
+          -- active beyond the delay cannot retrigger a second output pulse
+          if (din_i = g_pulse_level and s_din_d /= g_pulse_level and s_cnt_ena = '0') then
             s_cnt_ena   <= '1';
             s_pulse_cnt <= to_unsigned(1, s_pulse_cnt'length);
             dout_o      <= not g_pulse_level;

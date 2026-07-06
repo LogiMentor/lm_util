@@ -125,7 +125,13 @@ begin
       check_equal(dout_o, f_sl2slv(not g_pulse_level), "Mismatch immediate output for delay = " & integer'image(g_delay));
       wait for 1 ps;
       check_equal(dout_o, f_sl2slv(g_pulse_level), "Mismatch output for delay = " & integer'image(g_delay));
-      check_equal(dv_o, '1', "dv_o not asserted in pulse mode");
+      check_equal(dv_o, '1', "dv_o should pulse with the delayed output");
+
+      -- the output pulse and dv_o are one cycle wide
+      p_wait_clk(clk_i);
+      wait for 1 ps;
+      check_equal(dout_o, f_sl2slv(not g_pulse_level), "Output pulse should be one cycle wide for delay = " & integer'image(g_delay));
+      check_equal(dv_o, '0', "dv_o should deassert after the delayed pulse");
     end if;
 
     test_runner_cleanup(runner);

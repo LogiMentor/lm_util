@@ -21,8 +21,11 @@
   `g_pulse_length = 1` and ignores edges arriving while the window is running.
 - `lm_util_delay_pulse` and the `lm_util_delay_var` pulse architecture trigger
   on the pulse leading edge, so pulses wider than one clock cycle are delayed
-  from their leading edge; reset drives the output to the inactive level of
-  the configured polarity.
+  from their leading edge and an input held active beyond the delay cannot
+  retrigger a second output pulse; reset drives the output to the inactive
+  level of the configured polarity in every delay configuration. In the
+  `lm_util_delay_var` pulse architecture `dv_o` pulses together with the
+  delayed output pulse, consistent with the SRL architecture.
 
 ### Fixed
 
@@ -32,9 +35,10 @@
   ready synchronizer chain is now cleared by reset so a reset can no longer
   produce a spurious output update.
 - `lm_util_delay_var`: `dv_o` is now driven for `g_delay_max = 1` and in the
-  pulse architecture; a runtime delay of 1 is supported in pulse mode;
-  unsupported `g_arch_type` values (including the never-implemented "mem"
-  architecture) are rejected at elaboration.
+  pulse architecture (where it pulses with the delayed output); a runtime
+  delay of 1 is supported in pulse mode; unsupported `g_arch_type` values
+  (including the never-implemented "mem" architecture) are rejected at
+  elaboration.
 - `lm_util_pkg`: `f_smallest(t_natural_arr)` no longer always returns 0;
   `f_div_ceil_2pwr` rounds correctly to the next power of two for any ratio;
   `f_div_ceil(time, time)` no longer truncates sub-ns remainders;

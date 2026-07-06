@@ -160,6 +160,8 @@ begin
       signal s_pulse_cnt : unsigned(C_LOG_DELAY - 1 downto 0) := (others => '0');
       -- this signal force the cou nter to start after the first sof received
       signal s_cnt_ena   : std_logic;
+      -- previous input sample, for leading edge detection
+      signal s_din_d     : std_logic;
       begin
 
       -- Check that the delay is non-negative
@@ -177,19 +179,24 @@ begin
           if (rst_n_i = '0') then
             dout_o      <= (dout_o'range => not f_int2sl(g_pulse_level));
             dv_o        <= '0';
+            s_din_d     <= not f_int2sl(g_pulse_level);
             s_cnt_ena   <= '0';
             s_pulse_cnt <= (others => '0');
           else
-            -- data valid follows the input with one clock cycle latency; the
-            -- pulse itself is delayed by delay_i cycles
-            dv_o <= dv_i;
+            -- dv_o pulses together with the delayed output pulse, as in the
+            -- SRL architecture
+            dv_o <= '0';
+            -- the whole pulse path advances only on dv_i cycles
             if dv_i = '1' then
-              -- trigger on the pulse leading edge only: input cycles kept at
-              -- the active level while a delay is in flight are ignored
-              if (din_i(0) = f_int2sl(g_pulse_level) and s_cnt_ena = '0') then
+              s_din_d <= din_i(0);
+              -- trigger on the pulse leading edge only: an input held active
+              -- beyond the delay cannot retrigger a second output pulse, and
+              -- edges arriving while a delay is in flight are ignored
+              if (din_i(0) = f_int2sl(g_pulse_level) and s_din_d /= f_int2sl(g_pulse_level) and s_cnt_ena = '0') then
                 if (f_slv2nat(delay_i) <= 1) then
                   -- unit delay: emit right away through the output register
                   dout_o(0) <= f_int2sl(g_pulse_level);
+                  dv_o      <= '1';
                 else
                   s_pulse_cnt <= to_unsigned(1, s_pulse_cnt'length);
                   s_cnt_ena   <= '1';
@@ -198,6 +205,7 @@ begin
               elsif (s_cnt_ena = '1' and s_pulse_cnt = f_slv2nat(delay_i) - 1) then
                 s_pulse_cnt <= to_unsigned(0, s_pulse_cnt'length);
                 dout_o(0)   <= f_int2sl(g_pulse_level);
+                dv_o        <= '1';
                 s_cnt_ena   <= '0';
               elsif (s_cnt_ena = '1') then
                 s_pulse_cnt <= s_pulse_cnt + 1;
