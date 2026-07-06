@@ -70,6 +70,12 @@ architecture a_rtl of lm_util_async_reset is
   type t_meta_regs is array (g_delay_len - 1 downto 0) of std_logic;
   signal s_resync_reg : t_meta_regs := (others => '0');
 
+  -- keep the synchronizer flops discrete and adjacent for metastability hardening
+  attribute async_reg     : string;
+  attribute shreg_extract : string;
+  attribute async_reg of s_resync_reg     : signal is "true";
+  attribute shreg_extract of s_resync_reg : signal is "no";
+
 begin
 
   assert g_delay_len >= 2 report "g_delay_len must be >= 2" severity failure;

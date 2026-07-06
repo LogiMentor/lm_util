@@ -81,9 +81,14 @@ architecture a_rtl of lm_util_clock_mux is
 
 --
 -- we have to set the attribute synthesis keep (or equivalent) to tell the synthesiser to use
--- different LUTs to implement the clock gating
-  attribute keep                 : boolean;
-  attribute keep of s_gated_clks : signal is true;
+-- different LUTs to implement the clock gating. Vivado expects keep as a
+-- string attribute; a boolean-typed one is silently ignored
+  attribute keep                 : string;
+  attribute keep of s_gated_clks : signal is "true";
+  -- the enable resampling flops synchronize the cross-coupled selects
+  attribute async_reg : string;
+  attribute async_reg of s_ena_r0 : signal is "true";
+  attribute async_reg of s_ena_r1 : signal is "true";
 begin
 
   gen_clocks : for k in 0 to g_num_clocks-1 generate

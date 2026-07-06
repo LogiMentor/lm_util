@@ -102,6 +102,9 @@ begin
       if rising_edge(in_clk_i) then
         if in_rst_n_i = '0' then
           s_in_data_dv    <= '0';
+          -- park the edge detector high so a request held asserted across the
+          -- reset release is not seen as a new rising edge
+          s_req_prim_d1   <= '1';
         else
           s_req_prim_d1 <= s_req_prim;
           if s_req_prim = '1' and s_req_prim_d1 = '0' then

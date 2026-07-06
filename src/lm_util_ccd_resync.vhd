@@ -70,11 +70,18 @@ end lm_util_ccd_resync;
 architecture a_rtl of lm_util_ccd_resync is
   signal s_din_meta : std_logic_vector(g_meta_levels-1 downto 0);
 
+  -- keep the synchronizer flops discrete and adjacent: without these the
+  -- chain can be mapped to an SRL primitive, losing the metastability filtering
+  attribute async_reg     : string;
+  attribute shreg_extract : string;
+  attribute async_reg of s_din_meta     : signal is "true";
+  attribute shreg_extract of s_din_meta : signal is "no";
+
 begin
   -- Safety check on input generic
   assert g_meta_levels >= 2
     report "lm_util_ccd_resync: g_meta_levels must be at least 2 to combat metastability"
-    severity error;
+    severity failure;
   proc_resync : process (clk_i)
   begin
     if rising_edge(clk_i) then

@@ -82,7 +82,20 @@ architecture a_rtl of lm_util_ccd_sync_pulse is
   signal s_pulse_ack      : std_logic;
   signal s_next_out_pulse : std_logic;
 
+  -- keep the synchronizer flops discrete and adjacent: without these the
+  -- chains can be mapped to SRL primitives, losing the metastability filtering
+  attribute async_reg     : string;
+  attribute shreg_extract : string;
+  attribute async_reg of s_meta_level     : signal is "true";
+  attribute shreg_extract of s_meta_level : signal is "no";
+  attribute async_reg of s_meta_ack       : signal is "true";
+  attribute shreg_extract of s_meta_ack   : signal is "no";
+
 begin
+
+  assert g_delay_len >= 2
+  report "g_delay_len must be at least 2 to combat metastability!"
+  severity failure;
   inst_capture_in_pulse : entity lm_util_lib.lm_util_ccd_switch
     generic map(
       g_priority_lo => true,
