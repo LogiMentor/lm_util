@@ -78,8 +78,10 @@ begin
   -- check direction
   assert g_dir = 1 or g_dir = 0 report "direction should be an integer 1: up, 0:down" severity failure;
 
-  -- check watchdog range against the counter width
-  assert (g_wd_timer >= 1) and (g_wd_timer <= 2**g_data_w)
+  -- check watchdog range against the counter width; the log2 form avoids the
+  -- integer overflow of 2**g_data_w for g_data_w >= 31. VHDL boolean 'and'
+  -- short-circuits, so f_ceil_log2 is not called when g_wd_timer < 1
+  assert (g_wd_timer >= 1) and (f_ceil_log2(g_wd_timer) <= g_data_w)
   report "g_wd_timer must be in range 1 to 2**g_data_w!"
   severity failure;
 
