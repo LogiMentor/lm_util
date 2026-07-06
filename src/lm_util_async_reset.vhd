@@ -21,6 +21,18 @@
 --              The input asynchronous reset is active on g_rst_lvl, the output
 --              is active low
 --
+--              Constrain the asynchronous input at project level (adapt
+--              hierarchy/names):
+--                Vivado (XDC):
+--                  set_false_path -from [get_ports arst_i] -to \
+--                    [get_cells -hier -filter {NAME =~ */s_resync_reg_reg[*]}]
+--                Quartus (SDC):
+--                  set_false_path -from [get_ports arst_i] -to [get_registers *s_resync_reg*]
+--                Diamond, Synplify/LSE (SDC/LDC):
+--                  set_false_path -from [get_ports arst_i] -to [get_cells */s_resync_reg*]
+--              Reset release is timed by recovery/removal analysis on the
+--              synchronized chain, which needs no extra constraint.
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -70,11 +82,22 @@ architecture a_rtl of lm_util_async_reset is
   type t_meta_regs is array (g_delay_len - 1 downto 0) of std_logic;
   signal s_resync_reg : t_meta_regs := (others => '0');
 
-  -- keep the synchronizer flops discrete and adjacent for metastability hardening
+  -- Keep the synchronizer flops discrete and adjacent for metastability
+  -- hardening. Attributes are per synthesis tool; unknown ones are ignored.
+  -- Xilinx Vivado
   attribute async_reg     : string;
   attribute shreg_extract : string;
   attribute async_reg of s_resync_reg     : signal is "true";
   attribute shreg_extract of s_resync_reg : signal is "no";
+  -- Synplify Pro / Lattice LSE
+  attribute syn_srlstyle : string;
+  attribute syn_preserve : boolean;
+  attribute syn_srlstyle of s_resync_reg : signal is "registers";
+  attribute syn_preserve of s_resync_reg : signal is true;
+  -- Intel Quartus
+  attribute altera_attribute : string;
+  attribute altera_attribute of s_resync_reg : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
 begin
 

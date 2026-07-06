@@ -10,11 +10,21 @@
 --              g_meta_levels (usually 2) registers in the destination clock
 --              domain.
 --              Synthesis tools might infer SRL and not true registers, making
---              the clock domain crossing no implemented. To prevent this
---              special attributes shall be used. One way to use those
---              attributes is via HDL attribute keyword, another way would be to
---              include the constraint in a specific contraint file.
---              In both cases this process is vendor dependent
+--              the clock domain crossing not implemented. Vendor-specific HDL
+--              attributes are applied on the chain (see the architecture);
+--              each tool ignores the attributes it does not know.
+--              The crossing path itself must be constrained at project level;
+--              adapt hierarchy/names to the instance:
+--                Vivado (XDC):
+--                  set_false_path -to [get_cells -hier -filter \
+--                    {NAME =~ */inst_resync*/s_din_meta_reg[0]}]
+--                Quartus (SDC):
+--                  set_false_path -to [get_registers *s_din_meta[0]]
+--                Diamond, Synplify/LSE (SDC/LDC):
+--                  set_false_path -to [get_cells */s_din_meta[0]]
+--              To bound the crossing latency instead of cutting it, use
+--              set_max_delay (Vivado: add -datapath_only) with the same
+--              -from/-to targets.
 --
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
@@ -70,12 +80,23 @@ end lm_util_ccd_resync;
 architecture a_rtl of lm_util_ccd_resync is
   signal s_din_meta : std_logic_vector(g_meta_levels-1 downto 0);
 
-  -- keep the synchronizer flops discrete and adjacent: without these the
-  -- chain can be mapped to an SRL primitive, losing the metastability filtering
+  -- Keep the synchronizer flops discrete and adjacent: without these the
+  -- chain can be mapped to an SRL primitive, losing the metastability
+  -- filtering. Attributes are per synthesis tool; unknown ones are ignored.
+  -- Xilinx Vivado
   attribute async_reg     : string;
   attribute shreg_extract : string;
   attribute async_reg of s_din_meta     : signal is "true";
   attribute shreg_extract of s_din_meta : signal is "no";
+  -- Synplify Pro / Lattice LSE
+  attribute syn_srlstyle : string;
+  attribute syn_preserve : boolean;
+  attribute syn_srlstyle of s_din_meta : signal is "registers";
+  attribute syn_preserve of s_din_meta : signal is true;
+  -- Intel Quartus
+  attribute altera_attribute : string;
+  attribute altera_attribute of s_din_meta : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
 begin
   -- Safety check on input generic

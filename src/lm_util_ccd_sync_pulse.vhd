@@ -14,6 +14,19 @@
 --   rate of pulses that can be transfered is limited by g_delay_len and by
 --   the out_clk rate.
 --
+--   Constrain both crossing paths at project level (adapt hierarchy/names):
+--     Vivado (XDC):
+--       set_false_path -to [get_cells -hier -filter \
+--         {NAME =~ */s_meta_level_reg[0]}]
+--       set_false_path -to [get_cells -hier -filter \
+--         {NAME =~ */s_meta_ack_reg[0]}]
+--     Quartus (SDC):
+--       set_false_path -to [get_registers {*s_meta_level[0] *s_meta_ack[0]}]
+--     Diamond, Synplify/LSE (SDC/LDC):
+--       set_false_path -to [get_cells {*/s_meta_level[0] */s_meta_ack[0]}]
+--   or bound the latency with set_max_delay on the same targets
+--   (Vivado: add -datapath_only).
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -82,14 +95,29 @@ architecture a_rtl of lm_util_ccd_sync_pulse is
   signal s_pulse_ack      : std_logic;
   signal s_next_out_pulse : std_logic;
 
-  -- keep the synchronizer flops discrete and adjacent: without these the
-  -- chains can be mapped to SRL primitives, losing the metastability filtering
+  -- Keep the synchronizer flops discrete and adjacent: without these the
+  -- chains can be mapped to SRL primitives, losing the metastability
+  -- filtering. Attributes are per synthesis tool; unknown ones are ignored.
+  -- Xilinx Vivado
   attribute async_reg     : string;
   attribute shreg_extract : string;
   attribute async_reg of s_meta_level     : signal is "true";
   attribute shreg_extract of s_meta_level : signal is "no";
   attribute async_reg of s_meta_ack       : signal is "true";
   attribute shreg_extract of s_meta_ack   : signal is "no";
+  -- Synplify Pro / Lattice LSE
+  attribute syn_srlstyle : string;
+  attribute syn_preserve : boolean;
+  attribute syn_srlstyle of s_meta_level : signal is "registers";
+  attribute syn_preserve of s_meta_level : signal is true;
+  attribute syn_srlstyle of s_meta_ack   : signal is "registers";
+  attribute syn_preserve of s_meta_ack   : signal is true;
+  -- Intel Quartus
+  attribute altera_attribute : string;
+  attribute altera_attribute of s_meta_level : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
+  attribute altera_attribute of s_meta_ack : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
 begin
 

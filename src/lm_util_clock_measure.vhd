@@ -7,6 +7,17 @@
 --------------------------------------------------------------------------------
 -- Description: clock measurement module, count the number of transition of an
 --              input clock in 1 sec with a reference clock, known frequency.
+--
+--              Constrain the crossings at project level (adapt names): cut the
+--              single-bit toggles and bound the result bus, e.g. for Vivado
+--              (XDC; Quartus/Diamond SDC use get_registers/get_cells):
+--                set_false_path -to [get_cells -hier -filter \
+--                  {NAME =~ */s_1s_tick_tgl_d_reg}]
+--                set_false_path -to [get_cells -hier -filter \
+--                  {NAME =~ */s_out_freq_rdy_d_reg}]
+--                set_max_delay -datapath_only -from [get_cells -hier -filter \
+--                  {NAME =~ */s_output_frequency_hz_reg[*]}] -to [get_cells \
+--                  -hier -filter {NAME =~ */output_frequency_hz_o_reg[*]}] <ref_clk period>
 --------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -80,7 +91,9 @@ architecture a_rtl of lm_util_clock_measure is
   signal s_out_freq_rdy_d2  : std_logic; -- in ref_clk_i domain
   signal s_out_freq_rdy_d3  : std_logic;
 
-  -- keep the synchronizer flops discrete and adjacent for metastability hardening
+  -- Keep the synchronizer flops discrete and adjacent for metastability
+  -- hardening. Attributes are per synthesis tool; unknown ones are ignored.
+  -- Xilinx Vivado
   attribute async_reg     : string;
   attribute shreg_extract : string;
   attribute async_reg of s_1s_tick_tgl_d      : signal is "true";
@@ -95,6 +108,31 @@ architecture a_rtl of lm_util_clock_measure is
   attribute shreg_extract of s_out_freq_rdy_d3 : signal is "no";
   attribute async_reg of s_resync_reg     : signal is "true";
   attribute shreg_extract of s_resync_reg : signal is "no";
+  -- Synplify Pro / Lattice LSE
+  attribute syn_srlstyle : string;
+  attribute syn_preserve : boolean;
+  attribute syn_srlstyle of s_1s_tick_tgl_d  : signal is "registers";
+  attribute syn_preserve of s_1s_tick_tgl_d  : signal is true;
+  attribute syn_srlstyle of s_1s_tick_tgl_d2 : signal is "registers";
+  attribute syn_preserve of s_1s_tick_tgl_d2 : signal is true;
+  attribute syn_srlstyle of s_1s_tick_tgl_d3 : signal is "registers";
+  attribute syn_preserve of s_1s_tick_tgl_d3 : signal is true;
+  attribute syn_srlstyle of s_out_freq_rdy_d  : signal is "registers";
+  attribute syn_preserve of s_out_freq_rdy_d  : signal is true;
+  attribute syn_srlstyle of s_out_freq_rdy_d2 : signal is "registers";
+  attribute syn_preserve of s_out_freq_rdy_d2 : signal is true;
+  attribute syn_srlstyle of s_out_freq_rdy_d3 : signal is "registers";
+  attribute syn_preserve of s_out_freq_rdy_d3 : signal is true;
+  attribute syn_srlstyle of s_resync_reg : signal is "registers";
+  attribute syn_preserve of s_resync_reg : signal is true;
+  -- Intel Quartus
+  attribute altera_attribute : string;
+  attribute altera_attribute of s_1s_tick_tgl_d : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
+  attribute altera_attribute of s_out_freq_rdy_d : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
+  attribute altera_attribute of s_resync_reg : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 begin
 
   inst_1s_tick : entity lm_util_lib.lm_util_tick_gen

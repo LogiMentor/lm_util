@@ -54,9 +54,13 @@
 - CRC engines support 4- to 64-bit polynomials.
 - Synchronizer chains (`lm_util_ccd_resync`, `lm_util_ccd_sync_pulse`,
   `lm_util_async_reset`, `lm_util_clock_measure`, `lm_util_clock_mux`) carry
-  `async_reg`/`shreg_extract` attributes so synthesis keeps the flops discrete;
-  the `lm_util_clock_mux` anti-glitch `keep` attribute is now string-typed as
-  Vivado expects.
+  synthesis attributes for all supported vendors so the flops stay discrete:
+  `async_reg`/`shreg_extract` (Vivado), `syn_preserve`/`syn_srlstyle`
+  (Synplify/LSE), and `altera_attribute` synchronizer identification
+  (Quartus). The `lm_util_clock_mux` anti-glitch keep intent is expressed per
+  tool (`keep` string for Vivado, `syn_keep` for Synplify/LSE, `KEEP ON` for
+  Quartus). Module headers and the user guide document the project-level
+  `set_false_path`/`set_max_delay` constraint examples per tool.
 - Test coverage: counter down/load modes, pulse_stretch active-low output and
   unit lengths, delay_pulse multi-cycle pulses, delay_var unit delay max and
   pulse delay 1, bitsum power-of-two widths, and clock_measure steady-state

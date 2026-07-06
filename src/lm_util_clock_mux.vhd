@@ -12,6 +12,17 @@
 --              clk_sel_i (exactly one bit must be '1').
 --              This implementation is glitch-free and does not introduce any
 --              timing issues or glitches during clock switching.
+--
+--              Constrain the input clocks as mutually exclusive at project
+--              level (adapt names), e.g.:
+--                Vivado (XDC) / Quartus / Diamond (SDC):
+--                  set_clock_groups -logically_exclusive \
+--                    -group [get_clocks clk_a] -group [get_clocks clk_b]
+--              and cut the select resampling paths if the selects come from
+--              another domain:
+--                  set_false_path -to [get_cells -hier -filter \
+--                    {NAME =~ */s_ena_r0_reg[*]}]   (Vivado)
+--                  set_false_path -to [get_registers *s_ena_r0*]   (Quartus)
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -80,15 +91,29 @@ architecture a_rtl of lm_util_clock_mux is
   signal s_gated_clks    : std_logic_vector(g_num_clocks-1 downto 0);
 
 --
--- we have to set the attribute synthesis keep (or equivalent) to tell the synthesiser to use
--- different LUTs to implement the clock gating. Vivado expects keep as a
--- string attribute; a boolean-typed one is silently ignored
+-- we have to set the attribute synthesis keep (or equivalent) to tell the
+-- synthesiser to use different LUTs to implement the clock gating.
+-- Attributes are per synthesis tool; unknown ones are ignored.
+  -- Xilinx Vivado (expects keep as a string attribute)
   attribute keep                 : string;
   attribute keep of s_gated_clks : signal is "true";
+  -- Synplify Pro / Lattice LSE
+  attribute syn_keep                 : boolean;
+  attribute syn_keep of s_gated_clks : signal is true;
+  -- Intel Quartus
+  attribute altera_attribute : string;
+  attribute altera_attribute of s_gated_clks : signal is "-name KEEP ON";
   -- the enable resampling flops synchronize the cross-coupled selects
   attribute async_reg : string;
   attribute async_reg of s_ena_r0 : signal is "true";
   attribute async_reg of s_ena_r1 : signal is "true";
+  attribute syn_preserve : boolean;
+  attribute syn_preserve of s_ena_r0 : signal is true;
+  attribute syn_preserve of s_ena_r1 : signal is true;
+  attribute altera_attribute of s_ena_r0 : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS";
+  attribute altera_attribute of s_ena_r1 : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS";
 begin
 
   gen_clocks : for k in 0 to g_num_clocks-1 generate
