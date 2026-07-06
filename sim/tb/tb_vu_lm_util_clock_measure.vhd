@@ -77,7 +77,10 @@ begin
       rst_n_i <= '1';
       wait for C_CLK_IN_PERIOD + C_CLK_REF_PERIOD;
 
-      p_wait_clk(ref_clk_i, g_ref_clock_freq + 200);
+      -- the first window starts on reset release, not on a tick boundary, so
+      -- its count depends on the reset phase; check the second, steady-state
+      -- window instead
+      p_wait_clk(ref_clk_i, 2 * g_ref_clock_freq + 200);
 
       check_equal(output_frequency_hz_o, g_clock_freq, "Frequency measure failed");
     end if;

@@ -52,7 +52,9 @@ architecture a_tb of tb_vu_lm_util_pulse_stretch is
   --Stimulus signals
   signal clk_i   : std_logic := '1';
   signal rst_n_i : std_logic := '0';
-  signal pulse_i : std_logic := not C_OUT_LEVEL;
+  -- the DUT input pulse is always active high; g_out_level only sets the
+  -- active level of the output pulse
+  signal pulse_i : std_logic := '0';
   --Observed signal
   signal pulse_o : std_logic;
 begin
@@ -88,42 +90,45 @@ begin
     if run("single_pulse") then
       -- Check output pulse width for single input pulse
       -- Generate a single pulse
-      pulse_i <= C_OUT_LEVEL;
+      pulse_i <= '1';
       p_wait_clk(clk_i);
-      pulse_i <= not C_OUT_LEVEL;
-      --check output pulse width. Must be equal g_pulse_length
-      p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length), C_TIMEOUT, "Single pulse check");
+      pulse_i <= '0';
+      if (g_has_fixed_length = 1) then
+        -- fixed length: output pulse is exactly g_pulse_length cycles
+        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Single pulse check");
+      else
+        -- stretch: output pulse is input width (1) + g_pulse_overlength cycles
+        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + 1), C_TIMEOUT, "Single pulse check + Overlength");
+      end if;
     elsif run("two_pulses") then
       -- Check output pulse width for two consecutive input pulses
 
       -- generate two pulses with a delay
-      pulse_i <= C_OUT_LEVEL;
+      pulse_i <= '1';
       p_wait_clk(clk_i);
-      pulse_i <= not C_OUT_LEVEL, C_OUT_LEVEL after C_CLK_PERIOD, not C_OUT_LEVEL after C_CLK_PERIOD * 2 + 1 ps;
+      -- skew the scheduled transitions off the clock edges so sampling is
+      -- unambiguous also for the combinational (no resync) input stage
+      pulse_i <= '0', '1' after C_CLK_PERIOD + 1 ps, '0' after C_CLK_PERIOD * 2 + 2 ps;
       p_wait_clk(clk_i);
 
-      -- check output pulse width. Must be equal g_pulse_length
-      if (g_has_resync_stage /= 0) and (g_has_fixed_length = 0) then
-        -- note: is it +2 intended behavior?
-        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + 2), C_TIMEOUT, "Two pulses check + Resync");
-      else
+      if (g_has_fixed_length = 1) then
+        -- fixed length: the second pulse falls inside the first window and is
+        -- ignored, so the output is a single g_pulse_length wide pulse
         p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Two pulses check");
+      else
+        -- stretch: the second rising edge retriggers the window, so the merged
+        -- output spans both pulses and the gap (3 cycles) + g_pulse_overlength
+        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + 3), C_TIMEOUT, "Two pulses check + Overlength");
       end if;
     elsif run("long_pulse") then
       -- Check output pulse width for long pulse. Output pulse width = input pulse width + g_pulse_overlength
-      pulse_i <= C_OUT_LEVEL, not C_OUT_LEVEL after C_CLK_PERIOD * C_LONG_PULSE_LEN + 1 ps; --1 ps to solve weird timing issue
+      pulse_i <= '1', '0' after C_CLK_PERIOD * C_LONG_PULSE_LEN + 1 ps; --1 ps to solve weird timing issue
       p_wait_clk(clk_i);
 
       -- check output pulse width
       if (g_has_fixed_length = 0) then
         -- If not fixed length, check for overlength
-          -- Note: pulse is 1 cycle shorter? Is it intended behavior?
-        if (g_has_resync_stage /= 0) then
-          -- pulse length is
-          p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength");
-        else
-          p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN - 1), C_TIMEOUT, "Long pulse check + Overlength + no resync");
-        end if;
+        p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * (g_pulse_length + C_LONG_PULSE_LEN), C_TIMEOUT, "Long pulse check + Overlength");
       else
         p_check_pulse_width(pulse_o, C_OUT_LEVEL, C_CLK_PERIOD * g_pulse_length, C_TIMEOUT, "Long pulse check");
       end if;

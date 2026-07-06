@@ -153,7 +153,7 @@ When synthesis completes, Vivado reports include:
 | `lm_util_delay` | Generic fixed delay line. | `g_delay`, `g_data_w` |
 | `lm_util_delay_pulse` | Delays a single-bit pulse or level event. | `g_delay`, `g_pulse_level` |
 | `lm_util_delay_srl` | Fixed delay line written for SRL/shift-register inference. | `g_delay`, `g_data_w`, `g_srl_depth` |
-| `lm_util_delay_var` | Variable delay line with SRL, memory, or pulse/counter architecture. | `g_delay_max`, `g_data_w`, `g_arch_type`, `g_pulse_level` |
+| `lm_util_delay_var` | Variable delay line with SRL or pulse/counter architecture. | `g_delay_max`, `g_data_w`, `g_arch_type`, `g_pulse_level` |
 | `lm_util_edge_detector` | Single-clock edge detector. | `g_event_edge` |
 | `lm_util_encoder` | Registered one-hot to binary encoder. | `g_data_w` |
 | `lm_util_lfsr` | LFSR/xorshift pseudo-random sequence generator. | `g_data_w` |
@@ -208,12 +208,47 @@ Some modules need vendor report review even when simulation passes:
 | Module | What to Check |
 | --- | --- |
 | `lm_util_delay_srl` | SRL/shift-register inference and boundary delays such as 31/32/33 on Xilinx. |
-| `lm_util_delay_var` | SRL versus memory versus pulse/counter implementation. |
+| `lm_util_delay_var` | SRL versus pulse/counter implementation. |
 | `lm_util_ccd_resync`, `lm_util_async_reset` | Flip-flop chains must not be converted into SRLs. |
 | `lm_util_clock_mux` | Clock mux and keep/preserve handling on each target family. |
 
 Use `tools/synth/cases.toml` to add or tune cases when a module is sensitive to
 a specific vendor or family.
+
+## CDC Attributes and Timing Constraints
+
+The synchronizer chains (`lm_util_ccd_resync`, `lm_util_ccd_sync_pulse`,
+`lm_util_async_reset`, `lm_util_clock_measure`, `lm_util_clock_mux`) carry
+vendor-specific HDL attributes side by side; each synthesis tool applies its
+own and ignores the rest:
+
+| Tool | Attributes used |
+| --- | --- |
+| Xilinx Vivado | `async_reg = "true"`, `shreg_extract = "no"`, `keep = "true"` |
+| Synplify Pro / Lattice LSE | `syn_preserve = true`, `syn_srlstyle = "registers"`, `syn_keep = true` |
+| Intel Quartus | `altera_attribute` with `SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS`, `AUTO_SHIFT_REGISTER_RECOGNITION OFF`, `KEEP ON` |
+
+The attributes only prevent structural mangling (SRL packing, register
+merging) and help MTBF analysis. The crossing paths themselves must be
+constrained in the project timing constraints; each module header carries a
+ready-to-adapt example. The general pattern, targeting the first stage of a
+chain named `s_din_meta`:
+
+```tcl
+# Vivado (XDC)
+set_false_path -to [get_cells -hier -filter {NAME =~ */s_din_meta_reg[0]}]
+
+# Quartus (SDC)
+set_false_path -to [get_registers *s_din_meta[0]]
+
+# Diamond, Synplify/LSE (SDC/LDC)
+set_false_path -to [get_cells */s_din_meta[0]]
+```
+
+To bound the crossing latency instead of cutting it, replace
+`set_false_path` with `set_max_delay` on the same `-from`/`-to` targets
+(Vivado: add `-datapath_only`). For `lm_util_clock_mux`, also declare the
+input clocks as `set_clock_groups -logically_exclusive`.
 
 ## Adding a Module
 

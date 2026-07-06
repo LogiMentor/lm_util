@@ -78,11 +78,11 @@ begin
 
     if run("sequence") then
       rst_n_i <= '0';
-      dv_o    <= '0';
+      dv_i    <= '0';
       wait until rising_edge(clk_i);
       rst_n_i <= '1';
       wait until rising_edge(clk_i);
-      dv_o <= '1';
+      dv_i <= '1';
 
       din_i <= (others => '0');
       wait until rising_edge(clk_i);
@@ -94,6 +94,7 @@ begin
         wait until rising_edge(clk_i);
         wait for 1 ps;
         check_equal(dout_o, f_int2slv(1, g_data_w), "Mismatch output for delay = 1");
+        check_equal(dv_o, '1', "dv_o not asserted for delay = 1");
       else
         --g_delay>1
         for i in 1 to g_delay loop
@@ -104,6 +105,7 @@ begin
         -- Check delayed output (for valid g_delay range)
         for i in 0 to g_delay loop
           check_equal(dout_o, f_int2slv(i, g_data_w), "Mismatch at output for delay = " & integer'image(i));
+          check_equal(dv_o, '1', "dv_o not asserted at output for delay = " & integer'image(i));
           wait until rising_edge(clk_i);
         end loop;
       end if;
@@ -123,6 +125,13 @@ begin
       check_equal(dout_o, f_sl2slv(not g_pulse_level), "Mismatch immediate output for delay = " & integer'image(g_delay));
       wait for 1 ps;
       check_equal(dout_o, f_sl2slv(g_pulse_level), "Mismatch output for delay = " & integer'image(g_delay));
+      check_equal(dv_o, '1', "dv_o should pulse with the delayed output");
+
+      -- the output pulse and dv_o are one cycle wide
+      p_wait_clk(clk_i);
+      wait for 1 ps;
+      check_equal(dout_o, f_sl2slv(not g_pulse_level), "Output pulse should be one cycle wide for delay = " & integer'image(g_delay));
+      check_equal(dv_o, '0', "dv_o should deassert after the delayed pulse");
     end if;
 
     test_runner_cleanup(runner);
