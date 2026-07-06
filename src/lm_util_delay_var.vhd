@@ -42,9 +42,10 @@ entity lm_util_delay_var is
     g_delay_max   : positive;
     -- Width of data to delay
     g_data_w      : natural;
-    -- define the internal architecture: "srl" shift registers, "mem" memory,
-    -- "pulse" specialized for pulse delay, with a counter. the delay should be
-    -- lower than the pulses distances, since a pulse on input resets the count
+    -- define the internal architecture: C_LM_SRL shift registers, C_LM_PULSE
+    -- specialized for pulse delay, with a counter. the delay should be lower
+    -- than the pulses distances: pulses arriving while a delay is in flight
+    -- are ignored
     g_arch_type   : integer;
     -- input pulse active level, used only in "pulse" mode
     g_pulse_level : integer
@@ -72,6 +73,11 @@ end lm_util_delay_var;
 -------------------------------------------------------------------------------
 architecture a_rtl of lm_util_delay_var is
 begin
+
+  assert (g_delay_max = 1) or (g_arch_type = C_LM_SRL) or (g_arch_type = C_LM_PULSE)
+  report "g_arch_type must be C_LM_SRL or C_LM_PULSE!"
+  severity failure;
+
   -- in case of unitary delay a single register is instantiated
   gen_unit_delay : if g_delay_max = 1 generate
     proc_unit_delay : process(clk_i)
@@ -79,7 +85,9 @@ begin
       if rising_edge(clk_i) then
         if (rst_n_i = '0') then
           dout_o <= (dout_o'range => '0');
+          dv_o   <= '0';
         else
+          dv_o <= dv_i;
           if (dv_i = '1') then
             dout_o <= din_i;
           end if;
@@ -140,51 +148,6 @@ begin
       end if;
       end process proc_srl_delay;
 
-      --      end generate gen_regs;
-
-      -- SRL instantiation
-      --      gen_primitive : if g_use_primitive = 1 generate
-      --        type t_array_srl_depth_by_width is array (C_SRL_DEPTH - 1 downto 0) of std_logic_vector(din_i'range);
-      --        type t_array_numsrl_by_srl is array (C_NUM_SRL - 1 downto 0) of t_array_srl_depth_by_width;
-      --        signal s_delay_line : t_array_numsrl_by_srl;
-      --        begin
-      --        -- generates WIDTH bit wide, NUM_SRL*SRL_DEPTH deep shift register array
-      --        -- with one addressable output per SRL
-      --
-      --        gen_srls : for i in 0 to C_NUM_SRL - 1 generate
-      --          gen_stage_0 : if (i = 0) generate
-      --            proc_srl_0 : process(clk_i)
-      --            begin
-      --              if rising_edge(clk_i) then
-      --                if (ce_i = '1') then
-      --                  s_delay_line(i)(0) <= din_i;
-      --                  for j in 1 to C_SRL_DEPTH - 1 loop
-      --                    s_delay_line(i)(j) <= s_delay_line(i)(j - 1);
-      --                  end loop;
-      --                end if;
-      --              end if;
-      --            end process proc_srl_0;
-      --          end generate gen_stage_0;
-      --
-      --          gen_stage_n : if (i /= 0) generate
-      --            proc_srl : process(clk_i)
-      --            begin
-      --              if rising_edge(clk_i) then
-      --                if (ce_i = '1') then
-      --                  s_delay_line(i)(0) <= s_delay_line(i - 1)(C_SRL_DEPTH - 1);
-      --                  for j in 1 to C_SRL_DEPTH - 1 loop
-      --                    s_delay_line(i)(j) <= s_delay_line(i)(j - 1);
-      --                  end loop;
-      --                end if;
-      --              end if;
-      --            end process proc_srl;
-      --          end generate gen_stage_n;
-      --        end generate gen_srls;
-      --
-      --        dout_o <= s_delay_line(C_NUM_SRL - 1)(C_SRL_ADDR - 1);
-      --
-      --      end generate gen_primitive;
-
     end generate gen_srl_arch;
 
     -------------------------------------------------------------------------------
@@ -212,24 +175,34 @@ begin
       begin
         if rising_edge(clk_i) then
           if (rst_n_i = '0') then
-            dout_o    <= (dout_o'range => '0');
-            s_cnt_ena <= '0';
+            dout_o      <= (dout_o'range => not f_int2sl(g_pulse_level));
+            dv_o        <= '0';
+            s_cnt_ena   <= '0';
+            s_pulse_cnt <= (others => '0');
           else
+            -- data valid follows the input with one clock cycle latency; the
+            -- pulse itself is delayed by delay_i cycles
+            dv_o <= dv_i;
             if dv_i = '1' then
-              if din_i(0) = f_int2sl(g_pulse_level) then
-                s_cnt_ena <= '1';
-              end if;
-              if din_i(0) = f_int2sl(g_pulse_level) then
-                s_pulse_cnt <= to_unsigned(1, s_pulse_cnt'length);
-              elsif s_pulse_cnt = f_slv2nat(delay_i) - 1 then
+              -- trigger on the pulse leading edge only: input cycles kept at
+              -- the active level while a delay is in flight are ignored
+              if (din_i(0) = f_int2sl(g_pulse_level) and s_cnt_ena = '0') then
+                if (f_slv2nat(delay_i) <= 1) then
+                  -- unit delay: emit right away through the output register
+                  dout_o(0) <= f_int2sl(g_pulse_level);
+                else
+                  s_pulse_cnt <= to_unsigned(1, s_pulse_cnt'length);
+                  s_cnt_ena   <= '1';
+                  dout_o(0)   <= not f_int2sl(g_pulse_level);
+                end if;
+              elsif (s_cnt_ena = '1' and s_pulse_cnt = f_slv2nat(delay_i) - 1) then
                 s_pulse_cnt <= to_unsigned(0, s_pulse_cnt'length);
                 dout_o(0)   <= f_int2sl(g_pulse_level);
                 s_cnt_ena   <= '0';
-              elsif s_cnt_ena = '1' then
+              elsif (s_cnt_ena = '1') then
                 s_pulse_cnt <= s_pulse_cnt + 1;
                 dout_o(0)   <= not f_int2sl(g_pulse_level);
               else
-                s_pulse_cnt <= s_pulse_cnt;
                 dout_o(0)   <= not f_int2sl(g_pulse_level);
               end if;
             end if;

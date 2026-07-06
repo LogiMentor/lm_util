@@ -96,24 +96,26 @@ begin
     begin
       if rising_edge(clk_i) then
         if (rst_n_i = '0') then
-          dout_o    <= '0';
-          s_cnt_ena <= '0';
+          -- reset to the inactive level of the configured pulse polarity
+          dout_o      <= not g_pulse_level;
+          s_cnt_ena   <= '0';
+          s_pulse_cnt <= (others => '0');
         elsif ce_i = '1' then
-          if din_i = g_pulse_level then
-            s_cnt_ena <= '1';
-          end if;
-          if din_i = g_pulse_level then
+          -- trigger on the pulse leading edge only, so pulses wider than one
+          -- clock cycle are delayed from their leading edge
+          if (din_i = g_pulse_level and s_cnt_ena = '0') then
+            s_cnt_ena   <= '1';
             s_pulse_cnt <= to_unsigned(1, s_pulse_cnt'length);
-          elsif s_pulse_cnt = (g_delay - 1) then
+            dout_o      <= not g_pulse_level;
+          elsif (s_cnt_ena = '1' and s_pulse_cnt = (g_delay - 1)) then
             s_pulse_cnt <= to_unsigned(0, s_pulse_cnt'length);
-            dout_o   <= g_pulse_level;
+            dout_o      <= g_pulse_level;
             s_cnt_ena   <= '0';
-          elsif s_cnt_ena = '1' then
+          elsif (s_cnt_ena = '1') then
             s_pulse_cnt <= s_pulse_cnt + 1;
-            dout_o   <= not g_pulse_level;
+            dout_o      <= not g_pulse_level;
           else
-            s_pulse_cnt <= s_pulse_cnt;
-            dout_o   <= not g_pulse_level;
+            dout_o      <= not g_pulse_level;
           end if;
         end if;
       end if;
