@@ -213,17 +213,14 @@ begin
   proc_rdy_resample : process(ref_clk_i)
   begin
     if rising_edge(ref_clk_i) then
-      if rst_n_i = '0' then
-        -- keep the chain cleared while the measure-domain toggle is being
-        -- reset, so the forced transition is not seen as a valid ready
-        s_out_freq_rdy_d  <= '0';
-        s_out_freq_rdy_d2 <= '0';
-        s_out_freq_rdy_d3 <= '0';
-      else
-        s_out_freq_rdy_d  <= s_out_freq_rdy;
-        s_out_freq_rdy_d2 <= s_out_freq_rdy_d;
-        s_out_freq_rdy_d3 <= s_out_freq_rdy_d2;
-      end if;
+      -- no reset on the synchronizer stages: reset logic between them would
+      -- shorten the chain (and the MTBF) seen by the synthesis tools. The
+      -- edge detector stage keeps tracking the synchronized level, and the
+      -- output update below is blocked during reset, so the forced toggle
+      -- transition of a measure-domain reset is not seen as a valid ready
+      s_out_freq_rdy_d  <= s_out_freq_rdy;
+      s_out_freq_rdy_d2 <= s_out_freq_rdy_d;
+      s_out_freq_rdy_d3 <= s_out_freq_rdy_d2;
     end if;
   end process proc_rdy_resample;
 
@@ -233,7 +230,7 @@ begin
   proc_out_freq : process(ref_clk_i)
   begin
     if (ref_clk_i'event and ref_clk_i = '1') then
-      if s_out_freq_rdy_d3 /= s_out_freq_rdy_d2 then
+      if rst_n_i = '1' and s_out_freq_rdy_d3 /= s_out_freq_rdy_d2 then
         output_frequency_hz_o <= s_output_frequency_hz;
       end if;
     end if;
