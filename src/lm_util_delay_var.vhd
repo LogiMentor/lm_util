@@ -74,26 +74,61 @@ end lm_util_delay_var;
 architecture a_rtl of lm_util_delay_var is
 begin
 
-  assert (g_delay_max = 1) or (g_arch_type = C_LM_SRL) or (g_arch_type = C_LM_PULSE)
+  assert (g_arch_type = C_LM_SRL) or (g_arch_type = C_LM_PULSE)
   report "g_arch_type must be C_LM_SRL or C_LM_PULSE!"
   severity failure;
 
   -- in case of unitary delay a single register is instantiated
   gen_unit_delay : if g_delay_max = 1 generate
-    proc_unit_delay : process(clk_i)
-    begin
-      if rising_edge(clk_i) then
-        if (rst_n_i = '0') then
-          dout_o <= (dout_o'range => '0');
-          dv_o   <= '0';
-        else
-          dv_o <= dv_i;
-          if (dv_i = '1') then
-            dout_o <= din_i;
+    gen_unit_srl : if (g_arch_type = C_LM_SRL) generate
+      proc_unit_delay : process(clk_i)
+      begin
+        if rising_edge(clk_i) then
+          if (rst_n_i = '0') then
+            dout_o <= (dout_o'range => '0');
+            dv_o   <= '0';
+          else
+            dv_o <= dv_i;
+            if (dv_i = '1') then
+              dout_o <= din_i;
+            end if;
           end if;
         end if;
-      end if;
-    end process proc_unit_delay;
+      end process proc_unit_delay;
+    end generate gen_unit_srl;
+
+    -- pulse mode keeps the pulse architecture semantics with a delay of one:
+    -- leading-edge trigger, one-cycle output pulse, inactive level on reset
+    gen_unit_pulse : if (g_arch_type = C_LM_PULSE) generate
+      -- previous input sample, for leading edge detection
+      signal s_din_d : std_logic;
+    begin
+      assert g_data_w = 1
+      report "pulse delay makes sense only with std_logic signals"
+      severity error;
+
+      proc_unit_pulse : process(clk_i)
+      begin
+        if rising_edge(clk_i) then
+          if (rst_n_i = '0') then
+            dout_o  <= (dout_o'range => not f_int2sl(g_pulse_level));
+            dv_o    <= '0';
+            s_din_d <= not f_int2sl(g_pulse_level);
+          else
+            dv_o <= '0';
+            if dv_i = '1' then
+              s_din_d <= din_i(0);
+              if (din_i(0) = f_int2sl(g_pulse_level) and s_din_d /= f_int2sl(g_pulse_level)) then
+                dout_o(0) <= f_int2sl(g_pulse_level);
+                dv_o      <= '1';
+              else
+                dout_o(0) <= not f_int2sl(g_pulse_level);
+              end if;
+            end if;
+          end if;
+        end if;
+      end process proc_unit_pulse;
+    end generate gen_unit_pulse;
   end generate gen_unit_delay;
 
   -- delay greater than one

@@ -191,8 +191,11 @@ test = lib.test_bench("tb_vu_lm_util_delay_var").test("sequence")
 generate_tests(test, g_delay = [1, 2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [0])
 generate_tests(test, g_delay = [1], g_delay_max = [1], g_arch_type = [0])
 
-test = lib.test_bench("tb_vu_lm_util_delay_var").test("pulse")
-generate_tests(test, g_delay = [1, 2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [2], g_data_w = [1])
+for name in ["pulse", "pulse_long_input"]:
+    test = lib.test_bench("tb_vu_lm_util_delay_var").test(name)
+    generate_tests(test, g_delay = [1, 2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [2], g_data_w = [1], g_pulse_level = [0, 1])
+    # unit delay max: the pulse behavior must match the pulse architecture
+    generate_tests(test, g_delay = [1], g_delay_max = [1], g_arch_type = [2], g_data_w = [1], g_pulse_level = [0, 1])
 
 #lm_util_edge_detector
 test = lib.test_bench("tb_vu_lm_util_edge_detector").test("rising_edge_detect")

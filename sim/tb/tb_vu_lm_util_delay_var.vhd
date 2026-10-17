@@ -30,7 +30,7 @@ entity tb_vu_lm_util_delay_var is
     g_delay       : positive  := 8; -- delay
     g_data_w      : natural   := 8; -- input data width
     g_arch_type   : natural   := C_LM_SRL; -- architecture used
-    g_pulse_level : std_logic := '1';
+    g_pulse_level : natural   := 1; -- pulse active level (0 or 1)
     runner_cfg    : string
   );
 end;
@@ -39,6 +39,7 @@ architecture a_tb of tb_vu_lm_util_delay_var is
 
   constant C_CLK_PERIOD : time     := 10 ns;
   constant C_DELAY_W    : positive := f_ceil_log2(g_delay_max + 1);
+  constant C_PULSE_LVL  : std_logic := f_int2sl(g_pulse_level);
   --Stimulus signals
   signal clk_i   : std_logic                                := '1';
   signal rst_n_i : std_logic                                := '0';
@@ -59,7 +60,7 @@ begin
       g_delay_max   => g_delay_max,
       g_data_w      => g_data_w,
       g_arch_type   => g_arch_type,
-      g_pulse_level => f_sl2int(g_pulse_level)
+      g_pulse_level => g_pulse_level
     )
     port map
     (
@@ -111,27 +112,56 @@ begin
       end if;
     elsif run("pulse") then
       rst_n_i <= '0';
-      din_i   <= f_sl2slv(not g_pulse_level);
+      din_i   <= f_sl2slv(not C_PULSE_LVL);
       wait for 100 ns;
       p_wait_clk(clk_i);
+      -- reset drives the inactive level of the configured polarity
+      wait for 1 ps;
+      check_equal(dout_o, f_sl2slv(not C_PULSE_LVL), "Output not at the inactive level during reset");
+      check_equal(dv_o, '0', "dv_o asserted during reset");
       rst_n_i <= '1';
       p_wait_clk(clk_i);
 
-      din_i <= f_sl2slv(g_pulse_level);
+      din_i <= f_sl2slv(C_PULSE_LVL);
       p_wait_clk(clk_i);
-      din_i <= f_sl2slv(not g_pulse_level);
+      din_i <= f_sl2slv(not C_PULSE_LVL);
       p_wait_clk(clk_i, g_delay - 1);
       -- Check immediate output
-      check_equal(dout_o, f_sl2slv(not g_pulse_level), "Mismatch immediate output for delay = " & integer'image(g_delay));
+      check_equal(dout_o, f_sl2slv(not C_PULSE_LVL), "Mismatch immediate output for delay = " & integer'image(g_delay));
       wait for 1 ps;
-      check_equal(dout_o, f_sl2slv(g_pulse_level), "Mismatch output for delay = " & integer'image(g_delay));
+      check_equal(dout_o, f_sl2slv(C_PULSE_LVL), "Mismatch output for delay = " & integer'image(g_delay));
       check_equal(dv_o, '1', "dv_o should pulse with the delayed output");
 
       -- the output pulse and dv_o are one cycle wide
       p_wait_clk(clk_i);
       wait for 1 ps;
-      check_equal(dout_o, f_sl2slv(not g_pulse_level), "Output pulse should be one cycle wide for delay = " & integer'image(g_delay));
+      check_equal(dout_o, f_sl2slv(not C_PULSE_LVL), "Output pulse should be one cycle wide for delay = " & integer'image(g_delay));
       check_equal(dv_o, '0', "dv_o should deassert after the delayed pulse");
+    elsif run("pulse_long_input") then
+      rst_n_i <= '0';
+      din_i   <= f_sl2slv(not C_PULSE_LVL);
+      wait for 100 ns;
+      p_wait_clk(clk_i);
+      rst_n_i <= '1';
+      p_wait_clk(clk_i);
+
+      -- hold the input active for longer than the delay: only its leading
+      -- edge produces an output pulse, one cycle wide
+      din_i <= f_sl2slv(C_PULSE_LVL);
+      for i in 1 to 2 * g_delay + 4 loop
+        if i = g_delay + 2 then
+          din_i <= f_sl2slv(not C_PULSE_LVL);
+        end if;
+        p_wait_clk(clk_i);
+        wait for 1 ps;
+        if i = g_delay then
+          check_equal(dout_o, f_sl2slv(C_PULSE_LVL), "Missing output pulse " & integer'image(g_delay) & " cycles after the leading edge");
+          check_equal(dv_o, '1', "dv_o should pulse with the delayed output");
+        else
+          check_equal(dout_o, f_sl2slv(not C_PULSE_LVL), "Unexpected active output at cycle " & integer'image(i));
+          check_equal(dv_o, '0', "Unexpected dv_o at cycle " & integer'image(i));
+        end if;
+      end loop;
     end if;
 
     test_runner_cleanup(runner);
