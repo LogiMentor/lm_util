@@ -235,7 +235,7 @@ own and ignores the rest:
 | --- | --- |
 | Xilinx Vivado | `async_reg = "true"`, `shreg_extract = "no"`, `keep = "true"` |
 | Synplify Pro / Lattice LSE | `syn_preserve = true`, `syn_srlstyle = "registers"`, `syn_keep = true` |
-| Intel Quartus | `altera_attribute` with `SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS`, `AUTO_SHIFT_REGISTER_RECOGNITION OFF`, `KEEP ON` |
+| Intel Quartus | `altera_attribute` with `SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS`, `AUTO_SHIFT_REGISTER_RECOGNITION OFF`; keep through `syn_keep` |
 
 The attributes only prevent structural mangling (SRL packing, register
 merging) and help MTBF analysis. The crossing paths themselves must be

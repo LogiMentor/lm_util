@@ -97,12 +97,13 @@ architecture a_rtl of lm_util_clock_mux is
   -- Xilinx Vivado (expects keep as a string attribute)
   attribute keep                 : string;
   attribute keep of s_gated_clks : signal is "true";
-  -- Synplify Pro / Lattice LSE
+  -- Synplify Pro / Lattice LSE; Intel Quartus also honors syn_keep (it turns
+  -- it into IGNORE_LCELL_BUFFERS and REMOVE_REDUNDANT_LOGIC_CELLS off), while
+  -- KEEP is not a legal altera_attribute assignment and fails synthesis
   attribute syn_keep                 : boolean;
   attribute syn_keep of s_gated_clks : signal is true;
   -- Intel Quartus
   attribute altera_attribute : string;
-  attribute altera_attribute of s_gated_clks : signal is "-name KEEP ON";
   -- the enable resampling flops synchronize the cross-coupled selects
   attribute async_reg : string;
   attribute async_reg of s_ena_r0 : signal is "true";
