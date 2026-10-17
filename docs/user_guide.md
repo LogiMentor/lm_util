@@ -248,10 +248,10 @@ chain named `s_din_meta`:
 set_false_path -to [get_cells -hier -filter {NAME =~ */s_din_meta_reg[0]}]
 
 # Quartus (SDC)
-set_false_path -to [get_registers *s_din_meta[0]]
+set_false_path -to [get_registers {*s_din_meta\[0\]}]
 
 # Diamond, Synplify/LSE (SDC/LDC)
-set_false_path -to [get_cells */s_din_meta[0]]
+set_false_path -to [get_cells {*/s_din_meta\[0\]}]
 ```
 
 To bound the crossing latency instead of cutting it, replace

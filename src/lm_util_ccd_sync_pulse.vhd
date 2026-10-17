@@ -21,9 +21,9 @@
 --       set_false_path -to [get_cells -hier -filter \
 --         {NAME =~ */s_meta_ack_reg[0]}]
 --     Quartus (SDC):
---       set_false_path -to [get_registers {*s_meta_level[0] *s_meta_ack[0]}]
+--       set_false_path -to [get_registers {*s_meta_level\[0\] *s_meta_ack\[0\]}]
 --     Diamond, Synplify/LSE (SDC/LDC):
---       set_false_path -to [get_cells {*/s_meta_level[0] */s_meta_ack[0]}]
+--       set_false_path -to [get_cells {*/s_meta_level\[0\] */s_meta_ack\[0\]}]
 --   or bound the latency with set_max_delay on the same targets
 --   (Vivado: add -datapath_only).
 --
