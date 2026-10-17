@@ -59,9 +59,10 @@ jobs:
           cache: pip
 
       - name: Install GHDL
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ghdl
+        uses: ghdl/setup-ghdl@75eff367dadc0cd06454a118db0b458d44fdc3c3 # v1.5.1
+        with:
+          version: v6.0.0
+          backend: llvm
 
       - name: Install Python dependencies
         run: |
@@ -71,7 +72,10 @@ jobs:
       - name: Show tool versions
         run: |
           python --version
-          ghdl --version
+          python -m pip show vunit_hdl | grep -E '^(Name|Version):'
+          ghdl --version | tee ghdl_version.txt
+          grep -q '^GHDL 6\.0\.0 ' ghdl_version.txt || { echo "::error::GHDL 6.0.0 required"; exit 1; }
+          grep -qi 'llvm' ghdl_version.txt || { echo "::error::GHDL LLVM backend required"; exit 1; }
 
       - name: Run fast VUnit regression
         run: >

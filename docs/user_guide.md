@@ -100,6 +100,15 @@ $env:VUNIT_SIMULATOR = "ghdl"
 python sim\scripts\run.py --level fast --clean --output-path vunit_out
 ```
 
+The reference simulator is GHDL 6.0.0 with the LLVM backend, VHDL-2008
+(`--std=08`); CI installs the same version. The Python dependencies, VUnit
+included, are pinned in `requirements.txt`.
+
+On Windows, keep the VUnit output directory short: the default `vunit_out`
+at the repository root is fine. VUnit nests long per-test directory names
+below it, and when a path exceeds 260 characters GHDL fails every test with
+`cannot open ... .lst` followed by `compilation error`.
+
 ## Local Vendor Synthesis
 
 Copy and edit the local tool configuration:
