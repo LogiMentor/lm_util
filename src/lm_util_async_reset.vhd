@@ -21,15 +21,14 @@
 --              The input asynchronous reset is active on g_rst_lvl, the output
 --              is active low
 --
---              Constrain the asynchronous input at project level (adapt
---              hierarchy/names):
+--              Constrain the asynchronous assertion at project level: the
+--              reset input drives the asynchronous clear of every stage. The
+--              examples select those pins by the internal signal name only:
 --                Vivado (XDC):
---                  set_false_path -from [get_ports arst_i] -to \
---                    [get_cells -hier -filter {NAME =~ */s_resync_reg_reg[*]}]
+--                  set_false_path -to [get_pins -hier -filter {NAME =~ */s_resync_reg_reg[*]/CLR}]
 --                Quartus (SDC):
---                  set_false_path -from [get_ports arst_i] -to [get_registers *s_resync_reg*]
---                Diamond, Synplify/LSE (SDC/LDC):
---                  set_false_path -from [get_ports arst_i] -to [get_cells */s_resync_reg*]
+--                  set_false_path -to [get_pins -compatibility_mode {*s_resync_reg[*]|clrn}]
+--              Lattice tools: not verified, no example.
 --              Reset release is timed by recovery/removal analysis on the
 --              synchronized chain, which needs no extra constraint.
 --

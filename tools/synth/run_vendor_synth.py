@@ -12,6 +12,10 @@ inference). Vivado checks query the synthesized netlist from Tcl; Quartus
 checks read the Analysis & Synthesis report and the Timing Analyzer
 metastability report. Each check writes one line to reports/lm_checks.txt and
 any failing check fails the case.
+
+Cases may also load the constraint examples published in the module headers
+and in the user guide: every collection in them must match objects, and the
+resulting exceptions must be listed (and not ignored) by the tool.
 """
 
 from __future__ import annotations
@@ -41,8 +45,9 @@ CHECKS_FILE = Path("reports") / "lm_checks.txt"
 QUARTUS_PROJECT = "project"
 # Tool failures that are not caused by the design and go away on a rerun:
 # Vivado intermittently fails to read its own Tcl scripts or its .Xil scratch
-# files on some Windows machines ("couldn't read file ...: No error").
-TRANSIENT_FAILURES = [re.compile(r"^couldn't read file ")]
+# files on some Windows machines ("couldn't read file ...: No error"), or
+# fails inside those scripts with an undefined realtime command.
+TRANSIENT_FAILURES = [re.compile(r"^couldn't read file "), re.compile(r'^invalid command name "rt-undefined"')]
 ATTEMPTS = 2
 CASE_KEYS = {"name", "entity", "category", "generics", "ports", "tags", "description"}
 
@@ -76,11 +81,18 @@ class SynthCase:
         return bool(self.options.get("no_shift_register", False))
 
     @property
+    def constraint_sources(self) -> list[str]:
+        return list(self.options.get("constraints", []))
+
+    @property
     def has_checks(self) -> bool:
-        return bool(self.chains) or self.no_shift_register
+        return bool(self.chains) or self.no_shift_register or bool(self.constraint_sources)
 
     def expected_failures(self, tool: str) -> list[str]:
         return list(self.options.get("expect_failed_checks", {}).get(tool, []))
+
+    def expected_passes(self, tool: str) -> list[str]:
+        return list(self.options.get("expect_passed_checks", {}).get(tool, []))
 
 
 def load_toml(path: Path) -> dict[str, Any]:
@@ -238,6 +250,140 @@ def write_wrapper(case: SynthCase, case_dir: Path) -> tuple[str, Path]:
     return top, wrapper
 
 
+# --- Constraint examples ---------------------------------------------------
+
+SNIPPET_HEADING = re.compile(r"^\s*#?\s*(Vivado|Quartus)\b[^:]*\((XDC|SDC)\)\s*:?\s*$")
+EXCEPTION_COMMANDS = ("set_false_path", "set_max_delay", "set_min_delay", "set_multicycle_path")
+MD_MARKER = re.compile(r"^<!--\s*constraints:\s*(\S+)\s*-->\s*$")
+
+
+def snippet_lines(spec: str) -> list[str]:
+    """Candidate lines of a constraint source.
+
+    "file.vhd" uses the comment lines of a VHDL file; "file.md#name" uses the
+    fenced code block that follows a <!-- constraints: name --> marker.
+    """
+    file_part, _, block = spec.partition("#")
+    path = rel_to_repo(file_part)
+    if not path.is_file():
+        raise ValueError(f"Constraint source not found: {file_part}")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if path.suffix.lower() == ".vhd":
+        return [line[2:] if line.startswith("--") else "" for line in lines]
+    selected: list[str] = []
+    state = "search"
+    for line in lines:
+        if state == "search":
+            marker = MD_MARKER.match(line.strip())
+            if marker and marker.group(1) == block:
+                state = "fence"
+        elif state == "fence":
+            if line.strip().startswith("```"):
+                state = "block"
+        elif state == "block":
+            if line.strip().startswith("```"):
+                state = "search"
+                selected.append("")
+            else:
+                selected.append(line)
+    if not selected:
+        raise ValueError(f"No constraint block '{block}' in {file_part}")
+    return selected
+
+
+def extract_snippets(spec: str) -> dict[str, list[str]]:
+    """Commands listed under 'Vivado (XDC):' and 'Quartus (SDC):' headings.
+
+    A block ends at the first line that is neither a command nor the
+    continuation of a command ending with a backslash.
+    """
+    snippets: dict[str, list[str]] = {"vivado": [], "quartus": []}
+    current: str | None = None
+    pending = ""
+    for line in snippet_lines(spec):
+        text = line.strip()
+        heading = SNIPPET_HEADING.match(line)
+        if heading:
+            current = heading.group(1).lower()
+            pending = ""
+            continue
+        if current is None:
+            continue
+        if pending:
+            pending = f"{pending} {text.rstrip(chr(92)).strip()}"
+            if not text.endswith("\\"):
+                snippets[current].append(pending)
+                pending = ""
+            continue
+        if text.startswith(("set_", "create_")):
+            if text.endswith("\\"):
+                pending = text[:-1].strip()
+            else:
+                snippets[current].append(text)
+            continue
+        current = None
+    return snippets
+
+
+def tcl_collections(command: str) -> list[str]:
+    """Bracketed get_* sub-commands of a constraint, without the brackets."""
+    found: list[str] = []
+    stack: list[int] = []
+    depth = 0
+    for index, char in enumerate(command):
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+        elif depth == 0 and char == "[":
+            stack.append(index)
+        elif depth == 0 and char == "]" and stack:
+            start = stack.pop()
+            inner = command[start + 1 : index].strip()
+            if inner.startswith("get_"):
+                found.append(inner)
+    return found
+
+
+def case_constraints(case: SynthCase, tool: str) -> list[tuple[str, str, list[str]]]:
+    """(label, command, collections) for every example the case loads."""
+    result: list[tuple[str, str, list[str]]] = []
+    for spec in case.constraint_sources:
+        file_part, _, block = spec.partition("#")
+        name = f"{Path(file_part).stem}#{block}" if block else Path(file_part).stem
+        commands = extract_snippets(spec)[tool]
+        if not commands:
+            raise ValueError(f"No {tool} constraint example found in {spec}")
+        for index, command in enumerate(commands, start=1):
+            result.append((f"{name}:{index}", command, tcl_collections(command)))
+    return result
+
+
+def is_exception(command: str) -> bool:
+    return command.split(" ", 1)[0] in EXCEPTION_COMMANDS
+
+
+def clock_name(port: str) -> str:
+    return "clk_" + re.sub(r"[^A-Za-z0-9]+", "_", port).strip("_")
+
+
+def constraint_clocks(case: SynthCase) -> list[str]:
+    """Clock definitions for the constraint check, optionally grouped."""
+    lines: list[str] = []
+    names: list[str] = []
+    for port, period in dict(case.options.get("clocks", {})).items():
+        names.append(clock_name(port))
+        lines.append(f"create_clock -name {clock_name(port)} -period {float(period):.3f} [get_ports {sdc_port(port)}]")
+    if case.options.get("constraint_clock_groups", False) and len(names) > 1:
+        groups = " ".join(f"-group [get_clocks {name}]" for name in names)
+        lines.append(f"set_clock_groups -asynchronous {groups}")
+    return lines
+
+
+def tcl_check_constraint(label: str, command: str, colls: list[str]) -> str:
+    return f"lm_check_constraint {tcl(label)} {{{command}}} {{{' '.join('{' + c + '}' for c in colls)}}}"
+
+
 # Netlist checks run inside Vivado after synth_design. A chain cell is a
 # primitive whose leaf name is <signal>_reg, <signal>_reg[n] or, once packed
 # into a shift register, <signal>_reg[n]_srl<k>; registers in a generate
@@ -271,6 +417,22 @@ proc lm_check_chain {label signals expected} {
   lm_check "chain:$label:cell_type" [expr {$n > 0 && [llength $bad_type] == 0}] "not_fd=[join $bad_type ,]"
   lm_check "chain:$label:async_reg" [expr {$n > 0 && [llength $bad_async] == 0}] "missing=[join $bad_async ,]"
 }
+proc lm_check_constraint {label cmd colls} {
+  set empty {}
+  foreach c $colls {
+    if {[catch {llength [uplevel #0 $c]} n] || $n == 0} { lappend empty $c }
+  }
+  lm_check "constraint:$label:objects" [expr {[llength $empty] == 0}] "empty=[join $empty {; }]"
+  set failed [catch {uplevel #0 $cmd} err]
+  lm_check "constraint:$label:applied" [expr {!$failed}] [expr {$failed ? $err : {}}]
+}
+proc lm_rows {report} {
+  set rows {}
+  foreach line [split $report "\n"] {
+    if {[regexp {^[0-9]+\s} $line]} { lappend rows [string trim $line] }
+  }
+  return $rows
+}
 """
 
 
@@ -287,6 +449,34 @@ def vivado_checks(case: SynthCase) -> list[str]:
                 "lm_check no_shift_register [expr {[llength $lm_srl] == 0}] \"srl_cells=[llength $lm_srl]\"",
             ]
         )
+    constraints = case_constraints(case, "vivado")
+    if constraints:
+        lines.extend(constraint_clocks(case))
+        lines.extend(tcl_check_constraint(label, command, colls) for label, command, colls in constraints)
+        expected = sum(1 for _, command, _ in constraints if is_exception(command))
+        lines.extend(
+            [
+                "set lm_exc [report_exceptions -return_string]",
+                "set lm_ign [report_exceptions -ignored -return_string]",
+                "set lm_rpt [open [file join $script_dir reports constraint_exceptions.rpt] w]",
+                "puts $lm_rpt $lm_exc",
+                "puts $lm_rpt $lm_ign",
+                "close $lm_rpt",
+                f"lm_check constraints:listed [expr {{[llength [lm_rows $lm_exc]] == {expected}}}] "
+                f"\"expected={expected} listed=[llength [lm_rows $lm_exc]]\"",
+                "lm_check constraints:not_ignored [expr {[llength [lm_rows $lm_ign]] == 0}] \"ignored=[join [lm_rows $lm_ign] { | }]\"",
+            ]
+        )
+        if any(command.startswith("set_bus_skew") for _, command, _ in constraints):
+            lines.extend(
+                [
+                    "set lm_skew [report_bus_skew -return_string]",
+                    "set lm_rpt [open [file join $script_dir reports constraint_bus_skew.rpt] w]",
+                    "puts $lm_rpt $lm_skew",
+                    "close $lm_rpt",
+                    "lm_check constraints:bus_skew_reported [expr {[llength [lm_rows $lm_skew]] > 0}] \"rows=[llength [lm_rows $lm_skew]]\"",
+                ]
+            )
     lines.append("close $lm_fh")
     return lines
 
@@ -374,34 +564,72 @@ def write_quartus_script(path: Path, target: Target, case: SynthCase, top: str, 
     ]
     lines.extend(f"set_global_assignment -name VHDL_FILE {tcl(src)} -library lm_util_lib" for src in sources)
     lines.append("execute_module -tool map")
-    if case.chains:
-        # synchronizer identification and MTBF need the fitted netlist
+    constraints = case_constraints(case, "quartus")
+    if case.chains or constraints:
+        # synchronizer identification, MTBF and timing exceptions need the
+        # fitted netlist
         lines.append("execute_module -tool fit")
     lines.extend(["project_close", ""])
     path.write_text("\n".join(lines), encoding="utf-8")
     commands = [[target.executable, "-t", path.as_posix()]]
 
-    if case.chains:
-        sta = path.with_name("run_quartus_sta.tcl")
-        sta.write_text(
-            "\n".join(
+    if case.chains or constraints:
+        sta_lines = [
+            "# SPDX-License-Identifier: Apache-2.0",
+            f"project_open {QUARTUS_PROJECT}",
+            "file mkdir reports",
+        ]
+        if case.chains:
+            sta_lines.extend(
                 [
-                    "# SPDX-License-Identifier: Apache-2.0",
-                    f"project_open {QUARTUS_PROJECT}",
                     "create_timing_netlist",
                     "read_sdc",
                     "update_timing_netlist",
-                    "file mkdir reports",
                     "report_metastability -file reports/metastability.rpt -nchains 1000",
                     "delete_timing_netlist",
-                    "project_close",
-                    "",
                 ]
-            ),
-            encoding="utf-8",
-        )
+            )
+        if constraints:
+            # a fresh timing netlist with the case clocks only, so that the
+            # examples are evaluated on their own
+            sta_lines.extend(QUARTUS_CONSTRAINT_PROCS.strip().splitlines())
+            sta_lines.append("create_timing_netlist")
+            sta_lines.extend(constraint_clocks(case))
+            sta_lines.extend(tcl_check_constraint(label, command, colls) for label, command, colls in constraints)
+            sta_lines.extend(
+                [
+                    "update_timing_netlist",
+                    "report_exceptions -file reports/constraint_exceptions.rpt",
+                    "report_sdc -ignored -file reports/constraint_ignored.rpt",
+                    "delete_timing_netlist",
+                    "close $lm_fh",
+                ]
+            )
+        sta_lines.extend(["project_close", ""])
+        sta = path.with_name("run_quartus_sta.tcl")
+        sta.write_text("\n".join(sta_lines), encoding="utf-8")
         commands.append([quartus_sibling(target.executable, "quartus_sta"), "-t", sta.as_posix()])
     return commands
+
+
+# Quartus Timing Analyzer counterpart of lm_check_constraint; the results are
+# merged with the report-based checks by quartus_checks().
+QUARTUS_CONSTRAINT_PROCS = r"""
+set lm_fh [open reports/lm_constraint_checks.txt w]
+proc lm_check {name ok detail} {
+  global lm_fh
+  puts $lm_fh "LM_CHECK [expr {$ok ? {PASS} : {FAIL}}] $name $detail"
+}
+proc lm_check_constraint {label cmd colls} {
+  set empty {}
+  foreach c $colls {
+    if {[catch {get_collection_size [uplevel #0 $c]} n] || $n == 0} { lappend empty $c }
+  }
+  lm_check "constraint:$label:objects" [expr {[llength $empty] == 0}] "empty=[join $empty {; }]"
+  set failed [catch {uplevel #0 $cmd} err]
+  lm_check "constraint:$label:applied" [expr {!$failed}] [expr {$failed ? $err : {}}]
+}
+"""
 
 
 def write_diamond_script(path: Path, target: Target, top: str, sources: list[Path]) -> list[list[str]]:
@@ -475,9 +703,9 @@ def first_failure_message(case_dir: Path) -> str:
     log_paths = [case_dir / "stdout.log", case_dir / "stderr.log"]
     log_paths.extend(sorted(path for path in case_dir.glob("*.log") if path.name not in {"stdout.log", "stderr.log"}))
     patterns = [
-        # anchored: Vivado echoes the sourced script, including the check itself
         r"^LM_ERROR:.*",
         r"couldn't read file.*",
+        r'invalid command name "rt-undefined"',
         r"can't create directory.*",
         r"package .*isn't loaded.*",
         r"invalid part.*",
@@ -494,6 +722,9 @@ def first_failure_message(case_dir: Path) -> str:
                 continue
             try:
                 for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    if line.lstrip().startswith("#"):
+                        # Vivado echoes the sourced script, error strings included
+                        continue
                     match = regex.search(line.strip())
                     if match:
                         return match.group(0)[:180]
@@ -587,6 +818,28 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
                 f"identified={len(found)} not_user_specified={','.join(not_user)}",
             )
 
+    constraints = case_constraints(case, "quartus")
+    if constraints:
+        tcl_checks = case_dir / "reports" / "lm_constraint_checks.txt"
+        if tcl_checks.exists():
+            lines.extend(line for line in tcl_checks.read_text(encoding="utf-8", errors="ignore").splitlines() if line.startswith("LM_CHECK"))
+        else:
+            check("constraints:applied", False, "Timing Analyzer check output missing")
+        expected = sum(1 for _, command, _ in constraints if is_exception(command))
+        exc_path = case_dir / "reports" / "constraint_exceptions.rpt"
+        ign_path = case_dir / "reports" / "constraint_ignored.rpt"
+        panel = rpt_panel(exc_path.read_text(encoding="utf-8", errors="ignore"), "Report Exceptions Summary") if exc_path.exists() else None
+        rows = [row for row in (panel or []) if row and row[0].strip() not in {"", "Status"}]
+        invalid = [row[1].strip() + " " + row[7].strip() for row in rows if row[0].strip() == "Invalid" and len(row) > 7]
+        check("constraints:listed", len(rows) == expected, f"expected={expected} listed={len(rows)}")
+        check("constraints:valid", bool(rows) and not invalid, f"invalid={' | '.join(invalid)}")
+        ignored_text = ign_path.read_text(encoding="utf-8", errors="ignore") if ign_path.exists() else ""
+        check(
+            "constraints:not_ignored",
+            "No constraints were ignored." in ignored_text,
+            "see reports/constraint_ignored.rpt" if ignored_text else "ignored-constraints report missing",
+        )
+
     if case.no_shift_register:
         map_path = case_dir / f"{QUARTUS_PROJECT}.map.rpt"
         if not map_path.exists():
@@ -629,6 +882,10 @@ def evaluate_checks(target: Target, case: SynthCase, case_dir: Path, ignore_expe
         not_failing = [name for name in expected if name not in failed]
         if not_failing:
             return "failed", "negative case: expected failing checks passed: " + ", ".join(not_failing), details
+        passed = {name for status, name, _ in checks if status == "PASS"}
+        not_passing = [name for name in case.expected_passes(target.tool) if name not in passed]
+        if not_passing:
+            return "failed", "negative case: checks expected to pass did not: " + ", ".join(not_passing), details
         return "passed", "negative case: failed as expected: " + ", ".join(failed), details
     if failed:
         return "failed", "failed checks: " + ", ".join(failed), details
@@ -836,6 +1093,8 @@ def main() -> int:
     for target in targets:
         for case in cases:
             if target.tool == "diamond" and case.has_checks:
+                continue
+            if case.options.get("tools") and target.tool not in case.options["tools"]:
                 continue
             print(f"[{target.name}] {case.name}")
             result = run_one(target, case, out_root, sources, dry_run=args.dry_run, ignore_expected=args.ignore_expected_failures)

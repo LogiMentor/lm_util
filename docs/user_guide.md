@@ -239,10 +239,25 @@ own and ignores the rest:
 
 The attributes only prevent structural mangling (SRL packing, register
 merging) and help MTBF analysis. The crossing paths themselves must be
-constrained in the project timing constraints; each module header carries a
-ready-to-adapt example. The general pattern, targeting the first stage of a
-chain named `s_din_meta`:
+constrained in the project timing constraints.
 
+### Constraint examples
+
+Each CDC module header lists project-level constraints for Vivado (XDC) and
+Quartus (SDC). The examples select registers and pins only by the internal
+signal names of the module (`s_din_meta`, `s_meta_level`, `s_resync_reg`,
+...). They contain no library, entity, instance or hierarchy name, so they
+apply to every instance of the module and are not affected when the sources
+are copied into another library or the entity is renamed. They stop matching
+if an internal signal is renamed, which `tools/synth/run_vendor_synth.py`
+detects (see the `neg_chain_renamed` case): it loads
+every Vivado and Quartus example of the CDC modules and of this guide, fails
+when a collection is empty, and fails when the tool does not list the
+resulting exception or ignores it.
+
+For `lm_util_ccd_resync`, which the other modules reuse:
+
+<!-- constraints: lm_util_ccd_resync -->
 ```tcl
 # Vivado (XDC)
 set_false_path -to [get_cells -hier -filter {NAME =~ */s_din_meta_reg[0]}]
@@ -250,14 +265,44 @@ set_false_path -to [get_cells -hier -filter {NAME =~ */s_din_meta_reg[0]}]
 # Quartus (SDC)
 set_false_path -to [get_registers {*s_din_meta[0]}]
 
-# Diamond, Synplify/LSE (SDC/LDC)
+# Lattice Diamond/LSE (LDC), not verified
 set_false_path -to [get_cells {*/s_din_meta[0]}]
 ```
 
-To bound the crossing latency instead of cutting it, replace
-`set_false_path` with `set_max_delay` on the same `-from`/`-to` targets
-(Vivado: add `-datapath_only`). For `lm_util_clock_mux`, also declare the
-input clocks as `set_clock_groups -logically_exclusive`.
+Keep the bus index inside a braced pattern: unbraced, `[0]` is a Tcl
+command substitution; braced, Vivado and Quartus Prime 23.1 match it
+literally (an escaped `\[0\]` matches nothing in Quartus).
+
+To bound the crossing latency instead of cutting it, use `set_max_delay` on
+the same targets (Vivado: `-datapath_only`). The `lm_util_ccd_sync_bus` data
+bus uses `set_max_delay -datapath_only` and `set_bus_skew` (Quartus:
+`set_max_delay` and `set_max_skew`), see its header. For `lm_util_clock_mux`,
+also declare the input clocks as `set_clock_groups -logically_exclusive`.
+
+### Alternative: asynchronous clock groups
+
+When the clocks of the two domains are unrelated, the integrator can declare
+them with `set_clock_groups -asynchronous` instead of the per-path
+exceptions above. This removes every timing check between the groups, which
+is what the single-bit synchronizers need, but it also overrides the
+exceptions that bound the multi-bit crossings.
+
+Observed with Vivado 2023.1 on the synthesized `lm_util_ccd_sync_bus`
+(`g_bus_width = 8`, input clock 10 ns, output clock 7 ns), with the header
+constraints `set_max_delay -datapath_only 7.0` and `set_bus_skew 7.0` on the
+data bus:
+
+| Constraints | `set_max_delay -datapath_only` | `set_bus_skew` |
+| --- | --- | --- |
+| Header constraints only | Applied (`max_dpo=7`) | Reported: 8 endpoints, skew 0.687 ns, slack 6.313 ns |
+| Header constraints and `set_clock_groups -asynchronous` | Ignored: "Totally overridden path by CG" | Reported unchanged: 8 endpoints, skew 0.687 ns, slack 6.313 ns |
+
+With clock groups the data path delay is therefore no longer bounded, while
+the skew between the bus bits is still checked. If the integrator uses clock
+groups, keep `set_bus_skew` on the `lm_util_ccd_sync_bus` data bus, and do
+not rely on `set_max_delay -datapath_only` for any path between the grouped
+clocks. The synthesis case `ccd_sync_bus_8_clock_groups` repeats this
+observation on every run.
 
 ## Adding a Module
 

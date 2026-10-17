@@ -11,6 +11,29 @@
 --              and to raise the rdy. when the secondary latches the rdy it
 --              deasserts the request
 --
+--              The request and data-valid synchronizers are
+--              lm_util_ccd_resync instances: apply the lm_util_ccd_resync
+--              constraint examples. The data bus is sampled in the output
+--              domain only after the resynchronized data valid toggles, so
+--              its paths need a bounded delay and skew instead of a timing
+--              check. The examples select the bus registers by the internal
+--              signal names only (replace 7.0 with the out_clk_i period):
+--                Vivado (XDC):
+--                  set_max_delay -datapath_only 7.0 \
+--                    -from [get_cells -hier -filter {NAME =~ */s_lm_ccd_bus_data_prim_xil_reg[*]}] \
+--                    -to [get_cells -hier -filter {NAME =~ */s_lm_ccd_bus_data_secn_xil_reg[*]}]
+--                  set_bus_skew \
+--                    -from [get_cells -hier -filter {NAME =~ */s_lm_ccd_bus_data_prim_xil_reg[*]}] \
+--                    -to [get_cells -hier -filter {NAME =~ */s_lm_ccd_bus_data_secn_xil_reg[*]}] 7.0
+--                Quartus (SDC):
+--                  set_max_delay -from [get_registers {*s_lm_ccd_bus_data_prim_xil[*]}] \
+--                    -to [get_registers {*s_lm_ccd_bus_data_secn_xil[*]}] 7.0
+--                  set_max_skew -from [get_registers {*s_lm_ccd_bus_data_prim_xil[*]}] \
+--                    -to [get_registers {*s_lm_ccd_bus_data_secn_xil[*]}] 7.0
+--              Lattice tools: not verified, no example.
+--              With asynchronous clock groups declared for the two clocks,
+--              see the user guide for the behavior of these constraints.
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --

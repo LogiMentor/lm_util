@@ -127,7 +127,15 @@ expect_diamond_regex = ["(?i)register|slice"]
 #            listed by report_metastability, identified as User Specified),
 #            no_shift_register (no SHIFT_TAPS in Analysis & Synthesis)
 # clocks gives the Quartus SDC clocks; several clocks are declared
-# asynchronous to each other.
+# asynchronous to each other for the synchronizer checks.
+# constraints lists the published constraint examples to load ("file.vhd" for
+# a module header, "file.md#name" for a marked guide block). They are applied
+# on a timing netlist that defines only the case clocks, without clock groups
+# unless constraint_clock_groups = true. Checks: constraint:<source>:<n>:objects
+# (no empty collection), constraint:<source>:<n>:applied, constraints:listed
+# (every exception reported by report_exceptions), constraints:not_ignored,
+# constraints:valid (Quartus) and constraints:bus_skew_reported (Vivado, when
+# an example uses set_bus_skew).
 # ---------------------------------------------------------------------------
 
 [[cases]]
@@ -145,6 +153,7 @@ ports = [
 clocks = { clk_i = 10.0 }
 no_shift_register = true
 chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 2 }]
+constraints = ["src/lm_util_ccd_resync.vhd"]
 
 [[cases]]
 name = "ccd_resync_4ff"
@@ -161,6 +170,7 @@ ports = [
 clocks = { clk_i = 10.0 }
 no_shift_register = true
 chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 4 }]
+constraints = ["src/lm_util_ccd_resync.vhd"]
 
 [[cases]]
 name = "ccd_sync_bus_8"
@@ -181,6 +191,7 @@ ports = [
 clocks = { in_clk_i = 10.0, out_clk_i = 7.0 }
 no_shift_register = true
 chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 4 }]
+constraints = ["src/lm_util_ccd_resync.vhd", "src/lm_util_ccd_sync_bus.vhd"]
 
 [[cases]]
 name = "ccd_sync_pulse_3"
@@ -205,6 +216,7 @@ chains = [
   { label = "meta_level", signals = ["s_meta_level"], registers = 3 },
   { label = "meta_ack", signals = ["s_meta_ack"], registers = 3 },
 ]
+constraints = ["src/lm_util_ccd_sync_pulse.vhd"]
 
 [[cases]]
 name = "async_reset_2ff"
@@ -221,6 +233,7 @@ ports = [
 clocks = { clk_i = 10.0 }
 no_shift_register = true
 chains = [{ label = "resync", signals = ["s_resync_reg"], registers = 2 }]
+constraints = ["src/lm_util_async_reset.vhd"]
 
 [[cases]]
 name = "async_reset_4ff"
@@ -237,6 +250,7 @@ ports = [
 clocks = { clk_i = 10.0 }
 no_shift_register = true
 chains = [{ label = "resync", signals = ["s_resync_reg"], registers = 4 }]
+constraints = ["src/lm_util_async_reset.vhd"]
 
 [[cases]]
 name = "clock_measure_16"
@@ -258,6 +272,7 @@ chains = [
   { label = "out_freq_rdy", signals = ["s_out_freq_rdy_d", "s_out_freq_rdy_d2"], registers = 2 },
   { label = "resync", signals = ["s_resync_reg"], registers = 2 },
 ]
+constraints = ["src/lm_util_clock_measure.vhd"]
 
 [[cases]]
 name = "clock_mux_2"
@@ -274,6 +289,47 @@ ports = [
 clocks = { "clk_i[0]" = 10.0, "clk_i[1]" = 12.0 }
 no_shift_register = true
 chains = [{ label = "ena", signals = ["s_ena_r0", "s_ena_r1"], registers = 4 }]
+constraints = ["src/lm_util_clock_mux.vhd"]
+
+[[cases]]
+name = "guide_ccd_resync"
+entity = "lm_util_ccd_resync"
+category = "cdc"
+description = "Constraint example of the user guide, loaded on lm_util_ccd_resync."
+tags = ["cdc", "constraints"]
+generics = { g_meta_levels = 2 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+constraints = ["docs/user_guide.md#lm_util_ccd_resync"]
+
+[[cases]]
+name = "ccd_sync_bus_8_clock_groups"
+entity = "lm_util_ccd_sync_bus"
+category = "cdc"
+description = "Header constraints of the data bus with the two clocks declared as asynchronous clock groups (user guide, alternative f)."
+tags = ["cdc", "constraints", "clock-groups"]
+tools = ["vivado"]
+generics = { g_bus_width = 8, g_meta_levels = 2 }
+ports = [
+  "in_clk_i : in std_logic",
+  "in_rst_n_i : in std_logic",
+  "in_data_i : in std_logic_vector(7 downto 0)",
+  "out_rdy_o : out std_logic",
+  "out_clk_i : in std_logic",
+  "out_req_i : in std_logic",
+  "out_data_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { in_clk_i = 10.0, out_clk_i = 7.0 }
+constraints = ["src/lm_util_ccd_sync_bus.vhd"]
+constraint_clock_groups = true
+# observed with Vivado 2023.1: the clock groups totally override
+# set_max_delay -datapath_only, while set_bus_skew is still reported
+expect_failed_checks = { vivado = ["constraints:not_ignored"] }
+expect_passed_checks = { vivado = ["constraint:lm_util_ccd_sync_bus:1:objects", "constraint:lm_util_ccd_sync_bus:2:objects", "constraint:lm_util_ccd_sync_bus:2:applied", "constraints:bus_skew_reported"] }
 
 # ---------------------------------------------------------------------------
 # Negative cases: each must make the listed checks fail. A negative case
@@ -314,7 +370,8 @@ ports = [
 ]
 clocks = { clk_i = 10.0 }
 chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 2 }]
-expect_failed_checks = { vivado = ["chain:din_meta:count"], quartus = ["chain:din_meta:count"] }
+constraints = ["src/lm_util_ccd_resync.vhd"]
+expect_failed_checks = { vivado = ["chain:din_meta:count", "constraint:lm_util_ccd_resync:1:objects"], quartus = ["chain:din_meta:count", "constraint:lm_util_ccd_resync:1:objects"] }
 
 [[cases]]
 name = "neg_shift_register"

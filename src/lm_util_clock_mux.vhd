@@ -13,16 +13,18 @@
 --              This implementation is glitch-free and does not introduce any
 --              timing issues or glitches during clock switching.
 --
---              Constrain the input clocks as mutually exclusive at project
---              level (adapt names), e.g.:
---                Vivado (XDC) / Quartus / Diamond (SDC):
---                  set_clock_groups -logically_exclusive \
---                    -group [get_clocks clk_a] -group [get_clocks clk_b]
---              and cut the select resampling paths if the selects come from
---              another domain:
---                  set_false_path -to [get_cells -hier -filter \
---                    {NAME =~ */s_ena_r0_reg[*]}]   (Vivado)
---                  set_false_path -to [get_registers *s_ena_r0*]   (Quartus)
+--              Declare the input clocks of the mux logically exclusive at
+--              project level with the design clock names
+--              (set_clock_groups -logically_exclusive -group <clk a>
+--              -group <clk b>), and cut the select resampling paths when the
+--              selects come from another domain. The examples select the
+--              first enable stage by the internal signal name only:
+--                Vivado (XDC):
+--                  set_false_path -to [get_cells -hier -filter {NAME =~ *s_ena_r0_reg[*]}]
+--                Quartus (SDC):
+--                  set_false_path -to [get_registers {*s_ena_r0[*]}]
+--                Lattice Diamond/LSE (LDC), not verified:
+--                  set_false_path -to [get_cells {*/s_ena_r0[*]}]
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --

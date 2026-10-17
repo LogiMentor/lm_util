@@ -69,9 +69,10 @@ no-port design.
 The run exits with a non-zero code when any case is `failed` or `error`.
 
 Vivado intermittently fails on some Windows machines while reading its own
-Tcl scripts or `.Xil` scratch files (`couldn't read file ...: No error`).
-A case that fails this way is run once more, and the first failure is kept
-under `retries` in `summary.json`.
+Tcl scripts or `.Xil` scratch files (`couldn't read file ...: No error`, or
+`invalid command name "rt-undefined"` inside them). A case that fails this
+way is run once more, and the first failure is kept under `retries` in
+`summary.json`.
 
 ## Structural Checks
 
@@ -106,6 +107,32 @@ python tools\synth\run_vendor_synth.py --config tools\synth\local.toml --tag neg
 A Quartus target whose family or device is not installed stops with an
 `LM_ERROR` message naming the missing family or device; a missing Vivado part
 is reported the same way.
+
+## Constraint Example Checks
+
+A case can list published constraint examples in `constraints`: a module
+header (`"src/<module>.vhd"`, the commands under its `Vivado (XDC):` and
+`Quartus (SDC):` headings) or a user guide block (`"docs/user_guide.md#name"`,
+the fenced block after a `<!-- constraints: name -->` marker). The runner
+applies them on a timing netlist that defines only the case clocks (and
+asynchronous clock groups when `constraint_clock_groups = true`), then
+checks:
+
+- `constraint:<source>:<n>:objects`: every `get_*` collection of the command
+  is non-empty, so a renamed signal is reported instead of silently matching
+  nothing;
+- `constraint:<source>:<n>:applied`: the command runs without a Tcl error;
+- `constraints:listed`: `report_exceptions` lists one exception per
+  `set_false_path`/`set_max_delay`/`set_min_delay`/`set_multicycle_path`;
+- `constraints:not_ignored`: no exception is ignored or overridden
+  (Vivado `report_exceptions -ignored`, Quartus `report_sdc -ignored`);
+- `constraints:valid` (Quartus): no exception has status `Invalid`;
+- `constraints:bus_skew_reported` (Vivado, examples with `set_bus_skew`):
+  `report_bus_skew` lists the constraint.
+
+Cases can also restrict themselves to some tools with `tools`, and an
+observation case can list checks that must pass in `expect_passed_checks`
+next to the ones that must fail.
 
 The regex fields (`expect_*_regex`) are hints on the vendor `.rpt`/`.srr`
 reports only. They can turn a passing case into `review`, never into

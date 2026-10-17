@@ -13,18 +13,19 @@
 --              the clock domain crossing not implemented. Vendor-specific HDL
 --              attributes are applied on the chain (see the architecture);
 --              each tool ignores the attributes it does not know.
---              The crossing path itself must be constrained at project level;
---              adapt hierarchy/names to the instance:
+--              The crossing path must be constrained at project level. The
+--              examples select the first stage by the internal signal name
+--              only, so they apply to every instance of this entity:
 --                Vivado (XDC):
---                  set_false_path -to [get_cells -hier -filter \
---                    {NAME =~ */inst_resync*/s_din_meta_reg[0]}]
+--                  set_false_path -to [get_cells -hier -filter {NAME =~ */s_din_meta_reg[0]}]
 --                Quartus (SDC):
 --                  set_false_path -to [get_registers {*s_din_meta[0]}]
---                Diamond, Synplify/LSE (SDC/LDC):
+--                Lattice Diamond/LSE (LDC), not verified:
 --                  set_false_path -to [get_cells {*/s_din_meta[0]}]
 --              To bound the crossing latency instead of cutting it, use
---              set_max_delay (Vivado: add -datapath_only) with the same
---              -from/-to targets.
+--              set_max_delay on the same target (Vivado: -datapath_only).
+--              tools/synth/run_vendor_synth.py loads the Vivado and Quartus
+--              examples and checks that they match and apply.
 --
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl

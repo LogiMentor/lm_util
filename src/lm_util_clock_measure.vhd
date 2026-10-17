@@ -8,16 +8,26 @@
 -- Description: clock measurement module, count the number of transition of an
 --              input clock in 1 sec with a reference clock, known frequency.
 --
---              Constrain the crossings at project level (adapt names): cut the
---              single-bit toggles and bound the result bus, e.g. for Vivado
---              (XDC; Quartus/Diamond SDC use get_registers/get_cells):
---                set_false_path -to [get_cells -hier -filter \
---                  {NAME =~ */s_1s_tick_tgl_d_reg}]
---                set_false_path -to [get_cells -hier -filter \
---                  {NAME =~ */s_out_freq_rdy_d_reg}]
---                set_max_delay -datapath_only -from [get_cells -hier -filter \
---                  {NAME =~ */s_output_frequency_hz_reg[*]}] -to [get_cells \
---                  -hier -filter {NAME =~ */output_frequency_hz_o_reg[*]}] <ref_clk period>
+--              Constrain the crossings at project level. The examples select
+--              registers by the internal signal names only: they cut the
+--              single-bit toggle and ready crossings and the reset
+--              synchronizer clear, and bound the result bus, which is
+--              stable when the resynchronized ready toggles (replace 10.0
+--              with the ref_clk_i period):
+--                Vivado (XDC):
+--                  set_false_path -to [get_cells -hier -filter {NAME =~ */s_1s_tick_tgl_d_reg}]
+--                  set_false_path -to [get_cells -hier -filter {NAME =~ */s_out_freq_rdy_d_reg}]
+--                  set_false_path -to [get_pins -hier -filter {NAME =~ */s_resync_reg_reg[*]/CLR}]
+--                  set_max_delay -datapath_only 10.0 \
+--                    -from [get_cells -hier -filter {NAME =~ */s_output_frequency_hz_reg[*]}] \
+--                    -to [get_cells -hier -filter {NAME =~ */output_frequency_hz_o_reg[*]}]
+--                Quartus (SDC):
+--                  set_false_path -to [get_registers {*s_1s_tick_tgl_d}]
+--                  set_false_path -to [get_registers {*s_out_freq_rdy_d}]
+--                  set_false_path -to [get_pins -compatibility_mode {*s_resync_reg[*]|clrn}]
+--                  set_max_delay -from [get_registers {*s_output_frequency_hz[*]}] \
+--                    -to [get_registers {*output_frequency_hz_o[*]}] 10.0
+--              Lattice tools: not verified, no example.
 --------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --

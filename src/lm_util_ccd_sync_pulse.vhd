@@ -14,16 +14,17 @@
 --   rate of pulses that can be transfered is limited by g_delay_len and by
 --   the out_clk rate.
 --
---   Constrain both crossing paths at project level (adapt hierarchy/names):
+--   Constrain both crossing paths at project level. The examples select the
+--   first stage of each chain by the internal signal names only:
 --     Vivado (XDC):
---       set_false_path -to [get_cells -hier -filter \
---         {NAME =~ */s_meta_level_reg[0]}]
---       set_false_path -to [get_cells -hier -filter \
---         {NAME =~ */s_meta_ack_reg[0]}]
+--       set_false_path -to [get_cells -hier -filter {NAME =~ */s_meta_level_reg[0]}]
+--       set_false_path -to [get_cells -hier -filter {NAME =~ */s_meta_ack_reg[0]}]
 --     Quartus (SDC):
---       set_false_path -to [get_registers {*s_meta_level[0] *s_meta_ack[0]}]
---     Diamond, Synplify/LSE (SDC/LDC):
---       set_false_path -to [get_cells {*/s_meta_level[0] */s_meta_ack[0]}]
+--       set_false_path -to [get_registers {*s_meta_level[0]}]
+--       set_false_path -to [get_registers {*s_meta_ack[0]}]
+--     Lattice Diamond/LSE (LDC), not verified:
+--       set_false_path -to [get_cells {*/s_meta_level[0]}]
+--       set_false_path -to [get_cells {*/s_meta_ack[0]}]
 --   or bound the latency with set_max_delay on the same targets
 --   (Vivado: add -datapath_only).
 --
