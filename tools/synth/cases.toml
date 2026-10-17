@@ -116,11 +116,25 @@ expect_vivado_regex = ["(?i)Register|FDRE|FDCE|Slice"]
 expect_quartus_regex = ["(?i)registers|flipflop|ALM"]
 expect_diamond_regex = ["(?i)register|slice"]
 
+# ---------------------------------------------------------------------------
+# CDC synchronizer cases. Each chains entry names the RTL signals of one
+# synchronizer chain and the number of register bits expected for them.
+# Structural checks (see README.md):
+#   Vivado : chain:<label>:count, chain:<label>:cell_type (FD*),
+#            chain:<label>:async_reg (ASYNC_REG = TRUE), no_shift_register
+#            (no SRL* cell in the design)
+#   Quartus: chain:<label>:count and chain:<label>:synchronizer (registers
+#            listed by report_metastability, identified as User Specified),
+#            no_shift_register (no SHIFT_TAPS in Analysis & Synthesis)
+# clocks gives the Quartus SDC clocks; several clocks are declared
+# asynchronous to each other.
+# ---------------------------------------------------------------------------
+
 [[cases]]
 name = "ccd_resync_2ff"
 entity = "lm_util_ccd_resync"
 category = "cdc"
-description = "Two-stage CDC synchronizer; reports must be checked for FF implementation rather than SRL extraction."
+description = "Two-stage single-bit synchronizer."
 tags = ["cdc", "ff-chain", "no-srl"]
 generics = { g_meta_levels = 2 }
 ports = [
@@ -128,38 +142,193 @@ ports = [
   "ccd_din_i : in std_logic",
   "ccd_din_o : out std_logic",
 ]
-expect_vivado_regex = ["(?i)FDRE|FDCE|Register|Slice"]
-expect_quartus_regex = ["(?i)registers|flipflop|ALM"]
-expect_diamond_regex = ["(?i)register|slice"]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 2 }]
+
+[[cases]]
+name = "ccd_resync_4ff"
+entity = "lm_util_ccd_resync"
+category = "cdc"
+description = "Four-stage synchronizer, long enough for shift-register packing without the attributes."
+tags = ["cdc", "ff-chain", "no-srl"]
+generics = { g_meta_levels = 4 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 4 }]
+
+[[cases]]
+name = "ccd_sync_bus_8"
+entity = "lm_util_ccd_sync_bus"
+category = "cdc"
+description = "Request/ready bus transfer: two lm_util_ccd_resync instances."
+tags = ["cdc", "ff-chain", "no-srl"]
+generics = { g_bus_width = 8, g_meta_levels = 2 }
+ports = [
+  "in_clk_i : in std_logic",
+  "in_rst_n_i : in std_logic",
+  "in_data_i : in std_logic_vector(7 downto 0)",
+  "out_rdy_o : out std_logic",
+  "out_clk_i : in std_logic",
+  "out_req_i : in std_logic",
+  "out_data_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { in_clk_i = 10.0, out_clk_i = 7.0 }
+no_shift_register = true
+chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 4 }]
+
+[[cases]]
+name = "ccd_sync_pulse_3"
+entity = "lm_util_ccd_sync_pulse"
+category = "cdc"
+description = "Pulse transfer with level and acknowledge synchronizers."
+tags = ["cdc", "ff-chain", "no-srl"]
+generics = { g_delay_len = 3 }
+ports = [
+  "in_clk_i : in std_logic",
+  "in_rst_n_i : in std_logic",
+  "in_pulse_i : in std_logic",
+  "in_busy_o : out std_logic",
+  "out_rst_n_i : in std_logic",
+  "out_clk_i : in std_logic",
+  "out_ce_i : in std_logic",
+  "out_pulse_o : out std_logic",
+]
+clocks = { in_clk_i = 10.0, out_clk_i = 7.0 }
+no_shift_register = true
+chains = [
+  { label = "meta_level", signals = ["s_meta_level"], registers = 3 },
+  { label = "meta_ack", signals = ["s_meta_ack"], registers = 3 },
+]
 
 [[cases]]
 name = "async_reset_2ff"
 entity = "lm_util_async_reset"
 category = "reset"
 description = "Asynchronous assertion and synchronous release reset synchronizer."
-tags = ["reset", "cdc", "ff-chain"]
+tags = ["cdc", "reset", "ff-chain", "no-srl"]
 generics = { g_delay_len = 2, g_rst_lvl = "'0'" }
 ports = [
   "arst_i : in std_logic",
   "clk_i : in std_logic",
   "rst_n_o : out std_logic",
 ]
-expect_vivado_regex = ["(?i)FDRE|FDCE|Register|Slice"]
-expect_quartus_regex = ["(?i)registers|flipflop|ALM"]
-expect_diamond_regex = ["(?i)register|slice"]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+chains = [{ label = "resync", signals = ["s_resync_reg"], registers = 2 }]
+
+[[cases]]
+name = "async_reset_4ff"
+entity = "lm_util_async_reset"
+category = "reset"
+description = "Four-stage reset synchronizer, long enough for shift-register packing without the attributes."
+tags = ["cdc", "reset", "ff-chain", "no-srl"]
+generics = { g_delay_len = 4, g_rst_lvl = "'0'" }
+ports = [
+  "arst_i : in std_logic",
+  "clk_i : in std_logic",
+  "rst_n_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+chains = [{ label = "resync", signals = ["s_resync_reg"], registers = 4 }]
+
+[[cases]]
+name = "clock_measure_16"
+entity = "lm_util_clock_measure"
+category = "cdc"
+description = "Clock measurement: toggle, ready and reset synchronizers between the two clocks."
+tags = ["cdc", "ff-chain", "no-srl"]
+generics = { g_ref_clock_freq = 100, g_clock_width = 16 }
+ports = [
+  "ref_clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "clock_to_measure_i : in std_logic",
+  "output_frequency_hz_o : out std_logic_vector(15 downto 0)",
+]
+clocks = { ref_clk_i = 10.0, clock_to_measure_i = 13.0 }
+no_shift_register = true
+chains = [
+  { label = "tick_tgl", signals = ["s_1s_tick_tgl_d", "s_1s_tick_tgl_d2"], registers = 2 },
+  { label = "out_freq_rdy", signals = ["s_out_freq_rdy_d", "s_out_freq_rdy_d2"], registers = 2 },
+  { label = "resync", signals = ["s_resync_reg"], registers = 2 },
+]
 
 [[cases]]
 name = "clock_mux_2"
 entity = "lm_util_clock_mux"
 category = "clocking"
-description = "Glitch-free style clock mux with clock gating and keep attribute."
-tags = ["clocking", "clock-mux", "keep", "tool-sensitive"]
+description = "Glitch-free style clock mux: per-clock enable synchronizers."
+tags = ["cdc", "clocking", "clock-mux", "keep", "tool-sensitive"]
 generics = { g_num_clocks = 2 }
 ports = [
   "clk_i : in std_logic_vector(1 downto 0)",
   "clk_sel_i : in std_logic_vector(1 downto 0)",
   "clk_o : out std_logic",
 ]
-expect_vivado_regex = ["(?i)keep|LUT|BUFG|clock"]
-expect_quartus_regex = ["(?i)keep|preserve|clock|ALM"]
-expect_diamond_regex = ["(?i)keep|syn_keep|clock|slice"]
+clocks = { "clk_i[0]" = 10.0, "clk_i[1]" = 12.0 }
+no_shift_register = true
+chains = [{ label = "ena", signals = ["s_ena_r0", "s_ena_r1"], registers = 4 }]
+
+# ---------------------------------------------------------------------------
+# Negative cases: each must make the listed checks fail. A negative case
+# passes only when every check in expect_failed_checks fails; run with
+# --ignore-expected-failures to see them reported as failed.
+# ---------------------------------------------------------------------------
+
+[[cases]]
+name = "neg_chain_no_attr"
+entity = "lm_synth_neg_chain"
+category = "negative"
+description = "Eight-register chain without synchronizer attributes."
+tags = ["negative"]
+extra_files = ["tools/synth/negative/lm_synth_neg_chain.vhd"]
+generics = { g_meta_levels = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 8 }]
+expect_failed_checks = { vivado = ["chain:din_meta:async_reg", "chain:din_meta:cell_type", "no_shift_register"], quartus = ["chain:din_meta:synchronizer"] }
+
+[[cases]]
+name = "neg_chain_renamed"
+entity = "lm_synth_neg_renamed"
+category = "negative"
+description = "Attributed chain whose signal name differs from the checked one."
+tags = ["negative"]
+extra_files = ["tools/synth/negative/lm_synth_neg_renamed.vhd"]
+generics = { g_meta_levels = 2 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 2 }]
+expect_failed_checks = { vivado = ["chain:din_meta:count"], quartus = ["chain:din_meta:count"] }
+
+[[cases]]
+name = "neg_shift_register"
+entity = "lm_util_delay"
+category = "negative"
+description = "32x8 delay line that both tools pack into shift-register resources."
+tags = ["negative"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+expect_failed_checks = { vivado = ["no_shift_register"], quartus = ["no_shift_register"] }

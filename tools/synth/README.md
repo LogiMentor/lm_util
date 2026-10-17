@@ -13,7 +13,8 @@ runner; each developer or CI machine provides its local tool configuration.
 | Path | Purpose |
 | --- | --- |
 | `run_vendor_synth.py` | Python runner, standard library only. |
-| `cases.toml` | Versioned synthesis cases and report expectations. |
+| `cases.toml` | Versioned synthesis cases, structural checks and report hints. |
+| `negative/` | Test-only entities for the negative cases; not part of the library. |
 | `local.example.toml` | Example local tool/part configuration. |
 
 ## Quick Start
@@ -58,15 +59,57 @@ no-port design.
 
 | Status | Meaning |
 | --- | --- |
-| `passed` | Tool returned success and all configured regex expectations matched. |
-| `review` | Tool returned success but at least one expected report pattern was missing. Inspect reports manually. |
-| `failed` | Tool returned a non-zero exit code. |
+| `passed` | Tool returned success, every structural check passed and every report hint matched. For a negative case: every check listed in `expect_failed_checks` failed. |
+| `review` | Structural checks passed (or the case has none) but a report hint regex was not found. Inspect reports manually. |
+| `failed` | Tool returned a non-zero exit code, a structural check failed, the check report is missing, or a negative case did not fail as expected. |
+| `error` | Script generation failed (for example a missing extra file). |
 | `skipped` | Tool executable was not found. |
 | `planned` | Generated in `--dry-run` mode. |
 
-The regex checks are intentionally hints, not proof of quality. For example,
-SRL inference in Vivado should still be reviewed in the generated utilization
-and synthesis reports.
+The run exits with a non-zero code when any case is `failed` or `error`.
+
+Vivado intermittently fails on some Windows machines while reading its own
+Tcl scripts or `.Xil` scratch files (`couldn't read file ...: No error`).
+A case that fails this way is run once more, and the first failure is kept
+under `retries` in `summary.json`.
+
+## Structural Checks
+
+Cases may declare synchronizer `chains` and `no_shift_register = true`.
+These checks never look at the generated scripts or at the generic tool log:
+
+- Vivado: after `synth_design`, a Tcl query on the netlist writes
+  `reports/lm_checks.txt`. For each chain, the cells whose leaf name is
+  `<signal>_reg`, `<signal>_reg[n]` or a packed `<signal>_reg[n]_srl<k>`
+  must match the expected count (`chain:<label>:count`), be `FD*` cells
+  (`chain:<label>:cell_type`) and carry `ASYNC_REG = TRUE`
+  (`chain:<label>:async_reg`). `no_shift_register` requires no `SRL*` cell.
+- Quartus: the flow runs Analysis & Synthesis, the Fitter and
+  `report_metastability` in the Timing Analyzer, with the case `clocks`
+  declared in a generated SDC (several clocks are asynchronous groups). For
+  each chain, the registers listed as synchronization registers must match
+  the expected count (`chain:<label>:count`) and be identified as
+  `User Specified` (`chain:<label>:synchronizer`), that is through the
+  `SYNCHRONIZER_IDENTIFICATION` attribute. `no_shift_register` requires no
+  `SHIFT_TAPS` row in the "Registers Packed Into Inferred Megafunctions"
+  panel of the Analysis & Synthesis report.
+
+Negative cases (`tags = ["negative"]`) list the checks they must fail in
+`expect_failed_checks`. They use test-only entities under `negative/`,
+compiled only for their own case through `extra_files`. To see the checks
+fail as regular cases:
+
+```powershell
+python tools\synth\run_vendor_synth.py --config tools\synth\local.toml --tag negative --ignore-expected-failures
+```
+
+A Quartus target whose family or device is not installed stops with an
+`LM_ERROR` message naming the missing family or device; a missing Vivado part
+is reported the same way.
+
+The regex fields (`expect_*_regex`) are hints on the vendor `.rpt`/`.srr`
+reports only. They can turn a passing case into `review`, never into
+`passed`, and are not a substitute for the structural checks.
 
 ## Sensitive Cases
 
@@ -74,8 +117,10 @@ The initial campaign focuses on modules where vendor behavior matters:
 
 - `lm_util_delay` and `lm_util_delay_srl`: shift-register/SRL inference.
 - `lm_util_delay_var`: SRL and pulse/counter architectures.
-- `lm_util_ccd_resync` and `lm_util_async_reset`: synchronizer flip-flop chains.
-- `lm_util_clock_mux`: gated clock mux implementation and `keep` handling.
+- CDC synchronizers (`lm_util_ccd_resync`, `lm_util_ccd_sync_bus`,
+  `lm_util_ccd_sync_pulse`, `lm_util_async_reset`, `lm_util_clock_measure`,
+  `lm_util_clock_mux`): structural chain checks, tag `cdc`.
+- Negative cases for each kind of check, tag `negative`.
 
 Add new cases to `cases.toml` when a module gains a vendor-sensitive
 implementation or when a bug is found in a specific family/tool combination.
