@@ -107,6 +107,10 @@ generate_tests(test, g_meta_levels = [2, 3])
 test = lib.test_bench("tb_vu_lm_util_ccd_switch")
 generate_tests(test, g_priority_lo = [False, True], g_or_high = [False, True], g_and_low = [False, True])
 
+# lm_util_ccd_sync_bus: output clock faster (7 ns) and slower (23 ns) than the 10 ns input clock
+test = lib.test_bench("tb_vu_lm_util_ccd_sync_bus")
+generate_tests(test, g_bus_width = [8], g_meta_levels = [2, 3], g_out_clk_period_ns = [7, 23])
+
 # lm_util_ccd_sync_pulse
 test = lib.test_bench("tb_vu_lm_util_ccd_sync_pulse").test("check")
 generate_tests(test, g_delay_len = [2, 3, 4])
