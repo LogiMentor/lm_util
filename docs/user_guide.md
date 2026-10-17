@@ -130,6 +130,15 @@ Run a single vendor-sensitive case:
 python tools\synth\run_vendor_synth.py --config tools\synth\local.toml --target vivado-artix7 --case delay_srl_32x8_depth32_boundary
 ```
 
+The reference targets are `vivado-artix7` (Vivado 2023.1, `xc7a35tcsg324-1`)
+and `quartus-max10` (Quartus Prime Lite 23.1std, MAX 10 `10M08SAE144C8G`) of
+`tools/synth/local.example.toml`. Run the CDC structural and constraint
+checks, then the negative cases, on both:
+
+```powershell
+python tools\synth\run_vendor_synth.py --config tools\synth\local.toml --target vivado-artix7 --target quartus-max10 --tag cdc --tag negative
+```
+
 By default reports are written under the `output_dir` configured in
 `tools/synth/local.toml`, usually `vendor_synth_out/<timestamp>/`. Passing
 `--out` overrides that location for one run.
@@ -218,7 +227,7 @@ Some modules need vendor report review even when simulation passes:
 | --- | --- |
 | `lm_util_delay_srl` | SRL/shift-register inference and boundary delays such as 31/32/33 on Xilinx. |
 | `lm_util_delay_var` | SRL versus pulse/counter implementation. |
-| `lm_util_ccd_resync`, `lm_util_async_reset` | Flip-flop chains must not be converted into SRLs. |
+| CDC modules (`lm_util_ccd_resync`, `lm_util_ccd_sync_bus`, `lm_util_ccd_sync_pulse`, `lm_util_async_reset`, `lm_util_clock_measure`, `lm_util_clock_mux`) | Synchronizer chains stay discrete flip-flops recognized as synchronizers, and the published constraint examples match and apply; checked by the `cdc` cases. |
 | `lm_util_clock_mux` | Clock mux and keep/preserve handling on each target family. |
 
 Use `tools/synth/cases.toml` to add or tune cases when a module is sensitive to
@@ -231,11 +240,23 @@ The synchronizer chains (`lm_util_ccd_resync`, `lm_util_ccd_sync_pulse`,
 vendor-specific HDL attributes side by side; each synthesis tool applies its
 own and ignores the rest:
 
-| Tool | Attributes used |
-| --- | --- |
-| Xilinx Vivado | `async_reg = "true"`, `shreg_extract = "no"`, `keep = "true"` |
-| Synplify Pro / Lattice LSE | `syn_preserve = true`, `syn_srlstyle = "registers"`, `syn_keep = true` |
-| Intel Quartus | `altera_attribute` with `SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS`, `AUTO_SHIFT_REGISTER_RECOGNITION OFF`; keep through `syn_keep` |
+| Tool | Attributes used | Verified |
+| --- | --- | --- |
+| Xilinx Vivado | `async_reg = "true"`, `shreg_extract = "no"`, `keep = "true"` | Vivado 2023.1, `xc7a35tcsg324-1` |
+| Intel Quartus | `altera_attribute` with `SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS`, `AUTO_SHIFT_REGISTER_RECOGNITION OFF`; keep through `syn_keep` | Quartus Prime Lite 23.1std, MAX 10 `10M08SAE144C8G` |
+| Synplify Pro / Lattice LSE | `syn_preserve = true`, `syn_srlstyle = "registers"`, `syn_keep = true` | Not verified |
+| Synplify Pro for Microchip Libero | same as Synplify Pro | Not verified |
+
+"Verified" means that `tools/synth/run_vendor_synth.py` synthesizes every
+synchronizer of the modules above with that tool and device and checks the
+result structurally (see `tools/synth/README.md`): with Vivado each stage is
+an `FD*` flip-flop with `ASYNC_REG = TRUE` and no SRL is inferred; with
+Quartus the Timing Analyzer metastability report lists every stage as a
+user-specified synchronizer and no shift register is inferred. Negative
+cases show that the checks fail on a chain without attributes and on a
+renamed chain. The Synplify Pro / Lattice LSE attributes follow the vendor
+documentation; no licensed Lattice or Microchip tool was available to verify
+them, and the Lattice constraint examples are not verified either.
 
 The attributes only prevent structural mangling (SRL packing, register
 merging) and help MTBF analysis. The crossing paths themselves must be
