@@ -33,6 +33,11 @@
 --              Lattice tools: not verified, no example.
 --              With asynchronous clock groups declared for the two clocks,
 --              see the user guide for the behavior of these constraints.
+--              The synchronizers are lm_util_ccd_resync instances with its
+--              synthesis attributes: verified with Vivado and Quartus; the
+--              Synplify Pro / Lattice LSE attributes (also read by Synplify
+--              Pro for Microchip Libero) are not verified (see the user
+--              guide).
 --
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl

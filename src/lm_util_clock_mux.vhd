@@ -25,6 +25,10 @@
 --                  set_false_path -to [get_registers {*s_ena_r0[*]}]
 --                Lattice Diamond/LSE (LDC), not verified:
 --                  set_false_path -to [get_cells {*/s_ena_r0[*]}]
+--              Synthesis attributes: verified with Vivado and Quartus; the
+--              Synplify Pro / Lattice LSE attributes (also read by Synplify
+--              Pro for Microchip Libero) are not verified (see the user
+--              guide).
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -99,9 +103,10 @@ architecture a_rtl of lm_util_clock_mux is
   -- Xilinx Vivado (expects keep as a string attribute)
   attribute keep                 : string;
   attribute keep of s_gated_clks : signal is "true";
-  -- Synplify Pro / Lattice LSE; Intel Quartus also honors syn_keep (it turns
-  -- it into IGNORE_LCELL_BUFFERS and REMOVE_REDUNDANT_LOGIC_CELLS off), while
-  -- KEEP is not a legal altera_attribute assignment and fails synthesis
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero): not
+  -- verified, see the user guide. Intel Quartus also honors syn_keep (it
+  -- turns it into IGNORE_LCELL_BUFFERS and REMOVE_REDUNDANT_LOGIC_CELLS off),
+  -- while KEEP is not a legal altera_attribute assignment and fails synthesis
   attribute syn_keep                 : boolean;
   attribute syn_keep of s_gated_clks : signal is true;
   -- Intel Quartus
@@ -110,6 +115,8 @@ architecture a_rtl of lm_util_clock_mux is
   attribute async_reg : string;
   attribute async_reg of s_ena_r0 : signal is "true";
   attribute async_reg of s_ena_r1 : signal is "true";
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero):
+  -- not verified, see the user guide
   attribute syn_preserve : boolean;
   attribute syn_preserve of s_ena_r0 : signal is true;
   attribute syn_preserve of s_ena_r1 : signal is true;

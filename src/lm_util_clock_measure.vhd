@@ -34,6 +34,16 @@
 --                  set_max_delay -from [get_registers {*s_output_frequency_hz[*]}] \
 --                    -to [get_registers {*output_frequency_hz_o[*]}] 10.0
 --              Lattice tools: not verified, no example.
+--              The false path on the s_resync_reg CLR/clrn pins removes the
+--              asynchronous reset on these pins from timing analysis,
+--              release included: no recovery/removal check is made on them.
+--              The integrator remains responsible for the synchronized
+--              release and for verifying how the synchronized reset is used
+--              downstream.
+--              Synthesis attributes: verified with Vivado and Quartus; the
+--              Synplify Pro / Lattice LSE attributes (also read by Synplify
+--              Pro for Microchip Libero) are not verified (see the user
+--              guide).
 --------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -139,7 +149,8 @@ architecture a_rtl of lm_util_clock_measure is
   attribute shreg_extract of s_out_freq_rdy_d3 : signal is "no";
   attribute async_reg of s_resync_reg     : signal is "true";
   attribute shreg_extract of s_resync_reg : signal is "no";
-  -- Synplify Pro / Lattice LSE
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero):
+  -- not verified, see the user guide
   attribute syn_srlstyle : string;
   attribute syn_preserve : boolean;
   attribute syn_srlstyle of s_1s_tick_tgl_d  : signal is "registers";

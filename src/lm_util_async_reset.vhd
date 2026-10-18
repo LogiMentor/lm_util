@@ -29,8 +29,15 @@
 --                Quartus (SDC):
 --                  set_false_path -to [get_pins -compatibility_mode {*s_resync_reg[*]|clrn}]
 --              Lattice tools: not verified, no example.
---              Reset release is timed by recovery/removal analysis on the
---              synchronized chain, which needs no extra constraint.
+--              The false path removes the asynchronous reset on these
+--              CLR/clrn pins from timing analysis, release included: no
+--              recovery/removal check is made on them. The integrator
+--              remains responsible for the synchronized release and for
+--              verifying how the synchronized reset is used downstream.
+--              Synthesis attributes: verified with Vivado and Quartus; the
+--              Synplify Pro / Lattice LSE attributes (also read by Synplify
+--              Pro for Microchip Libero) are not verified (see the user
+--              guide).
 --
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
@@ -88,7 +95,8 @@ architecture a_rtl of lm_util_async_reset is
   attribute shreg_extract : string;
   attribute async_reg of s_resync_reg     : signal is "true";
   attribute shreg_extract of s_resync_reg : signal is "no";
-  -- Synplify Pro / Lattice LSE
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero):
+  -- not verified, see the user guide
   attribute syn_srlstyle : string;
   attribute syn_preserve : boolean;
   attribute syn_srlstyle of s_resync_reg : signal is "registers";

@@ -10,6 +10,8 @@
 --
 --              - f_string_format: large values up to the integer range,
 --                carry of the rounded fraction, negative values, precision 0
+--              - f_is_power_of_two: powers of two up to 2**30, their
+--                neighbours, 0 and negative values
 --              The range guards of f_string_format stop elaboration; they are
 --              checked by sim/scripts/check_elab_failures.py.
 --=============================================================================
@@ -77,6 +79,22 @@ begin
         p_check_format(2.7, 0, "3");
         p_check_format(-2.5, 0, "-3");
         p_check_format(3000000.0, 0, "3000000");
+
+      elsif run("is_power_of_two") then
+        for i in 0 to 30 loop
+          check(f_is_power_of_two(2**i), "f_is_power_of_two(2**" & integer'image(i) & ")");
+          if i >= 2 then
+            check_false(f_is_power_of_two(2**i - 1), "f_is_power_of_two(2**" & integer'image(i) & " - 1)");
+            check_false(f_is_power_of_two(2**i + 1), "f_is_power_of_two(2**" & integer'image(i) & " + 1)");
+          end if;
+        end loop;
+        check_false(f_is_power_of_two(6), "f_is_power_of_two(6)");
+        check_false(f_is_power_of_two(integer'high), "f_is_power_of_two(integer'high)");
+        check_false(f_is_power_of_two(0), "f_is_power_of_two(0)");
+        check_false(f_is_power_of_two(-1), "f_is_power_of_two(-1)");
+        check_false(f_is_power_of_two(-2), "f_is_power_of_two(-2)");
+        check_false(f_is_power_of_two(-1024), "f_is_power_of_two(-1024)");
+        check_false(f_is_power_of_two(integer'low), "f_is_power_of_two(integer'low)");
       end if;
     end loop;
     test_runner_cleanup(runner);

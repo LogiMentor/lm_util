@@ -28,6 +28,10 @@
 --   or bound the latency with set_max_delay on the same targets
 --   (Vivado: add -datapath_only).
 --
+--   Synthesis attributes: verified with Vivado and Quartus; the Synplify
+--   Pro / Lattice LSE attributes (also read by Synplify Pro for Microchip
+--   Libero) are not verified (see the user guide).
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -106,7 +110,8 @@ architecture a_rtl of lm_util_ccd_sync_pulse is
   attribute shreg_extract of s_meta_level : signal is "no";
   attribute async_reg of s_meta_ack       : signal is "true";
   attribute shreg_extract of s_meta_ack   : signal is "no";
-  -- Synplify Pro / Lattice LSE
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero):
+  -- not verified, see the user guide
   attribute syn_srlstyle : string;
   attribute syn_preserve : boolean;
   attribute syn_srlstyle of s_meta_level : signal is "registers";

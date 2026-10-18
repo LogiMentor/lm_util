@@ -300,6 +300,13 @@ bus uses `set_max_delay -datapath_only` and `set_bus_skew` (Quartus:
 `set_max_delay` and `set_max_skew`), see its header. For `lm_util_clock_mux`,
 also declare the input clocks as `set_clock_groups -logically_exclusive`.
 
+`lm_util_async_reset` and `lm_util_clock_measure` cut the asynchronous clear
+pins of their reset synchronizer (`CLR` in Vivado, `clrn` in Quartus; see
+their headers). The false path removes the asynchronous reset on those pins
+from timing analysis, release included: no recovery/removal check is made on
+them. The integrator remains responsible for the synchronized release and for
+verifying how the synchronized reset is used downstream.
+
 ### Alternative: asynchronous clock groups
 
 When the clocks of the two domains are unrelated, the integrator can declare

@@ -26,6 +26,10 @@
 --              set_max_delay on the same target (Vivado: -datapath_only).
 --              tools/synth/run_vendor_synth.py loads the Vivado and Quartus
 --              examples and checks that they match and apply.
+--              Synthesis attributes: verified with Vivado and Quartus; the
+--              Synplify Pro / Lattice LSE attributes (also read by Synplify
+--              Pro for Microchip Libero) are not verified (see the user
+--              guide).
 --
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
@@ -89,7 +93,8 @@ architecture a_rtl of lm_util_ccd_resync is
   attribute shreg_extract : string;
   attribute async_reg of s_din_meta     : signal is "true";
   attribute shreg_extract of s_din_meta : signal is "no";
-  -- Synplify Pro / Lattice LSE
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero):
+  -- not verified, see the user guide
   attribute syn_srlstyle : string;
   attribute syn_preserve : boolean;
   attribute syn_srlstyle of s_din_meta : signal is "registers";

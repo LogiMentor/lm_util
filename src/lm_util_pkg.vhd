@@ -2435,13 +2435,11 @@ package body lm_util_pkg is
   function f_is_power_of_two(input : integer) return boolean is
     variable v_val : integer := input;
   begin
-    if (input <= 0) then
-      return false;
-    end if;
-    while v_val mod 2 = 0 loop
+    -- halve while even; 0 and negative values never enter the loop
+    while v_val > 1 and v_val mod 2 = 0 loop
       v_val := v_val / 2;
     end loop;
-    return v_val = 1;
+    return input > 0 and v_val = 1;
   end function f_is_power_of_two;
 
 
