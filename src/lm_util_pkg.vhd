@@ -2789,8 +2789,19 @@ function f_slv2string (slv : std_logic_vector) return string is
     constant C_SCALE    : real    := 10.0**f_min(precision, C_PREC_MAX);
     constant C_VAL      : real    := abs(value);
     constant C_INT_MAX  : real    := real(integer'high);
+    -- Veltkamp splitting constant, 2**27 + 1
+    constant C_SPLIT    : real    := 134217729.0;
     variable v_int      : real;
     variable v_frac     : real;
+    variable v_split    : real;
+    variable v_frac_hi  : real;
+    variable v_frac_lo  : real;
+    variable v_scale_hi : real;
+    variable v_scale_lo : real;
+    variable v_prod     : real;
+    variable v_err      : real;
+    variable v_digits   : real;
+    variable v_rem      : real;
 
     -- fraction digits with leading zeros
     function f_frac_str(frac : natural; digits : natural) return string is
@@ -2808,16 +2819,37 @@ function f_slv2string (slv : std_logic_vector) return string is
     -- unchanged from integer'high on, so floor gets at most C_INT_MAX; a
     -- larger value leaves a fraction of 1 or more, which carries above it.
     v_int  := floor(f_sel_a_b(C_VAL < C_INT_MAX, C_VAL, C_INT_MAX));
-    v_frac := round((C_VAL - v_int) * C_SCALE);
-    if v_frac >= C_SCALE then
-      v_int  := v_int + 1.0;
-      v_frac := 0.0;
+    -- exact: v_int is 0 or at least half of C_VAL (Sterbenz)
+    v_frac := C_VAL - v_int;
+    -- v_frac * C_SCALE is rounded to the nearest real, which can land on a
+    -- decimal half that the exact product does not reach. Dekker's product
+    -- gives the rounding error exactly (v_prod + v_err is the exact product)
+    v_split    := C_SPLIT * v_frac;
+    v_frac_hi  := v_split - (v_split - v_frac);
+    v_frac_lo  := v_frac - v_frac_hi;
+    v_split    := C_SPLIT * C_SCALE;
+    v_scale_hi := v_split - (v_split - C_SCALE);
+    v_scale_lo := C_SCALE - v_scale_hi;
+    v_prod     := v_frac * C_SCALE;
+    v_err      := ((v_frac_hi * v_scale_hi - v_prod) + v_frac_hi * v_scale_lo + v_frac_lo * v_scale_hi) +
+                  v_frac_lo * v_scale_lo;
+    -- only a remainder of exactly 0.5 depends on the error: any other
+    -- remainder is at least one unit of v_prod away from the half, and
+    -- |v_err| is at most half a unit. Exact halves round away from zero.
+    v_digits := floor(v_prod);
+    v_rem    := v_prod - v_digits;
+    if v_rem > 0.5 or (v_rem = 0.5 and v_err >= 0.0) then
+      v_digits := v_digits + 1.0;
+    end if;
+    if v_digits >= C_SCALE then
+      v_int    := v_int + 1.0;
+      v_digits := 0.0;
     end if;
     assert v_int <= C_INT_MAX
       report "f_string_format: integer part out of the integer range: " & real'image(value)
       severity failure;
     return f_sel_a_b(value < 0.0, "-", "") & integer'image(integer(v_int)) &
-           f_sel_a_b(precision > 0, "." & f_frac_str(integer(v_frac), precision), "");
+           f_sel_a_b(precision > 0, "." & f_frac_str(integer(v_digits), precision), "");
   end function;
 
   function f_string_length(str : string) return natural is
