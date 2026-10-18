@@ -128,6 +128,13 @@ architecture a_rtl of lm_util_clock_measure is
   -- Reference domain: ready transitions are ignored until every ready
   -- synchronizer stage has been loaded after the release and shows the
   -- measured-domain reset level '0' (s_rdy_armed).
+  -- Both flush lengths are the number of registers on their path, so that
+  -- every register is loaded after the release. This is longer than the
+  -- zero-delay simulation needs (the tests still pass with C_TGL_FLUSH = 2
+  -- and C_RDY_FLUSH = 1): the extra stages, at least one per flush, are the
+  -- margin for a metastable first synchronizer stage after the reset. The
+  -- testbench cannot show metastability and does not cover that margin: do
+  -- not shorten the flushes.
   constant C_RDY_FLUSH : natural := 3;
   signal s_rdy_flush   : std_logic_vector(C_RDY_FLUSH - 1 downto 0);
   signal s_rdy_armed   : std_logic;
