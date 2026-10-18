@@ -56,10 +56,14 @@ then the date is not set.
 
 - `lm_util_clock_measure`: the toggle synchronizer third stage sampled the
   first (possibly metastable) stage and the edge detector compared against it;
-  the reported frequency missed the window-closing cycle (off by one); a reset
-  can no longer produce a spurious output update, because the output update
-  is blocked while `rst_n_i` is low. The ready synchronizer stages carry no
-  reset logic, so synthesis tools see (and time) the whole chain.
+  the reported frequency missed the window-closing cycle (off by one). A
+  reset no longer publishes a stale value: a measurement pending at the
+  reset, the ready transition forced by the measured-domain reset (also when
+  it arrives after the release because the measured clock is slow or
+  stopped) and pre-reset values still in the synchronizer stages are ignored
+  until the stages have been reloaded after the release. The synchronizer
+  stages carry no reset logic, so synthesis tools see (and time) the whole
+  chain.
 - `lm_util_delay_var`: `dv_o` is now driven for `g_delay_max = 1` and in the
   pulse architecture (where it pulses with the delayed output); a runtime
   delay of 1 is supported in pulse mode.
@@ -72,6 +76,11 @@ then the date is not set.
   input-domain reset release is not detected as a new rising edge, and a
   request whose resynchronized rising edge arrives on the first cycle after
   the release is transferred (it was dropped, so `out_rdy_o` never pulsed).
+- `lm_util_clock_measure` publishes the first value after a reset only when a
+  complete window has been measured: the first 1 s tick after the reset opens
+  the window and the second one closes it (about 2 s after the release). It
+  published the partial first window, counted from the reset release, at the
+  first tick.
 - Constraint examples: the Quartus and Lattice examples of `lm_util_ccd_resync`
   were not valid Tcl (`[0]` outside braces is a command substitution).
 
@@ -118,6 +127,7 @@ then the date is not set.
   unit lengths, delay_pulse multi-cycle pulses, delay_var unit delay max and
   pulse delay 1 (also in pulse mode with `g_delay_max = 1`, both pulse
   levels, and inputs held longer than the delay), bitsum power-of-two widths,
-  clock_measure steady-state window, and a new `lm_util_ccd_sync_bus`
+  clock_measure steady-state window and reset behavior (reset length and
+  phase, slow and stopped measured clock), and a new `lm_util_ccd_sync_bus`
   testbench are now exercised; previously disabled failing configurations
   are re-enabled.

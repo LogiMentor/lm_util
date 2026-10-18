@@ -127,6 +127,22 @@ test = lib.test_bench("tb_vu_lm_util_clock_measure").test("check")
 if args.level == 'full':
     generate_tests(test, g_ref_clock_freq = [1_000_000], g_clock_width = [32], g_clock_freq = [100_000])
 
+# reset tests: 10 ns reference clock, 20-cycle window; measured clock faster
+# (3 ns), slightly slower (14 ns) and much slower (37 ns) than the reference
+test = lib.test_bench("tb_vu_lm_util_clock_measure").test("reset_ready_pending")
+generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000], g_meas_period_ps = [14_000])
+
+for name in ["reset_sweep", "reset_clock_stopped"]:
+    test = lib.test_bench("tb_vu_lm_util_clock_measure").test(name)
+    generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000],
+                   g_meas_period_ps = [3_000, 14_000, 37_000], g_meas_phase_ps = [0, 4_000], g_rst_cycles = [1])
+    generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000],
+                   g_meas_period_ps = [14_000], g_meas_phase_ps = [0], g_rst_cycles = [3])
+    if args.level == 'full':
+        generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000],
+                       g_meas_period_ps = [3_000, 14_000, 37_000], g_meas_phase_ps = [1_500, 6_500, 9_000],
+                       g_rst_cycles = [1, 2, 5])
+
 # lm_util_counter
 test = lib.test_bench("tb_vu_lm_util_counter").test("counter")
 generate_tests(test, g_data_w = [16], g_wd_timer = [1, 5], g_dir = [0, 1], g_load_dat = [0])

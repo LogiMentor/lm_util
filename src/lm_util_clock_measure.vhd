@@ -8,6 +8,12 @@
 -- Description: clock measurement module, count the number of transition of an
 --              input clock in 1 sec with a reference clock, known frequency.
 --
+--              After a reset the output keeps its previous value (it has no
+--              reset) until a new and complete window has been measured: the
+--              first 1 sec tick after the reset opens the window, the next
+--              one closes it. A measurement pending at the reset is dropped.
+--              While the measured clock is stopped nothing is published.
+--
 --              Constrain the crossings at project level. The examples select
 --              registers by the internal signal names only: they cut the
 --              single-bit toggle and ready crossings and the reset
@@ -100,6 +106,21 @@ architecture a_rtl of lm_util_clock_measure is
   signal s_out_freq_rdy_d   : std_logic;
   signal s_out_freq_rdy_d2  : std_logic; -- in ref_clk_i domain
   signal s_out_freq_rdy_d3  : std_logic;
+
+  -- Measurement validity after a reset. The synchronizer stages have no
+  -- reset, so they can hold pre-reset values after the reset release.
+  -- Measured domain: ticks are ignored until every register of the tick path
+  -- (s_1s_tick_tgl_d to s_1s_tick_ccd) has been loaded after the release,
+  -- and the first tick then only opens the window.
+  constant C_TGL_FLUSH : natural := 4;
+  signal s_tgl_flush   : std_logic_vector(C_TGL_FLUSH - 1 downto 0);
+  signal s_window_open : std_logic;
+  -- Reference domain: ready transitions are ignored until every ready
+  -- synchronizer stage has been loaded after the release and shows the
+  -- measured-domain reset level '0' (s_rdy_armed).
+  constant C_RDY_FLUSH : natural := 3;
+  signal s_rdy_flush   : std_logic_vector(C_RDY_FLUSH - 1 downto 0);
+  signal s_rdy_armed   : std_logic;
 
   -- Keep the synchronizer flops discrete and adjacent for metastability
   -- hardening. Attributes are per synthesis tool; unknown ones are ignored.
@@ -206,13 +227,22 @@ begin
       if s_rst_n_resync = '0' then
         s_out_freq_rdy <= '0';
         s_counter      <= (others => '0');
-      elsif (s_1s_tick_ccd = '1') then
-        s_counter             <= (others => '0');
-        -- the edge closing the window is itself a measured-clock cycle
-        s_output_frequency_hz <= std_logic_vector(s_counter + 1);
-        s_out_freq_rdy        <= not s_out_freq_rdy;
+        s_tgl_flush    <= (others => '0');
+        s_window_open  <= '0';
       else
-        s_counter             <= s_counter + 1;
+        s_tgl_flush <= s_tgl_flush(C_TGL_FLUSH - 2 downto 0) & '1';
+        if s_1s_tick_ccd = '1' and s_tgl_flush(C_TGL_FLUSH - 1) = '1' then
+          -- the first tick after the reset only opens the window
+          s_counter     <= (others => '0');
+          s_window_open <= '1';
+          if s_window_open = '1' then
+            -- the edge closing the window is itself a measured-clock cycle
+            s_output_frequency_hz <= std_logic_vector(s_counter + 1);
+            s_out_freq_rdy        <= not s_out_freq_rdy;
+          end if;
+        else
+          s_counter <= s_counter + 1;
+        end if;
       end if;
     end if;
   end process proc_1s_counter;
@@ -225,9 +255,8 @@ begin
     if rising_edge(ref_clk_i) then
       -- no reset on the synchronizer stages: reset logic between them would
       -- shorten the chain (and the MTBF) seen by the synthesis tools. The
-      -- edge detector stage keeps tracking the synchronized level, and the
-      -- output update below is blocked during reset, so the forced toggle
-      -- transition of a measure-domain reset is not seen as a valid ready
+      -- edge detector stage keeps tracking the synchronized level; the
+      -- output update below qualifies the transitions after a reset
       s_out_freq_rdy_d  <= s_out_freq_rdy;
       s_out_freq_rdy_d2 <= s_out_freq_rdy_d;
       s_out_freq_rdy_d3 <= s_out_freq_rdy_d2;
@@ -240,8 +269,22 @@ begin
   proc_out_freq : process(ref_clk_i)
   begin
     if (ref_clk_i'event and ref_clk_i = '1') then
-      if rst_n_i = '1' and s_out_freq_rdy_d3 /= s_out_freq_rdy_d2 then
-        output_frequency_hz_o <= s_output_frequency_hz;
+      if rst_n_i = '0' then
+        s_rdy_flush <= (others => '0');
+        s_rdy_armed <= '0';
+      else
+        s_rdy_flush <= s_rdy_flush(C_RDY_FLUSH - 2 downto 0) & '1';
+        -- after the flush the stages hold the ready level sampled after the
+        -- release; since the reset assertion the measured domain can only
+        -- force it to '0'. A '1' is a ready not reset yet (measured clock
+        -- slow or stopped): its forced transition must not be published.
+        -- After a '0', every transition is a new measurement.
+        if s_rdy_flush(C_RDY_FLUSH - 1) = '1' and s_out_freq_rdy_d2 = '0' and s_out_freq_rdy_d3 = '0' then
+          s_rdy_armed <= '1';
+        end if;
+        if s_rdy_armed = '1' and s_out_freq_rdy_d3 /= s_out_freq_rdy_d2 then
+          output_frequency_hz_o <= s_output_frequency_hz;
+        end if;
       end if;
     end if;
   end process proc_out_freq;
