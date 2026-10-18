@@ -834,12 +834,6 @@ def rpt_panel_lines(text: str, title: str) -> list[str] | None:
     return None
 
 
-def rpt_panel(text: str, title: str) -> list[list[str]] | None:
-    """Rows of the first panel whose title row matches, None if absent."""
-    body = rpt_panel_lines(text, title)
-    return None if body is None else rpt_rows(body)
-
-
 def rpt_titles(lines: list[str]) -> set[str]:
     """Panel titles of a Quartus report: rows with a single cell."""
     return {cells[0].strip() for cells in rpt_rows(lines) if len(cells) == 1}
@@ -853,38 +847,60 @@ EXCEPTIONS_COLUMNS = [
     "Setup Slack", "Hold Slack", "Recovery Slack", "Removal Slack",
 ]
 STATISTICS_COLUMNS = ["Property", "Value", "Clock Period", "Active Edge Rate", "Output Slack"]
+# a Quartus 23.1 table border: '+', then runs of '-' each closed by '+'
+RPT_BORDER = re.compile(r"^\+(?:-+\+)+$")
+
+
+def rpt_separators(line: str, char: str) -> list[int]:
+    return [index for index, value in enumerate(line) if value == char]
 
 
 def rpt_table(text: str, title: str, columns: list[str] | None, kind: str) -> tuple[list[list[str]] | None, str]:
     """(data rows, error) of a table panel; rows are None when the panel is absent.
 
-    A present panel must be structurally complete, as Quartus 23.1 writes it:
-    a border, the column header (columns, or none for a property table), a
-    border, at least one data row with as many cells as the header, and the
-    closing border. Quartus omits a table panel that has no data rows, so a
-    panel without rows is not complete either.
+    The caller decides whether an absent panel is acceptable: only the
+    register packing panel may be absent, every other caller turns None into
+    an LM_ERROR. A present panel must be structurally complete, as Quartus
+    23.1 writes it: a border, the column header (columns, or none for a
+    property table), a border, at least one data row with as many cells as
+    the header, and the closing border. A border is a whole line of '-' runs
+    between '+', and every border and row has its separators in the same
+    columns. Quartus omits a table panel that has no data rows, so a panel
+    without rows is not complete either.
     """
     body = rpt_panel_lines(text, title)
     if body is None:
         return None, ""
+    body = [line.rstrip() for line in body]
     name = f"LM_ERROR: {kind} panel '{title}'"
+    if not body or not body[0].startswith("+"):
+        return [], f"{name} has no column header" if columns is not None else f"{name} has no border"
+    if not RPT_BORDER.match(body[0]):
+        return [], f"{name} has an invalid border"
     if columns is not None:
         header = rpt_rows(body[1:2])
-        if len(body) < 3 or not body[0].startswith("+") or not header or [cell.strip() for cell in header[0]] != columns or not body[2].startswith("+"):
+        if len(body) < 3 or not header or [cell.strip() for cell in header[0]] != columns or not body[2].startswith("+"):
             return [], f"{name} has no column header"
         rows_start, width = 3, len(columns)
     else:
-        if not body or not body[0].startswith("+"):
-            return [], f"{name} has no border"
         rows_start, width = 1, 2
-    if len(body) <= rows_start or not body[-1].startswith("+"):
-        return [], f"{name} is not closed" if len(body) > rows_start else f"{name} has no data rows"
+    if len(body) <= rows_start:
+        return [], f"{name} has no data rows"
+    if not body[-1].startswith("+"):
+        return [], f"{name} is not closed"
+    borders = [body[0], body[-1]] + ([body[2]] if columns is not None else [])
+    if not all(RPT_BORDER.match(line) for line in borders):
+        return [], f"{name} has an invalid border"
     data = body[rows_start:-1]
     if not data:
         return [], f"{name} has no data rows"
     rows = rpt_rows(data)
     if len(rows) != len(data) or any(len(row) != width for row in rows):
         return [], f"{name} has a malformed row"
+    grid = rpt_separators(body[0], "+")
+    lines = (body[1:2] if columns is not None else []) + data
+    if any(rpt_separators(line, "+") != grid for line in borders) or any(rpt_separators(line, ";") != grid for line in lines):
+        return [], f"{name} has misaligned columns"
     return rows, ""
 
 
@@ -934,9 +950,11 @@ def map_report_error(path: Path) -> str:
     if not done or not any("Processing ended:" in line for line in lines[done[-1] :]):
         return f"LM_ERROR: {kind} is truncated: {path.name}: no successful end of processing"
     summary, error = rpt_table(text, "Analysis & Synthesis Summary", None, kind)
+    if summary is None:
+        return f"LM_ERROR: {kind} has no 'Analysis & Synthesis Summary' panel: {path.name}"
     if error:
         return error
-    status = [row[1].strip() for row in summary or [] if row[0].strip() == "Analysis & Synthesis Status"]
+    status = [row[1].strip() for row in summary if row[0].strip() == "Analysis & Synthesis Status"]
     if not status or not status[0].startswith("Successful"):
         return f"LM_ERROR: {kind} does not report a successful run: {path.name}"
     return ""
@@ -953,7 +971,9 @@ def metastability_report_error(path: Path) -> str:
         return f"LM_ERROR: {kind} is not recognized: {path.name}"
     sections = text.split("\nSynchronizer Chain #")[1:]
     for index, section in enumerate(sections, start=1):
-        _, error = rpt_table(section, "Statistics", STATISTICS_COLUMNS, kind)
+        rows, error = rpt_table(section, "Statistics", STATISTICS_COLUMNS, kind)
+        if rows is None:
+            return f"LM_ERROR: {kind} chain {index} has no 'Statistics' panel: {path.name}"
         if error:
             return f"{error} (chain {index})"
     chains = parse_metastability(text)
@@ -1067,8 +1087,10 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
         exc_path = case_dir / "reports" / "constraint_exceptions.rpt"
         ign_path = case_dir / "reports" / "constraint_ignored.rpt"
         exc_error = exceptions_report_error(exc_path)
-        panel = [] if exc_error else rpt_table(exc_path.read_text(encoding="utf-8", errors="ignore"), EXCEPTIONS_PANEL, EXCEPTIONS_COLUMNS, "")[0]
-        rows = panel or []
+        # without exc_error the summary panel is complete, or absent because
+        # the report states that no exceptions were found (no rows)
+        panel = None if exc_error else rpt_table(exc_path.read_text(encoding="utf-8", errors="ignore"), EXCEPTIONS_PANEL, EXCEPTIONS_COLUMNS, "")[0]
+        rows = panel if panel is not None else []
         invalid = [row[1].strip() + " " + row[7].strip() for row in rows if row[0].strip() == "Invalid" and len(row) > 7]
         check("constraints:listed", not exc_error and len(rows) == expected, exc_error or f"expected={expected} listed={len(rows)}")
         check("constraints:valid", not exc_error and bool(rows) and not invalid, exc_error or f"invalid={' | '.join(invalid)}")
@@ -1087,8 +1109,10 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
             check("no_shift_register", False, map_error)
         else:
             text = map_path.read_text(encoding="utf-8", errors="ignore")
+            # the only panel that may be absent: Quartus omits it, and drops it
+            # from the table of contents, when no register is packed
             panel, panel_error = rpt_table(text, PACKED_PANEL, PACKED_COLUMNS, "Analysis & Synthesis report")
-            packed = [row[0].strip() for row in (panel or []) if row[2].strip() == "SHIFT_TAPS"]
+            packed = [row[0].strip() for row in (panel if panel is not None else []) if row[2].strip() == "SHIFT_TAPS"]
             check("no_shift_register", not panel_error and not packed, panel_error or f"shift_taps_registers={len(packed)}")
     return lines
 
@@ -1148,13 +1172,19 @@ def corrupt_panel(lines: list[str], title: str, mode: str) -> list[str]:
     """Lines of a report with one panel gutted, keeping its title.
 
     empty_panel keeps the border below the title, header_only_panel also the
-    column header and its border, unclosed_panel drops the closing border.
+    column header and its border, unclosed_panel drops the closing border,
+    untitled_panel drops the title row, invalid_border replaces the closing
+    border with a line that only starts like one.
     """
     start = next(index for index, line in enumerate(lines) if line.strip() == f"; {title} ;" or (
         line.startswith(";") and line.rstrip().endswith(";") and line.strip()[1:-1].strip() == title))
     end = start + 1
     while end < len(lines) and lines[end].strip():
         end += 1
+    if mode == "untitled_panel":
+        return lines[:start] + lines[start + 1 :]
+    if mode == "invalid_border":
+        return lines[: end - 1] + ["+INVALID BORDER\n"] + lines[end:]
     keep = {"empty_panel": 1, "header_only_panel": 3, "unclosed_panel": end - start - 2}[mode]
     return lines[: start + 1 + keep] + lines[end:]
 
@@ -1169,7 +1199,7 @@ def corrupt_report(case: SynthCase, case_dir: Path) -> None:
     elif mode == "truncate":
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines(keepends=True)
         path.write_text("".join(lines[: int(spec.get("keep_lines", len(lines) // 2))]), encoding="utf-8")
-    elif mode in {"empty_panel", "header_only_panel", "unclosed_panel"}:
+    elif mode in {"empty_panel", "header_only_panel", "unclosed_panel", "untitled_panel", "invalid_border"}:
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines(keepends=True)
         path.write_text("".join(corrupt_panel(lines, spec["panel"], mode)), encoding="utf-8")
     else:

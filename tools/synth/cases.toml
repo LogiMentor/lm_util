@@ -527,3 +527,40 @@ clocks = { clk_i = 10.0 }
 no_shift_register = true
 test_corrupt = { report = "project.map.rpt", mode = "unclosed_panel", panel = "Registers Packed Into Inferred Megafunctions" }
 expect_error = "LM_ERROR: Analysis & Synthesis report panel 'Registers Packed Into Inferred Megafunctions' is not closed"
+
+[[cases]]
+name = "neg_report_statistics_untitled"
+entity = "lm_util_ccd_resync"
+category = "negative"
+description = "Two-stage synchronizer whose metastability report lost the title row of the chain Statistics panel."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_meta_levels = 2 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 2 }]
+test_corrupt = { report = "reports/metastability.rpt", mode = "untitled_panel", panel = "Statistics" }
+expect_error = "LM_ERROR: metastability report chain 1 has no 'Statistics' panel"
+
+[[cases]]
+name = "neg_report_panel_invalid_border"
+entity = "lm_util_delay"
+category = "negative"
+description = "Shift-register design whose register packing panel ends with an invalid border line."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+test_corrupt = { report = "project.map.rpt", mode = "invalid_border", panel = "Registers Packed Into Inferred Megafunctions" }
+expect_error = "LM_ERROR: Analysis & Synthesis report panel 'Registers Packed Into Inferred Megafunctions' has an invalid border"

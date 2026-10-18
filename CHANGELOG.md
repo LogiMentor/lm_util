@@ -138,7 +138,8 @@ then the date is not set.
   missing from the check report. A Quartus table panel that a check reads
   (register packing, exceptions summary, chain statistics, synthesis
   summary) must be complete when present: column header, data rows and
-  closing border. Negative cases that empty or truncate a report, or gut
+  closing border, with whole-line borders aligned with the rows. Only the
+  register packing panel may be absent. Negative cases that empty or truncate a report, or gut
   the register packing panel, show it.
 - Simulation: the reference simulator is GHDL 6.0.0 (LLVM backend), pinned
   in CI with `ghdl/setup-ghdl`; `vunit_hdl` is pinned to 4.7.1;
