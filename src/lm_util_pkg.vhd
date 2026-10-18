@@ -2780,10 +2780,16 @@ function f_slv2string (slv : std_logic_vector) return string is
     end case;
   end function;
 
-  -- precision fraction digits, half rounds away from zero; precision 0 gives
-  -- no decimal point. The integer part must fit an integer and precision must
-  -- be at most 9 (10**precision fits an integer), otherwise a failure stops
-  -- elaboration or simulation.
+  -- value with precision fraction digits; precision 0 gives no decimal point.
+  -- Rounding contract: the exact binary value of the real is rounded to the
+  -- nearest multiple of 10**-precision, and an exact half rounds away from
+  -- zero (2.5 gives "3", 0.125 with precision 2 gives "0.13"; C printf
+  -- rounds such halves to even). A decimal literal is not exact: it is the
+  -- nearest real, so the result can differ from rounding the literal by eye.
+  -- 9.9995 is the real 9.99949999999999938893..., "9.999" with precision 3.
+  -- A negative value keeps its sign when it rounds to zero ("-0.000"); -0.0
+  -- has no sign. The rounded integer part must fit an integer and precision
+  -- must be at most 9, otherwise a failure stops elaboration or simulation.
   function f_string_format(value : real; precision : natural := 3) return string is
     constant C_PREC_MAX : natural := 9;
     constant C_SCALE    : real    := 10.0**f_min(precision, C_PREC_MAX);

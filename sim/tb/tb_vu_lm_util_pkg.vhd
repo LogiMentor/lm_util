@@ -10,6 +10,9 @@
 --
 --              - f_string_format: large values up to the integer range,
 --                carry of the rounded fraction, negative values, precision 0
+--              - f_string_format against exact reference vectors
+--                (sim/scripts/string_format_vectors.py, written by run.py):
+--                every vector is compared and the mismatches are counted
 --              - f_is_power_of_two: powers of two up to 2**30, their
 --                neighbours, 0 and negative values
 --              The range guards of f_string_format stop elaboration; they are
@@ -19,6 +22,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+library std;
+use std.textio.all;
+
 library vunit_lib;
 context vunit_lib.vunit_context;
 
@@ -27,6 +33,10 @@ use lm_util_lib.lm_util_pkg.all;
 
 entity tb_vu_lm_util_pkg is
   generic (
+    -- reference vectors of f_string_format and their number
+    g_vector_file  : string  := "";
+    g_vector_count : natural := 0;
+
     -- Required for VUnit
     runner_cfg : string := ""
   );
@@ -40,6 +50,63 @@ begin
     begin
       check_equal(f_string_format(C_VALUE, C_PRECISION), C_EXPECTED,
         "f_string_format(" & real'image(C_VALUE) & ", " & integer'image(C_PRECISION) & ")");
+    end procedure;
+
+    -- one vector per line:
+    --   sign high low exponent precision length expected literal
+    -- with |value| = (high * 2**26 + low) * 2**exponent, rebuilt exactly;
+    -- the decimal literal (rest of the line) is only used in messages
+    procedure p_check_vectors is
+      constant C_LOG_MAX : natural := 20;
+      file f_vectors     : text open read_mode is g_vector_file;
+      variable v_line    : line;
+      variable v_sign    : integer;
+      variable v_high    : integer;
+      variable v_low     : integer;
+      variable v_exp     : integer;
+      variable v_prec    : integer;
+      variable v_len     : integer;
+      variable v_value   : real;
+      variable v_count   : natural := 0;
+      variable v_fail    : natural := 0;
+
+      procedure p_compare(C_LEN : natural) is
+        variable v_char     : character;
+        variable v_expected : string(1 to C_LEN);
+      begin
+        read(v_line, v_char);
+        for i in v_expected'range loop
+          read(v_line, v_char);
+          v_expected(i) := v_char;
+        end loop;
+        if f_string_format(v_value, v_prec) /= v_expected then
+          v_fail := v_fail + 1;
+          if v_fail <= C_LOG_MAX then
+            info("mismatch: f_string_format(" & v_line.all & ", " & integer'image(v_prec) & ") = " &
+                 f_string_format(v_value, v_prec) & ", expected " & v_expected);
+          end if;
+        end if;
+      end procedure;
+    begin
+      while not endfile(f_vectors) loop
+        readline(f_vectors, v_line);
+        read(v_line, v_sign);
+        read(v_line, v_high);
+        read(v_line, v_low);
+        read(v_line, v_exp);
+        read(v_line, v_prec);
+        read(v_line, v_len);
+        v_value := (real(v_high) * 2.0**26 + real(v_low)) * 2.0**v_exp;
+        if v_sign = 1 then
+          v_value := -v_value;
+        end if;
+        v_count := v_count + 1;
+        p_compare(v_len);
+      end loop;
+      info("f_string_format reference: " & integer'image(v_count) & " vectors, " &
+           integer'image(v_fail) & " mismatches");
+      check_equal(v_count, g_vector_count, "vectors read from " & g_vector_file);
+      check_equal(v_fail, 0, "f_string_format mismatches");
     end procedure;
   begin
     test_runner_setup(runner, runner_cfg);
@@ -95,6 +162,9 @@ begin
         check_false(f_is_power_of_two(-2), "f_is_power_of_two(-2)");
         check_false(f_is_power_of_two(-1024), "f_is_power_of_two(-1024)");
         check_false(f_is_power_of_two(integer'low), "f_is_power_of_two(integer'low)");
+
+      elsif run("string_format_reference") then
+        p_check_vectors;
       end if;
     end loop;
     test_runner_cleanup(runner);

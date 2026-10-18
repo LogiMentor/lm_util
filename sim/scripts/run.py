@@ -7,6 +7,8 @@ from pathlib import Path
 
 from vunit import VUnit
 
+from string_format_vectors import write as write_string_format_vectors
+
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT_DIR / "src"
@@ -142,6 +144,14 @@ for name in ["reset_sweep", "reset_clock_stopped"]:
         generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000],
                        g_meas_period_ps = [3_000, 14_000, 37_000], g_meas_phase_ps = [1_500, 6_500, 9_000],
                        g_rst_cycles = [1, 2, 5])
+
+# lm_util_pkg: f_string_format against exact reference vectors, written to
+# sim/work (ignored by git) with a fixed seed
+vector_count = 20000 if args.level == 'full' else 1500
+vector_file = ROOT_DIR / "sim" / "work" / f"string_format_vectors_{args.level}.txt"
+vector_count = write_string_format_vectors(vector_file, vector_count, seed=20261018)
+test = lib.test_bench("tb_vu_lm_util_pkg").test("string_format_reference")
+test.add_config(name=f"vectors={vector_count}", generics=dict(g_vector_file=vector_file.as_posix(), g_vector_count=vector_count))
 
 # lm_util_counter
 test = lib.test_bench("tb_vu_lm_util_counter").test("counter")

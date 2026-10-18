@@ -51,11 +51,15 @@ then the date is not set.
     failing;
   - `f_string_substr` no longer reports an error for valid substrings (the
     bounds check was inverted);
-  - `f_string_format` with precision 0 returns the rounded value without a
-    decimal point (`"3"` for 2.5); it returned the truncated integer part
-    followed by a rounding digit (`"2.1"` for 2.7). An integer part above
-    `integer'high` or a precision above 9 stops with a failure instead of
-    returning a wrong string.
+  - `f_string_format` follows a stated rounding contract: the exact binary
+    value of the real is rounded to `precision` digits, exact halves away
+    from zero. A literal is first the nearest real, so `9.9995` with
+    precision 3 gives `"9.999"` (the real is 9.99949999999999938893...); it
+    gave `"10.000"` by rounding the scaled product a second time. With
+    precision 0 the result has no decimal point (`"3"` for 2.5); it was the
+    truncated integer part followed by a rounding digit (`"2.1"` for 2.7).
+    An integer part above `integer'high` or a precision above 9 stops with
+    a failure instead of returning a wrong string.
 
 ### Fixed
 
@@ -75,8 +79,10 @@ then the date is not set.
 - `lm_util_pkg`: `f_div_ceil(time, time)` no longer truncates sub-ns
   remainders; `f_string_format` carries a rounded-up fraction into the
   integer part (0.9995 with precision 3 gives `"1.000"`, it gave
-  `"0.1000"`) and formats any integer part up to `integer'high` (the value
-  is not scaled by `10**precision` as a whole); the unsupported-operation
+  `"0.1000"`), formats any integer part up to `integer'high` (the value is
+  not scaled by `10**precision` as a whole) and no longer rounds twice when
+  the scaled fraction lands on a decimal half (`0.0065` with precision 3
+  gives `"0.006"`); the unsupported-operation
   guard in `f_vector_tree` can actually fire.
 - `lm_util_ccd_sync_bus`: the request edge detector tracks the
   resynchronized request during reset. A request held asserted across the
@@ -142,6 +148,7 @@ then the date is not set.
   levels, and inputs held longer than the delay), bitsum power-of-two widths,
   clock_measure steady-state window and reset behavior (reset length and
   phase, slow and stopped measured clock), `f_string_format` (large values,
-  carry, sign, precision 0), and a new `lm_util_ccd_sync_bus`
+  carry, sign, precision 0, and exact reference vectors: 1500 in the fast
+  and 20000 in the full regression), and a new `lm_util_ccd_sync_bus`
   testbench are now exercised; previously disabled failing configurations
   are re-enabled.
