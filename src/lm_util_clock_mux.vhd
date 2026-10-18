@@ -12,6 +12,23 @@
 --              clk_sel_i (exactly one bit must be '1').
 --              This implementation is glitch-free and does not introduce any
 --              timing issues or glitches during clock switching.
+--
+--              Declare the input clocks of the mux logically exclusive at
+--              project level with the design clock names
+--              (set_clock_groups -logically_exclusive -group <clk a>
+--              -group <clk b>), and cut the select resampling paths when the
+--              selects come from another domain. The examples select the
+--              first enable stage by the internal signal name only:
+--                Vivado (XDC):
+--                  set_false_path -to [get_cells -hier -filter {NAME =~ *s_ena_r0_reg[*]}]
+--                Quartus (SDC):
+--                  set_false_path -to [get_registers {*s_ena_r0[*]}]
+--                Lattice Diamond/LSE (LDC), not verified:
+--                  set_false_path -to [get_cells {*/s_ena_r0[*]}]
+--              Synthesis attributes: verified with Vivado and Quartus; the
+--              Synplify Pro / Lattice LSE attributes (also read by Synplify
+--              Pro for Microchip Libero) are not verified (see the user
+--              guide).
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -80,10 +97,33 @@ architecture a_rtl of lm_util_clock_mux is
   signal s_gated_clks    : std_logic_vector(g_num_clocks-1 downto 0);
 
 --
--- we have to set the attribute synthesis keep (or equivalent) to tell the synthesiser to use
--- different LUTs to implement the clock gating
-  attribute keep                 : boolean;
-  attribute keep of s_gated_clks : signal is true;
+-- we have to set the attribute synthesis keep (or equivalent) to tell the
+-- synthesiser to use different LUTs to implement the clock gating.
+-- Attributes are per synthesis tool; unknown ones are ignored.
+  -- Xilinx Vivado (expects keep as a string attribute)
+  attribute keep                 : string;
+  attribute keep of s_gated_clks : signal is "true";
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero): not
+  -- verified, see the user guide. Intel Quartus also honors syn_keep (it
+  -- turns it into IGNORE_LCELL_BUFFERS and REMOVE_REDUNDANT_LOGIC_CELLS off),
+  -- while KEEP is not a legal altera_attribute assignment and fails synthesis
+  attribute syn_keep                 : boolean;
+  attribute syn_keep of s_gated_clks : signal is true;
+  -- Intel Quartus
+  attribute altera_attribute : string;
+  -- the enable resampling flops synchronize the cross-coupled selects
+  attribute async_reg : string;
+  attribute async_reg of s_ena_r0 : signal is "true";
+  attribute async_reg of s_ena_r1 : signal is "true";
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero):
+  -- not verified, see the user guide
+  attribute syn_preserve : boolean;
+  attribute syn_preserve of s_ena_r0 : signal is true;
+  attribute syn_preserve of s_ena_r1 : signal is true;
+  attribute altera_attribute of s_ena_r0 : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS";
+  attribute altera_attribute of s_ena_r1 : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS";
 begin
 
   gen_clocks : for k in 0 to g_num_clocks-1 generate

@@ -59,7 +59,7 @@ entity lm_util_bitsum is
     -- data valid out
     dv_o     : out std_logic;
     -- output bitsum
-    bitsum_o : out std_logic_vector(f_ceil_log2(g_din_w)-1 downto 0)
+    bitsum_o : out std_logic_vector(f_ceil_log2(g_din_w + 1)-1 downto 0)
     );
 end lm_util_bitsum;
 
@@ -67,7 +67,7 @@ architecture a_rtl of lm_util_bitsum is
   constant C_NOF_FIRST_STAGE_ADDERS : integer := f_max(2, f_div_ceil_2pwr(g_din_w, g_nof_first_stage_chunk));
   constant C_NOF_STAGES  : integer := f_get_bitsum_stages(g_din_w, g_nof_first_stage_chunk);
 
-  type t_array_1stage is array (C_NOF_FIRST_STAGE_ADDERS-1 downto 0) of std_logic_vector(f_ceil_log2(g_din_w)-1 downto 0);
+  type t_array_1stage is array (C_NOF_FIRST_STAGE_ADDERS-1 downto 0) of std_logic_vector(f_ceil_log2(g_din_w + 1)-1 downto 0);
   type t_array_cnt_stages is array (C_NOF_STAGES-1 downto 0) of t_array_1stage;
 
   signal s_one_cnt : t_array_cnt_stages;
@@ -90,7 +90,7 @@ begin
 
 
   -- bit sum for g_din_w wide input
-  -- output is f_ceil_log2(g_din_w) bit wide
+  -- output is f_ceil_log2(g_din_w + 1) bit wide so the all-ones count fits
   -- at the first stage input is partitioned into ADDER_INS bit wide parts
   -- and these are summed.
   -- all other stages sum two outputs from the previous stage
@@ -102,7 +102,7 @@ begin
       begin
         if rising_edge(clk_i) then
           for IR in 0 to C_NOF_FIRST_STAGE_ADDERS-1 loop
-            v_cntr_regs(IR) := (f_ceil_log2(g_din_w)-1 downto 0 => '0');
+            v_cntr_regs(IR) := (f_ceil_log2(g_din_w + 1)-1 downto 0 => '0');
           end loop;
           for IB in 0 to g_din_w-1 loop
             v_cntr_regs(IB/g_nof_first_stage_chunk) := std_logic_vector(unsigned(v_cntr_regs(IB/g_nof_first_stage_chunk)) + f_sl2int(din_i(IB)));

@@ -21,6 +21,24 @@
 --              The input asynchronous reset is active on g_rst_lvl, the output
 --              is active low
 --
+--              Constrain the asynchronous assertion at project level: the
+--              reset input drives the asynchronous clear of every stage. The
+--              examples select those pins by the internal signal name only:
+--                Vivado (XDC):
+--                  set_false_path -to [get_pins -hier -filter {NAME =~ */s_resync_reg_reg[*]/CLR}]
+--                Quartus (SDC):
+--                  set_false_path -to [get_pins -compatibility_mode {*s_resync_reg[*]|clrn}]
+--              Lattice tools: not verified, no example.
+--              The false path removes the asynchronous reset on these
+--              CLR/clrn pins from timing analysis, release included: no
+--              recovery/removal check is made on them. The integrator
+--              remains responsible for the synchronized release and for
+--              verifying how the synchronized reset is used downstream.
+--              Synthesis attributes: verified with Vivado and Quartus; the
+--              Synplify Pro / Lattice LSE attributes (also read by Synplify
+--              Pro for Microchip Libero) are not verified (see the user
+--              guide).
+--
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -69,6 +87,24 @@ architecture a_rtl of lm_util_async_reset is
   -- shift register
   type t_meta_regs is array (g_delay_len - 1 downto 0) of std_logic;
   signal s_resync_reg : t_meta_regs := (others => '0');
+
+  -- Keep the synchronizer flops discrete and adjacent for metastability
+  -- hardening. Attributes are per synthesis tool; unknown ones are ignored.
+  -- Xilinx Vivado
+  attribute async_reg     : string;
+  attribute shreg_extract : string;
+  attribute async_reg of s_resync_reg     : signal is "true";
+  attribute shreg_extract of s_resync_reg : signal is "no";
+  -- Synplify Pro / Lattice LSE (also Synplify Pro for Microchip Libero):
+  -- not verified, see the user guide
+  attribute syn_srlstyle : string;
+  attribute syn_preserve : boolean;
+  attribute syn_srlstyle of s_resync_reg : signal is "registers";
+  attribute syn_preserve of s_resync_reg : signal is true;
+  -- Intel Quartus
+  attribute altera_attribute : string;
+  attribute altera_attribute of s_resync_reg : signal is
+    "-name SYNCHRONIZER_IDENTIFICATION FORCED_IF_ASYNCHRONOUS; -name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
 begin
 

@@ -7,6 +7,8 @@ from pathlib import Path
 
 from vunit import VUnit
 
+from string_format_vectors import write as write_string_format_vectors
+
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT_DIR / "src"
@@ -88,6 +90,10 @@ if args.level == 'full':
     generate_tests(test, g_data_w = [4], g_shift = [0, 3])
 
 # lm_util_bitsum
+# power-of-two widths exercise the all-ones count, which needs the extra output bit
+test = lib.test_bench("tb_vu_lm_util_bitsum").test("check_sequence")
+generate_tests(test, g_nof_first_stage_chunk = [3], g_din_w=[8, 28, 32])
+
 test = lib.test_bench("tb_vu_lm_util_bitsum").test("check_sum")
 generate_tests(test, g_nof_first_stage_chunk = [3], g_din_w=[28], g_d_in=[111500])
 if args.level == 'full':
@@ -102,6 +108,10 @@ generate_tests(test, g_meta_levels = [2, 3])
 # lm_util_ccd_switch
 test = lib.test_bench("tb_vu_lm_util_ccd_switch")
 generate_tests(test, g_priority_lo = [False, True], g_or_high = [False, True], g_and_low = [False, True])
+
+# lm_util_ccd_sync_bus: output clock faster (7 ns) and slower (23 ns) than the 10 ns input clock
+test = lib.test_bench("tb_vu_lm_util_ccd_sync_bus")
+generate_tests(test, g_bus_width = [8], g_meta_levels = [2, 3], g_out_clk_period_ns = [7, 23])
 
 # lm_util_ccd_sync_pulse
 test = lib.test_bench("tb_vu_lm_util_ccd_sync_pulse").test("check")
@@ -119,10 +129,39 @@ test = lib.test_bench("tb_vu_lm_util_clock_measure").test("check")
 if args.level == 'full':
     generate_tests(test, g_ref_clock_freq = [1_000_000], g_clock_width = [32], g_clock_freq = [100_000])
 
+# reset tests: 10 ns reference clock, 20-cycle window; measured clock faster
+# (3 ns), slightly slower (14 ns) and much slower (37 ns) than the reference
+test = lib.test_bench("tb_vu_lm_util_clock_measure").test("reset_ready_pending")
+generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000], g_meas_period_ps = [14_000])
+
+for name in ["reset_sweep", "reset_clock_stopped"]:
+    test = lib.test_bench("tb_vu_lm_util_clock_measure").test(name)
+    generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000],
+                   g_meas_period_ps = [3_000, 14_000, 37_000], g_meas_phase_ps = [0, 4_000], g_rst_cycles = [1])
+    generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000],
+                   g_meas_period_ps = [14_000], g_meas_phase_ps = [0], g_rst_cycles = [3])
+    if args.level == 'full':
+        generate_tests(test, g_ref_clock_freq = [20], g_clock_width = [16], g_ref_period_ps = [10_000],
+                       g_meas_period_ps = [3_000, 14_000, 37_000], g_meas_phase_ps = [1_500, 6_500, 9_000],
+                       g_rst_cycles = [1, 2, 5])
+
+# lm_util_pkg: f_string_format against exact reference vectors, written to
+# sim/work (ignored by git) with a fixed seed
+vector_count = 20000 if args.level == 'full' else 1500
+vector_file = ROOT_DIR / "sim" / "work" / f"string_format_vectors_{args.level}.txt"
+vector_count = write_string_format_vectors(vector_file, vector_count, seed=20261018)
+test = lib.test_bench("tb_vu_lm_util_pkg").test("string_format_reference")
+test.add_config(name=f"vectors={vector_count}", generics=dict(g_vector_file=vector_file.as_posix(), g_vector_count=vector_count))
+
 # lm_util_counter
 test = lib.test_bench("tb_vu_lm_util_counter").test("counter")
-generate_tests(test, g_data_w = [16], g_wd_timer = [1, 5], g_dir = [1], g_load_dat = [0])
-# Disabled: down-counter mode needs investigation.
+generate_tests(test, g_data_w = [16], g_wd_timer = [1, 5], g_dir = [0, 1], g_load_dat = [0])
+
+test = lib.test_bench("tb_vu_lm_util_counter").test("watchdog")
+generate_tests(test, g_data_w = [16], g_wd_timer = [1, 5], g_dir = [0, 1], g_load_dat = [0])
+
+test = lib.test_bench("tb_vu_lm_util_counter").test("load")
+generate_tests(test, g_data_w = [16], g_wd_timer = [5], g_dir = [0, 1], g_load_dat = [3])
 
 
 # lm_util_crc_serial
@@ -172,16 +211,21 @@ generate_tests(test, g_delay = [31, 32, 33], g_data_w = [8], g_srl_depth = [32])
 # lm_util_delay_pulse
 test = lib.test_bench("tb_vu_lm_util_delay_pulse").test("pulse")
 generate_tests(test, g_delay = [0, 1, 2, 3, 4, 5], g_pulse_width = [1])
-# Disabled: this case currently fails with g_pulse_width = 2.
+generate_tests(test, g_delay = [2, 3, 4, 5], g_pulse_width = [2])
+# input pulses wider than the delay must not retrigger the output
+generate_tests(test, g_delay = [2, 3], g_pulse_width = [4])
 
 # lm_util_delay_var
+# note: the "mem" architecture (C_LM_MEM) is not implemented and rejected at elaboration
 test = lib.test_bench("tb_vu_lm_util_delay_var").test("sequence")
 generate_tests(test, g_delay = [1, 2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [0])
-#generate_tests(test, g_delay = [1, 2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [1])
+generate_tests(test, g_delay = [1], g_delay_max = [1], g_arch_type = [0])
 
-test = lib.test_bench("tb_vu_lm_util_delay_var").test("pulse")
-generate_tests(test, g_delay = [2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [2], g_data_w = [1])
-# Disabled: this case currently fails with g_delay = 1 and g_arch_type = 2.
+for name in ["pulse", "pulse_long_input"]:
+    test = lib.test_bench("tb_vu_lm_util_delay_var").test(name)
+    generate_tests(test, g_delay = [1, 2, 3, 4, 7, 8], g_delay_max = [8], g_arch_type = [2], g_data_w = [1], g_pulse_level = [0, 1])
+    # unit delay max: the pulse behavior must match the pulse architecture
+    generate_tests(test, g_delay = [1], g_delay_max = [1], g_arch_type = [2], g_data_w = [1], g_pulse_level = [0, 1])
 
 #lm_util_edge_detector
 test = lib.test_bench("tb_vu_lm_util_edge_detector").test("rising_edge_detect")
@@ -197,8 +241,7 @@ generate_tests(test, g_clock_div = [10])
 
 #lm_util_pulse_stretch
 test = lib.test_bench("tb_vu_lm_util_pulse_stretch")
-generate_tests(test, g_pulse_length = [2, 5], g_has_fixed_length = [0, 1], g_has_resync_stage=[0, 1], g_out_level = [1])
-# Disabled: this case currently fails with g_out_level = 0.
+generate_tests(test, g_pulse_length = [1, 2, 5], g_has_fixed_length = [0, 1], g_has_resync_stage=[0, 1], g_out_level = [0, 1])
 
 # Run vunit function
 vu.main()

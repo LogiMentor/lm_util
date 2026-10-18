@@ -3,6 +3,7 @@
 [run]
 output_dir = "vendor_synth_out"
 
+# Reference Vivado target for the CDC structural checks (Vivado 2023.1).
 [[targets]]
 name = "vivado-artix7"
 tool = "vivado"
@@ -27,6 +28,8 @@ executable = "quartus_sh"
 family = "Cyclone 10 LP"
 device = "10CL025YU256C8G"
 
+# Reference Quartus target for the CDC structural checks (Quartus Prime Lite
+# 23.1std): synchronizer identification and the MTBF report work on MAX 10.
 [[targets]]
 name = "quartus-max10"
 tool = "quartus"

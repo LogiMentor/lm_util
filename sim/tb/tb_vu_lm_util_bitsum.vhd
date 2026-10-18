@@ -48,7 +48,7 @@ architecture a_tb of tb_vu_lm_util_bitsum is
   signal din_i : std_logic_vector(g_din_w - 1 downto 0);
   -- Observed signals - signals mapped to the output ports of tested entity
   signal dv_o     : std_logic;
-  signal bitsum_o : std_logic_vector(f_ceil_log2(g_din_w) - 1 downto 0);
+  signal bitsum_o : std_logic_vector(f_ceil_log2(g_din_w + 1) - 1 downto 0);
 begin
 
   -- Clock generation

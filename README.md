@@ -27,7 +27,7 @@ library.
 - [User guide](docs/user_guide.md): module functionality, instantiation
   template, generic configuration notes, simulation flow, synthesis compile
   examples, and local vendor synthesis report generation.
-- [Changelog](CHANGELOG.md): compatibility notes and unreleased changes.
+- [Changelog](CHANGELOG.md): release notes and compatibility notes.
 - [Vendor synthesis smoke tests](tools/synth/README.md): local Vivado, Quartus,
   and Diamond campaign runner.
 - [VHDL coding standard](docs/LM_VHDL_coding_standard.md): style rules used by

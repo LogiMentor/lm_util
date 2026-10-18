@@ -32,7 +32,8 @@ use ieee.numeric_std.all;
 library lm_util_lib;
 use lm_util_lib.lm_util_pkg.all;
 
---pulse stretcher
+--pulse stretcher: the input pulse is active high, the output pulse is active
+--at g_out_level
 entity lm_util_pulse_stretch is
   generic (
     -- 1: out pulse shall have fixed length specified by the g_pulse_length generic
@@ -63,10 +64,15 @@ architecture a_rtl of lm_util_pulse_stretch is
   signal s_pulse_d      : std_logic;
   signal s_pulse_d2     : std_logic;
   signal s_pulse_d3     : std_logic;
-  signal s_cnt          : unsigned(f_ceil_log2(C_MAX_LENGTH)-1 downto 0);
+  -- the stretch counter counts up to C_MAX_LENGTH included
+  signal s_cnt          : unsigned(f_ceil_log2(C_MAX_LENGTH + 1)-1 downto 0);
   signal s_cnt_ena      : std_logic;
 
 begin
+
+  assert (g_has_fixed_length = 0) or (g_pulse_length > 0)
+  report "g_pulse_length must be greater than 0 when g_has_fixed_length = 1!"
+  severity failure;
 
   gen_resync_stage : if g_has_resync_stage = 1 generate
     --resample input async signal in the clock domain
@@ -99,10 +105,11 @@ begin
         if (rst_n_i = '0') then
           s_cnt_ena <= '0';
         else
-          --enable the counter on rising edge of input signal
-          if (s_pulse_d2 = '1' and s_pulse_d3 = '0') then
+          --enable the counter on rising edge of input signal; edges arriving
+          --while the fixed-length window is running are ignored
+          if (s_pulse_d2 = '1' and s_pulse_d3 = '0' and s_cnt_ena = '0') then
             s_cnt_ena <= '1';
-          elsif (s_cnt = g_pulse_length-1) then  --falling edge
+          elsif (s_cnt = g_pulse_length-1) then  --pulse complete
             s_cnt_ena <= '0';
           end if;
         end if;
@@ -117,13 +124,15 @@ begin
           pulse_o <= not g_out_level;
         else
           if (s_cnt_ena = '1') then     -- counter enabled
+            -- output is active for the whole enable window, so a length of 1
+            -- still produces a one-cycle pulse
+            pulse_o <= g_out_level;
             if (s_cnt < g_pulse_length-1) then  --count g_pulse_length* clk_i period
-              pulse_o <= g_out_level;
-              s_cnt   <= s_cnt + 1;
+              s_cnt <= s_cnt + 1;
             else
               s_cnt <= (others => '0');
             end if;
-          else                          --se vengo da un undervoltage
+          else
             pulse_o <= not g_out_level;
             s_cnt   <= (others => '0');
           end if;
@@ -140,17 +149,20 @@ begin
     begin
       if (rising_edge(clk_i)) then
         if (rst_n_i = '0') then
-          s_cnt_ena <= '0';
+          s_cnt_ena         <= '0';
+          s_pulse_rise_edge <= '0';
         else
-          if (s_pulse_d2 = '1' and s_pulse_d3 = '0') then  -- falling edge
+          if (s_pulse_d2 = '1' and s_pulse_d3 = '0') then  -- rising edge
             s_pulse_rise_edge <= '1';
           else
             s_pulse_rise_edge <= '0';
           end if;
 
-          if (s_pulse_d2 = '0' and s_pulse_d3 = '1') then  -- falling edge
+          if (s_pulse_d2 = '1' and s_pulse_d3 = '0') then     -- rising edge: cancel a running stretch window
+            s_cnt_ena <= '0';
+          elsif (s_pulse_d2 = '0' and s_pulse_d3 = '1') then  -- falling edge: start the stretch window
             s_cnt_ena <= '1';
-          elsif (s_cnt = g_pulse_overlength-1) then        --extra length
+          elsif (s_cnt = g_pulse_overlength) then             -- extra length elapsed
             s_cnt_ena <= '0';
           end if;
         end if;
@@ -163,8 +175,10 @@ begin
         if (rst_n_i = '0') then
           s_cnt <= (others => '0');
         else
-          if (s_cnt_ena = '1') then
-            if (s_cnt < g_pulse_overlength-1) then
+          if (s_pulse_d2 = '1' and s_pulse_d3 = '0') then  -- rising edge: restart
+            s_cnt <= (others => '0');
+          elsif (s_cnt_ena = '1') then
+            if (s_cnt < g_pulse_overlength) then
               s_cnt <= s_cnt + 1;
             else
               s_cnt <= (others => '0');
@@ -182,7 +196,9 @@ begin
         else
           if s_pulse_rise_edge = '1' then
             pulse_o <= g_out_level;
-          elsif (s_cnt = g_pulse_overlength-1) then
+          elsif (s_cnt_ena = '1' and s_cnt = g_pulse_overlength) then
+            -- qualified by the enable so an idle counter (0) cannot end the
+            -- pulse when g_pulse_overlength = 1
             pulse_o <= not g_out_level;
           end if;
         end if;
@@ -191,7 +207,8 @@ begin
   end generate gen_stretched_pulse;
 
   gen_stretched_pulse_zero : if (g_has_fixed_length = 0 and g_pulse_overlength = 0) generate
-    pulse_o <= pulse_i;
+    -- no stretch: forward the input pulse at the configured output level
+    pulse_o <= pulse_i xnor g_out_level;
   end generate gen_stretched_pulse_zero;
 
 
