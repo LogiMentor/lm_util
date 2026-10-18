@@ -1,9 +1,8 @@
 # Changelog
 
-## v0.1.0 - unreleased
+## v0.1.0 - 2026-10-18
 
-First tagged version. The tag is created when this section is merged; until
-then the date is not set.
+First tagged version.
 
 ### Breaking Changes
 
