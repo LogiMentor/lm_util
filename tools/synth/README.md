@@ -107,11 +107,37 @@ netlist or the report is complete; otherwise the check fails with an
 | --- | --- |
 | Vivado `chain:*`, `no_shift_register`, constraint checks | A synthesized design is open and has primitive cells. |
 | Vivado `constraints:listed`, `constraints:not_ignored` | The `report_exceptions` strings are not empty and carry the `Exceptions Report` heading; with no ignored rows, the ignored report states `No ignored timing exceptions found.` |
-| Quartus `no_shift_register` | The Analysis & Synthesis report starts with its title, lists the summary and messages panels in the table of contents, contains every panel of the table of contents, reports a successful status and ends with the end of processing. A valid report without the register packing panel passes. |
-| Quartus `chain:*` | The metastability report has the MTBF summary, as many chains as `Number of Synchronizer Chains Found`, and each chain has its identification method and as many registers as its chain length. |
-| Quartus `constraints:listed`, `constraints:valid` | The exceptions report states that no exceptions were found, or has a closed `Report Exceptions Summary` panel. |
+| Quartus `no_shift_register` | The Analysis & Synthesis report starts with its title, lists the summary and messages panels in the table of contents, contains every panel of the table of contents, has a complete summary panel with a successful status, and ends with the end of processing. If the "Registers Packed Into Inferred Megafunctions" panel is present it must be a complete table (see below); a valid report without that panel, and without it in the table of contents, passes. |
+| Quartus `chain:*` | The metastability report has the MTBF summary, as many chains as `Number of Synchronizer Chains Found`, a complete `Statistics` table for each chain, and each chain has its identification method and as many registers as its chain length. |
+| Quartus `constraints:listed`, `constraints:valid` | The exceptions report states that no exceptions were found, or has a complete `Report Exceptions Summary` table. |
 | Quartus `constraints:not_ignored` | The ignored-constraints report states `No constraints were ignored.` (pass) or lists SDC commands (fail). |
 | Every case | `reports/lm_checks.txt` reports every check the case defines; a missing check is an `LM_ERROR`. |
+
+A complete table panel is what Quartus Prime Lite 23.1std writes: a border,
+the expected column header, a border, at least one data row with as many
+cells as the header, and a closing border (the summary panel is a two-column
+property table without a header). Quartus omits a table panel that has no
+rows, so a present panel without rows is incomplete. A panel that keeps its
+title but lost its rows, its header or its closing border fails with
+`LM_ERROR` (cases `neg_report_panel_empty`, `neg_report_panel_header_only`,
+`neg_report_panel_unclosed`).
+
+What the completeness check guarantees: a check that concludes an absence
+reads a netlist or report that has the structure of a complete, successful
+run as Vivado 2023.1 and Quartus Prime Lite 23.1std write it. An empty,
+truncated or gutted report, a report in a format the runner does not
+recognize, or a check missing from the check report fails the case instead
+of passing it.
+
+What it does not guarantee: that the content is the one the tool produced.
+A report edited so that it stays structurally complete (for example a
+`SHIFT_TAPS` row removed while other rows remain, or the packing panel
+removed together with its table-of-contents entry) passes. The check
+detects incomplete or damaged reports, not deliberate edits. Other tool
+versions may write another format: the runner then reports `LM_ERROR`
+rather than a result, and the format has to be checked before it is
+accepted. The structural checks do not prove the synthesized function
+either; they only show the inference of the checked structures.
 
 ### Negative cases
 

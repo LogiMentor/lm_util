@@ -845,6 +845,49 @@ def rpt_titles(lines: list[str]) -> set[str]:
     return {cells[0].strip() for cells in rpt_rows(lines) if len(cells) == 1}
 
 
+PACKED_PANEL = "Registers Packed Into Inferred Megafunctions"
+PACKED_COLUMNS = ["Register Name", "Megafunction", "Type"]
+EXCEPTIONS_PANEL = "Report Exceptions Summary"
+EXCEPTIONS_COLUMNS = [
+    "Status", "Exception Command", "Flags", "From Flag", "From", "Through", "To Flag", "To", "Value",
+    "Setup Slack", "Hold Slack", "Recovery Slack", "Removal Slack",
+]
+STATISTICS_COLUMNS = ["Property", "Value", "Clock Period", "Active Edge Rate", "Output Slack"]
+
+
+def rpt_table(text: str, title: str, columns: list[str] | None, kind: str) -> tuple[list[list[str]] | None, str]:
+    """(data rows, error) of a table panel; rows are None when the panel is absent.
+
+    A present panel must be structurally complete, as Quartus 23.1 writes it:
+    a border, the column header (columns, or none for a property table), a
+    border, at least one data row with as many cells as the header, and the
+    closing border. Quartus omits a table panel that has no data rows, so a
+    panel without rows is not complete either.
+    """
+    body = rpt_panel_lines(text, title)
+    if body is None:
+        return None, ""
+    name = f"LM_ERROR: {kind} panel '{title}'"
+    if columns is not None:
+        header = rpt_rows(body[1:2])
+        if len(body) < 3 or not body[0].startswith("+") or not header or [cell.strip() for cell in header[0]] != columns or not body[2].startswith("+"):
+            return [], f"{name} has no column header"
+        rows_start, width = 3, len(columns)
+    else:
+        if not body or not body[0].startswith("+"):
+            return [], f"{name} has no border"
+        rows_start, width = 1, 2
+    if len(body) <= rows_start or not body[-1].startswith("+"):
+        return [], f"{name} is not closed" if len(body) > rows_start else f"{name} has no data rows"
+    data = body[rows_start:-1]
+    if not data:
+        return [], f"{name} has no data rows"
+    rows = rpt_rows(data)
+    if len(rows) != len(data) or any(len(row) != width for row in rows):
+        return [], f"{name} has a malformed row"
+    return rows, ""
+
+
 # --- Quartus report completeness ---------------------------------------------
 # A check that passes when something is absent (no SHIFT_TAPS row, no invalid
 # or ignored exception, no register identified another way) reads a report
@@ -890,8 +933,10 @@ def map_report_error(path: Path) -> str:
     done = [index for index, line in enumerate(lines) if line.startswith("Info: Quartus Prime Analysis & Synthesis was successful.")]
     if not done or not any("Processing ended:" in line for line in lines[done[-1] :]):
         return f"LM_ERROR: {kind} is truncated: {path.name}: no successful end of processing"
-    summary = rpt_panel(text, "Analysis & Synthesis Summary") or []
-    status = [row[1].strip() for row in summary if len(row) > 1 and row[0].strip() == "Analysis & Synthesis Status"]
+    summary, error = rpt_table(text, "Analysis & Synthesis Summary", None, kind)
+    if error:
+        return error
+    status = [row[1].strip() for row in summary or [] if row[0].strip() == "Analysis & Synthesis Status"]
     if not status or not status[0].startswith("Successful"):
         return f"LM_ERROR: {kind} does not report a successful run: {path.name}"
     return ""
@@ -906,6 +951,11 @@ def metastability_report_error(path: Path) -> str:
     match = re.search(r"^Number of Synchronizer Chains Found: (\d+)$", text, flags=re.MULTILINE)
     if "; MTBF Summary ;" not in text or not match:
         return f"LM_ERROR: {kind} is not recognized: {path.name}"
+    sections = text.split("\nSynchronizer Chain #")[1:]
+    for index, section in enumerate(sections, start=1):
+        _, error = rpt_table(section, "Statistics", STATISTICS_COLUMNS, kind)
+        if error:
+            return f"{error} (chain {index})"
     chains = parse_metastability(text)
     incomplete = [
         str(index)
@@ -927,12 +977,10 @@ def exceptions_report_error(path: Path) -> str:
     lines = text.splitlines()
     if "; Report Exceptions ;" in lines and any(line.startswith("No exceptions were found.") for line in lines):
         return ""
-    body = rpt_panel_lines(text, "Report Exceptions Summary")
-    if body is None:
+    rows, error = rpt_table(text, EXCEPTIONS_PANEL, EXCEPTIONS_COLUMNS, kind)
+    if rows is None:
         return f"LM_ERROR: {kind} is not recognized: {path.name}"
-    if not body or not body[-1].startswith("+"):
-        return f"LM_ERROR: {kind} is truncated: {path.name}"
-    return ""
+    return error
 
 
 def ignored_report_error(path: Path) -> str:
@@ -1019,8 +1067,8 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
         exc_path = case_dir / "reports" / "constraint_exceptions.rpt"
         ign_path = case_dir / "reports" / "constraint_ignored.rpt"
         exc_error = exceptions_report_error(exc_path)
-        panel = [] if exc_error else rpt_panel(exc_path.read_text(encoding="utf-8", errors="ignore"), "Report Exceptions Summary")
-        rows = [row for row in (panel or []) if row and row[0].strip() not in {"", "Status"}]
+        panel = [] if exc_error else rpt_table(exc_path.read_text(encoding="utf-8", errors="ignore"), EXCEPTIONS_PANEL, EXCEPTIONS_COLUMNS, "")[0]
+        rows = panel or []
         invalid = [row[1].strip() + " " + row[7].strip() for row in rows if row[0].strip() == "Invalid" and len(row) > 7]
         check("constraints:listed", not exc_error and len(rows) == expected, exc_error or f"expected={expected} listed={len(rows)}")
         check("constraints:valid", not exc_error and bool(rows) and not invalid, exc_error or f"invalid={' | '.join(invalid)}")
@@ -1038,9 +1086,10 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
         if map_error:
             check("no_shift_register", False, map_error)
         else:
-            panel = rpt_panel(map_path.read_text(encoding="utf-8", errors="ignore"), "Registers Packed Into Inferred Megafunctions")
-            packed = [row[0].strip() for row in (panel or []) if len(row) >= 3 and row[2].strip() == "SHIFT_TAPS"]
-            check("no_shift_register", not packed, f"shift_taps_registers={len(packed)}")
+            text = map_path.read_text(encoding="utf-8", errors="ignore")
+            panel, panel_error = rpt_table(text, PACKED_PANEL, PACKED_COLUMNS, "Analysis & Synthesis report")
+            packed = [row[0].strip() for row in (panel or []) if row[2].strip() == "SHIFT_TAPS"]
+            check("no_shift_register", not panel_error and not packed, panel_error or f"shift_taps_registers={len(packed)}")
     return lines
 
 
@@ -1095,17 +1144,36 @@ def evaluate_checks(target: Target, case: SynthCase, case_dir: Path, ignore_expe
     return "passed", f"{len(checks)} structural checks passed", details
 
 
+def corrupt_panel(lines: list[str], title: str, mode: str) -> list[str]:
+    """Lines of a report with one panel gutted, keeping its title.
+
+    empty_panel keeps the border below the title, header_only_panel also the
+    column header and its border, unclosed_panel drops the closing border.
+    """
+    start = next(index for index, line in enumerate(lines) if line.strip() == f"; {title} ;" or (
+        line.startswith(";") and line.rstrip().endswith(";") and line.strip()[1:-1].strip() == title))
+    end = start + 1
+    while end < len(lines) and lines[end].strip():
+        end += 1
+    keep = {"empty_panel": 1, "header_only_panel": 3, "unclosed_panel": end - start - 2}[mode]
+    return lines[: start + 1 + keep] + lines[end:]
+
+
 def corrupt_report(case: SynthCase, case_dir: Path) -> None:
-    """Negative cases only: empty or truncate a report before the checks read it."""
+    """Negative cases only: empty, truncate or gut a report before the checks read it."""
     spec = case.test_corrupt
     path = case_dir / spec["report"]
-    if spec.get("mode") == "empty":
+    mode = spec.get("mode")
+    if mode == "empty":
         path.write_text("", encoding="utf-8")
-    elif spec.get("mode") == "truncate":
+    elif mode == "truncate":
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines(keepends=True)
         path.write_text("".join(lines[: int(spec.get("keep_lines", len(lines) // 2))]), encoding="utf-8")
+    elif mode in {"empty_panel", "header_only_panel", "unclosed_panel"}:
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines(keepends=True)
+        path.write_text("".join(corrupt_panel(lines, spec["panel"], mode)), encoding="utf-8")
     else:
-        raise ValueError(f"Case {case.name}: unknown test_corrupt mode {spec.get('mode')!r}")
+        raise ValueError(f"Case {case.name}: unknown test_corrupt mode {mode!r}")
 
 
 def apply_expected_error(case: SynthCase, result: dict[str, Any], ignore_expected: bool) -> dict[str, Any]:

@@ -135,8 +135,11 @@ then the date is not set.
   (no SRL, no shift-register packing, no invalid or ignored exception) first
   requires an open, non-empty Vivado netlist or a complete and recognized
   Quartus report; otherwise it fails with an `LM_ERROR`, as does a check
-  missing from the check report. Negative cases that empty or truncate a
-  report show it.
+  missing from the check report. A Quartus table panel that a check reads
+  (register packing, exceptions summary, chain statistics, synthesis
+  summary) must be complete when present: column header, data rows and
+  closing border. Negative cases that empty or truncate a report, or gut
+  the register packing panel, show it.
 - Simulation: the reference simulator is GHDL 6.0.0 (LLVM backend), pinned
   in CI with `ghdl/setup-ghdl`; `vunit_hdl` is pinned to 4.7.1;
   `sim/scripts/check_elab_failures.py` checks that invalid generics and

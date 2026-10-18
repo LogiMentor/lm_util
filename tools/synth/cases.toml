@@ -470,3 +470,60 @@ clocks = { clk_i = 10.0 }
 constraints = ["src/lm_util_ccd_resync.vhd"]
 test_corrupt = { report = "exceptions_ignored" }
 expect_error = "LM_ERROR: report_exceptions -ignored returned an empty report"
+
+[[cases]]
+name = "neg_report_panel_empty"
+entity = "lm_util_delay"
+category = "negative"
+description = "Shift-register design whose register packing panel keeps only its title and border."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+test_corrupt = { report = "project.map.rpt", mode = "empty_panel", panel = "Registers Packed Into Inferred Megafunctions" }
+expect_error = "LM_ERROR: Analysis & Synthesis report panel 'Registers Packed Into Inferred Megafunctions' has no column header"
+
+[[cases]]
+name = "neg_report_panel_header_only"
+entity = "lm_util_delay"
+category = "negative"
+description = "Shift-register design whose register packing panel keeps only its column header."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+test_corrupt = { report = "project.map.rpt", mode = "header_only_panel", panel = "Registers Packed Into Inferred Megafunctions" }
+expect_error = "LM_ERROR: Analysis & Synthesis report panel 'Registers Packed Into Inferred Megafunctions' has no data rows"
+
+[[cases]]
+name = "neg_report_panel_unclosed"
+entity = "lm_util_delay"
+category = "negative"
+description = "Shift-register design whose register packing panel lost its closing border."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+test_corrupt = { report = "project.map.rpt", mode = "unclosed_panel", panel = "Registers Packed Into Inferred Megafunctions" }
+expect_error = "LM_ERROR: Analysis & Synthesis report panel 'Registers Packed Into Inferred Megafunctions' is not closed"

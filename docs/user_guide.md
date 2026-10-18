@@ -267,7 +267,12 @@ an `FD*` flip-flop with `ASYNC_REG = TRUE` and no SRL is inferred; with
 Quartus the Timing Analyzer metastability report lists every stage as a
 user-specified synchronizer and no shift register is inferred. Negative
 cases show that the checks fail on a chain without attributes and on a
-renamed chain. The Synplify Pro / Lattice LSE attributes follow the vendor
+renamed chain. A check that concludes an absence (no SRL, no shift
+register, no invalid or ignored exception) first requires a complete
+netlist or report: an empty, truncated or gutted report fails the run with
+`LM_ERROR`. This detects damaged or unrecognized reports, not a report
+edited so that it stays well formed; `tools/synth/README.md` lists exactly
+what is checked. The Synplify Pro / Lattice LSE attributes follow the vendor
 documentation; no licensed Lattice or Microchip tool was available to verify
 them, and the Lattice constraint examples are not verified either.
 
