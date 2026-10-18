@@ -125,7 +125,12 @@ then the date is not set.
   with a check for empty collections and ignored exceptions; a clear error
   when the configured Quartus family or device, or the Vivado part, is not
   installed. Report hints no longer scan the generated scripts, and a failed
-  check always fails the run.
+  check always fails the run. A check that passes when something is absent
+  (no SRL, no shift-register packing, no invalid or ignored exception) first
+  requires an open, non-empty Vivado netlist or a complete and recognized
+  Quartus report; otherwise it fails with an `LM_ERROR`, as does a check
+  missing from the check report. Negative cases that empty or truncate a
+  report show it.
 - Simulation: the reference simulator is GHDL 6.0.0 (LLVM backend), pinned
   in CI with `ghdl/setup-ghdl`; `vunit_hdl` is pinned to 4.7.1;
   `sim/scripts/check_elab_failures.py` checks that invalid generics and
