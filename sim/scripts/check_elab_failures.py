@@ -73,6 +73,11 @@ CASES = [
     Case("lm_elab_string_format", {"g_case": 2}, FORMAT_RANGE_MSG),
     Case("lm_elab_string_format", {"g_case": 3}, FORMAT_RANGE_MSG),
     Case("lm_elab_string_format", {"g_case": 4}, FORMAT_PREC_MSG),
+    Case("lm_elab_string_format", {"g_case": 5}, FORMAT_RANGE_MSG),
+    Case("lm_elab_string_format", {"g_case": 6}, FORMAT_RANGE_MSG),
+    Case("lm_elab_string_format", {"g_case": 7}, FORMAT_RANGE_MSG),
+    Case("lm_elab_string_format", {"g_case": 8}, FORMAT_RANGE_MSG),
+    Case("lm_elab_string_format", {"g_case": 9}, FORMAT_RANGE_MSG),
 ]
 
 

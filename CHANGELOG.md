@@ -59,7 +59,10 @@ then the date is not set.
     precision 0 the result has no decimal point (`"3"` for 2.5); it was the
     truncated integer part followed by a rounding digit (`"2.1"` for 2.7).
     An integer part above `integer'high` or a precision above 9 stops with
-    a failure instead of returning a wrong string.
+    a failure instead of returning a wrong string; a magnitude of `2**31` or
+    more is rejected before any intermediate computation. The exact rounding
+    assumes IEEE 754 binary64 reals with every operation rounded on its own
+    (verified with GHDL 6.0.0 LLVM).
 
 ### Fixed
 

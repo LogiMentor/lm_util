@@ -36,6 +36,8 @@ FIXED = [
     (0.000000001, 9), (0.0000000005, 9), (0.0000000015, 9),
     # the real is below the decimal half, the rounded product lands on it
     (0.0065, 3), (0.35, 1), (-0.015, 2), (1.5e-09, 9), (-1.5385, 3),
+    # just inside the accepted range
+    (2147483647.4999998, 0), (2147483647.9994, 3), (2147483647.9999998, 9),
 ]
 
 

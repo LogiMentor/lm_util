@@ -2789,12 +2789,22 @@ function f_slv2string (slv : std_logic_vector) return string is
   -- 9.9995 is the real 9.99949999999999938893..., "9.999" with precision 3.
   -- A negative value keeps its sign when it rounds to zero ("-0.000"); -0.0
   -- has no sign. The rounded integer part must fit an integer and precision
-  -- must be at most 9, otherwise a failure stops elaboration or simulation.
+  -- must be at most 9, otherwise a failure stops elaboration or simulation;
+  -- a magnitude of 2**31 or more is rejected before any computation.
+  -- Numeric assumptions: real is IEEE 754 binary64 with round to nearest,
+  -- and every intermediate operation is rounded on its own (no fused
+  -- multiply-add, no reassociation, no extended precision); the exact
+  -- rounding depends on them. The VHDL standard does not require binary64
+  -- in every case. Verified with GHDL 6.0.0 (LLVM backend); not verified
+  -- with Vivado Simulator or Questa/ModelSim.
   function f_string_format(value : real; precision : natural := 3) return string is
     constant C_PREC_MAX : natural := 9;
     constant C_SCALE    : real    := 10.0**f_min(precision, C_PREC_MAX);
     constant C_VAL      : real    := abs(value);
     constant C_INT_MAX  : real    := real(integer'high);
+    -- 2**31: below it the integer part cannot exceed integer'high before the
+    -- carry, and no intermediate value can overflow
+    constant C_IN_RANGE : boolean := C_VAL < C_INT_MAX + 1.0;
     -- Veltkamp splitting constant, 2**27 + 1
     constant C_SPLIT    : real    := 134217729.0;
     variable v_int      : real;
@@ -2816,8 +2826,12 @@ function f_slv2string (slv : std_logic_vector) return string is
       return (1 to digits - C_STR'length => '0') & C_STR;
     end function;
   begin
+    -- input checks first, before any intermediate computation
     assert precision <= C_PREC_MAX
       report "f_string_format: precision above 9: " & integer'image(precision)
+      severity failure;
+    assert C_IN_RANGE
+      report "f_string_format: integer part out of the integer range: " & real'image(value)
       severity failure;
     -- round the fraction alone and carry into the integer part: the value
     -- scaled by 10**precision does not fit an integer for large values.
@@ -2825,8 +2839,9 @@ function f_slv2string (slv : std_logic_vector) return string is
     -- unchanged from integer'high on, so floor gets at most C_INT_MAX; a
     -- larger value leaves a fraction of 1 or more, which carries above it.
     v_int  := floor(f_sel_a_b(C_VAL < C_INT_MAX, C_VAL, C_INT_MAX));
-    -- exact: v_int is 0 or at least half of C_VAL (Sterbenz)
-    v_frac := C_VAL - v_int;
+    -- exact: v_int is 0 or at least half of C_VAL (Sterbenz); an input out of
+    -- range (already reported) is not computed further
+    v_frac := f_sel_a_b(C_IN_RANGE, C_VAL - v_int, 0.0);
     -- v_frac * C_SCALE is rounded to the nearest real, which can land on a
     -- decimal half that the exact product does not reach. Dekker's product
     -- gives the rounding error exactly (v_prod + v_err is the exact product)
@@ -2851,6 +2866,7 @@ function f_slv2string (slv : std_logic_vector) return string is
       v_int    := v_int + 1.0;
       v_digits := 0.0;
     end if;
+    -- the carry can still take the integer part above integer'high
     assert v_int <= C_INT_MAX
       report "f_string_format: integer part out of the integer range: " & real'image(value)
       severity failure;
