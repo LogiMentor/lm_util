@@ -95,7 +95,11 @@ def analyze(ghdl: str, workdir: Path, entities: list[str]) -> None:
 
 def check(ghdl: str, workdir: Path, case: Case, log_dir: Path, index: int) -> bool:
     generics = [f"-g{key}={value}" for key, value in case.generics.items()]
-    cmd = [ghdl, "--elab-run", *GHDL_FLAGS, case.entity, *generics, "--stop-time=1ns"]
+    # one executable per case: by default GHDL links <entity>.exe, and the
+    # next case of the same entity relinked a file that could still be held
+    # open after the previous run on Windows (ld exit status 1 or 5)
+    exe = f"elab_case_{index:02d}"
+    cmd = [ghdl, "--elab-run", *GHDL_FLAGS, "-o", exe, case.entity, *generics, "--stop-time=1ns"]
     started = dt.datetime.now()
     result = run(cmd, workdir)
     seconds = (dt.datetime.now() - started).total_seconds()
