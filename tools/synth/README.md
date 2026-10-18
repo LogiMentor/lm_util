@@ -61,7 +61,7 @@ no-port design.
 | --- | --- |
 | `passed` | Tool returned success, every structural check passed and every report hint matched. For a negative case: every check listed in `expect_failed_checks` failed. |
 | `review` | Structural checks passed (or the case has none) but a report hint regex was not found. Inspect reports manually. |
-| `failed` | Tool returned a non-zero exit code, a structural check failed, the check report is missing, or a negative case did not fail as expected. |
+| `failed` | Tool returned a non-zero exit code, a structural check failed, a report could not be evaluated (`LM_ERROR`), the check report is missing or incomplete, or a negative case did not fail as expected. |
 | `error` | Script generation failed (for example a missing extra file). |
 | `skipped` | Tool executable was not found. |
 | `planned` | Generated in `--dry-run` mode. |
@@ -95,6 +95,26 @@ These checks never look at the generated scripts or at the generic tool log:
   `SHIFT_TAPS` row in the "Registers Packed Into Inferred Megafunctions"
   panel of the Analysis & Synthesis report.
 
+### Report completeness
+
+Some checks pass when something is absent: no SRL cell, no `SHIFT_TAPS`
+row, no register identified other than `User Specified`, no invalid or
+ignored exception. Before such a conclusion the runner shows that the
+netlist or the report is complete; otherwise the check fails with an
+`LM_ERROR` detail and the case fails, a negative case included:
+
+| Check | Evidence required |
+| --- | --- |
+| Vivado `chain:*`, `no_shift_register`, constraint checks | A synthesized design is open and has primitive cells. |
+| Vivado `constraints:listed`, `constraints:not_ignored` | The `report_exceptions` strings are not empty and carry the `Exceptions Report` heading; with no ignored rows, the ignored report states `No ignored timing exceptions found.` |
+| Quartus `no_shift_register` | The Analysis & Synthesis report starts with its title, lists the summary and messages panels in the table of contents, contains every panel of the table of contents, reports a successful status and ends with the end of processing. A valid report without the register packing panel passes. |
+| Quartus `chain:*` | The metastability report has the MTBF summary, as many chains as `Number of Synchronizer Chains Found`, and each chain has its identification method and as many registers as its chain length. |
+| Quartus `constraints:listed`, `constraints:valid` | The exceptions report states that no exceptions were found, or has a closed `Report Exceptions Summary` panel. |
+| Quartus `constraints:not_ignored` | The ignored-constraints report states `No constraints were ignored.` (pass) or lists SDC commands (fail). |
+| Every case | `reports/lm_checks.txt` reports every check the case defines; a missing check is an `LM_ERROR`. |
+
+### Negative cases
+
 Negative cases (`tags = ["negative"]`) list the checks they must fail in
 `expect_failed_checks`. They use test-only entities under `negative/`,
 compiled only for their own case through `extra_files`. To see the checks
@@ -103,6 +123,13 @@ fail as regular cases:
 ```powershell
 python tools\synth\run_vendor_synth.py --config tools\synth\local.toml --tag negative --ignore-expected-failures
 ```
+
+The `neg_report_*` cases check the report completeness. They synthesize a
+real design, then `test_corrupt` empties or truncates one report (Quartus,
+after the tool run: a file of the case directory) or runs the checks without
+a design or with an empty ignored-exceptions report (Vivado, inside the
+script). They pass only if the run fails with the `expect_error` message.
+`test_corrupt` is meant for negative cases only.
 
 A Quartus target whose family or device is not installed stops with an
 `LM_ERROR` message naming the missing family or device; a missing Vivado part

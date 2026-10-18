@@ -94,6 +94,14 @@ class SynthCase:
     def expected_passes(self, tool: str) -> list[str]:
         return list(self.options.get("expect_passed_checks", {}).get(tool, []))
 
+    @property
+    def expected_error(self) -> str:
+        return str(self.options.get("expect_error", ""))
+
+    @property
+    def test_corrupt(self) -> dict[str, Any]:
+        return dict(self.options.get("test_corrupt", {}))
+
 
 def load_toml(path: Path) -> dict[str, Any]:
     try:
@@ -388,11 +396,24 @@ def tcl_check_constraint(label: str, command: str, colls: list[str]) -> str:
 # primitive whose leaf name is <signal>_reg, <signal>_reg[n] or, once packed
 # into a shift register, <signal>_reg[n]_srl<k>; registers in a generate
 # block carry a "<label>[i]." prefix in the same leaf name.
+# A check that passes when something is absent (no SRL cell, no ignored
+# exception) needs an open, non-empty netlist and a recognized report;
+# otherwise it fails with an LM_ERROR detail, which fails the case.
 VIVADO_CHECK_PROCS = r"""
 set lm_fh [open [file join $script_dir reports lm_checks.txt] w]
 proc lm_check {name ok detail} {
   global lm_fh
   puts $lm_fh "LM_CHECK [expr {$ok ? {PASS} : {FAIL}}] $name $detail"
+}
+proc lm_netlist_error {} {
+  if {[catch {current_design} design] || $design eq ""} { return "LM_ERROR: no synthesized design is open" }
+  if {[llength [get_cells -hier -quiet -filter {IS_PRIMITIVE}]] == 0} { return "LM_ERROR: the synthesized netlist has no primitive cells" }
+  return ""
+}
+proc lm_report_error {report command heading} {
+  if {[string trim $report] eq ""} { return "LM_ERROR: $command returned an empty report" }
+  if {[string first $heading $report] < 0} { return "LM_ERROR: $command report is not recognized (no '$heading')" }
+  return ""
 }
 proc lm_chain_cells {signals} {
   set found {}
@@ -405,6 +426,11 @@ proc lm_chain_cells {signals} {
   return $found
 }
 proc lm_check_chain {label signals expected} {
+  global lm_netlist_err
+  if {$lm_netlist_err ne ""} {
+    foreach item {count cell_type async_reg} { lm_check "chain:$label:$item" 0 $lm_netlist_err }
+    return
+  }
   set cells [lm_chain_cells $signals]
   set n [llength $cells]
   lm_check "chain:$label:count" [expr {$n == $expected}] "expected=$expected found=$n"
@@ -436,39 +462,79 @@ proc lm_rows {report} {
 """
 
 
+def constraint_check_names(case: SynthCase, tool: str) -> list[str]:
+    constraints = case_constraints(case, tool)
+    if not constraints:
+        return []
+    names = [f"constraint:{label}:{item}" for label, _, _ in constraints for item in ("objects", "applied")]
+    names += ["constraints:listed", "constraints:not_ignored"]
+    if tool == "quartus":
+        names.append("constraints:valid")
+    if tool == "vivado" and any(command.startswith("set_bus_skew") for _, command, _ in constraints):
+        names.append("constraints:bus_skew_reported")
+    return names
+
+
+def expected_check_names(case: SynthCase, tool: str) -> list[str]:
+    """Every check the generated scripts and the report parser must report."""
+    items = ("count", "cell_type", "async_reg") if tool == "vivado" else ("count", "synchronizer")
+    names = [f"chain:{chain['label']}:{item}" for chain in case.chains for item in items]
+    if case.no_shift_register:
+        names.append("no_shift_register")
+    return names + constraint_check_names(case, tool)
+
+
 def vivado_checks(case: SynthCase) -> list[str]:
     if not case.has_checks:
         return []
     lines = VIVADO_CHECK_PROCS.strip().splitlines()
+    corrupt = case.test_corrupt.get("report", "")
+    if corrupt == "netlist":
+        # negative cases only: run the checks without a synthesized design
+        lines.append("close_design")
+    lines.append("set lm_netlist_err [lm_netlist_error]")
     for chain in case.chains:
         lines.append(f"lm_check_chain {tcl(chain['label'])} {tcl_list(chain['signals'])} {int(chain['registers'])}")
     if case.no_shift_register:
         lines.extend(
             [
-                "set lm_srl [get_cells -hier -quiet -filter {REF_NAME =~ SRL*}]",
-                "lm_check no_shift_register [expr {[llength $lm_srl] == 0}] \"srl_cells=[llength $lm_srl]\"",
+                "if {$lm_netlist_err ne \"\"} {",
+                "  lm_check no_shift_register 0 $lm_netlist_err",
+                "} else {",
+                "  set lm_srl [get_cells -hier -quiet -filter {REF_NAME =~ SRL*}]",
+                "  lm_check no_shift_register [expr {[llength $lm_srl] == 0}] \"srl_cells=[llength $lm_srl]\"",
+                "}",
             ]
         )
     constraints = case_constraints(case, "vivado")
     if constraints:
-        lines.extend(constraint_clocks(case))
-        lines.extend(tcl_check_constraint(label, command, colls) for label, command, colls in constraints)
         expected = sum(1 for _, command, _ in constraints if is_exception(command))
-        lines.extend(
+        bus_skew = any(command.startswith("set_bus_skew") for _, command, _ in constraints)
+        body = [*constraint_clocks(case)]
+        body.extend(tcl_check_constraint(label, command, colls) for label, command, colls in constraints)
+        body.extend(
             [
                 "set lm_exc [report_exceptions -return_string]",
                 "set lm_ign [report_exceptions -ignored -return_string]",
+                *(['set lm_ign ""'] if corrupt == "exceptions_ignored" else []),
                 "set lm_rpt [open [file join $script_dir reports constraint_exceptions.rpt] w]",
                 "puts $lm_rpt $lm_exc",
                 "puts $lm_rpt $lm_ign",
                 "close $lm_rpt",
-                f"lm_check constraints:listed [expr {{[llength [lm_rows $lm_exc]] == {expected}}}] "
-                f"\"expected={expected} listed=[llength [lm_rows $lm_exc]]\"",
-                "lm_check constraints:not_ignored [expr {[llength [lm_rows $lm_ign]] == 0}] \"ignored=[join [lm_rows $lm_ign] { | }]\"",
+                "set lm_exc_err [lm_report_error $lm_exc {report_exceptions} {Exceptions Report}]",
+                "set lm_ign_err [lm_report_error $lm_ign {report_exceptions -ignored} {Exceptions Report}]",
+                "set lm_ign_rows [lm_rows $lm_ign]",
+                "if {$lm_ign_err eq \"\" && [llength $lm_ign_rows] == 0 && [string first {No ignored timing exceptions found.} $lm_ign] < 0} {",
+                "  set lm_ign_err {LM_ERROR: report_exceptions -ignored report is not recognized (no rows, no empty-report message)}",
+                "}",
+                f"lm_check constraints:listed [expr {{$lm_exc_err eq \"\" && [llength [lm_rows $lm_exc]] == {expected}}}] "
+                f"[expr {{$lm_exc_err ne \"\" ? $lm_exc_err : \"expected={expected} listed=[llength [lm_rows $lm_exc]]\"}}]",
+                "lm_check constraints:not_ignored [expr {$lm_ign_err eq \"\" && [llength $lm_ign_rows] == 0}] "
+                "[expr {$lm_ign_err ne \"\" ? $lm_ign_err : \"ignored=[join $lm_ign_rows { | }]\"}]",
             ]
         )
-        if any(command.startswith("set_bus_skew") for _, command, _ in constraints):
-            lines.extend(
+        if bus_skew:
+            body.extend(
                 [
                     "set lm_skew [report_bus_skew -return_string]",
                     "set lm_rpt [open [file join $script_dir reports constraint_bus_skew.rpt] w]",
@@ -477,6 +543,14 @@ def vivado_checks(case: SynthCase) -> list[str]:
                     "lm_check constraints:bus_skew_reported [expr {[llength [lm_rows $lm_skew]] > 0}] \"rows=[llength [lm_rows $lm_skew]]\"",
                 ]
             )
+        # without a netlist the constraint commands cannot run: every
+        # constraint check fails with the netlist error
+        failed = [f"lm_check {name} 0 $lm_netlist_err" for name in constraint_check_names(case, "vivado")]
+        lines.append("if {$lm_netlist_err eq \"\"} {")
+        lines.extend("  " + line for line in body)
+        lines.append("} else {")
+        lines.extend("  " + line for line in failed)
+        lines.append("}")
     lines.append("close $lm_fh")
     return lines
 
@@ -745,8 +819,8 @@ def rpt_rows(lines: list[str]) -> list[list[str]]:
     return rows
 
 
-def rpt_panel(text: str, title: str) -> list[list[str]] | None:
-    """Rows of the first panel whose title row matches, None if absent."""
+def rpt_panel_lines(text: str, title: str) -> list[str] | None:
+    """Lines of the first panel whose title row matches, None if absent."""
     lines = text.splitlines()
     for index, line in enumerate(lines):
         cells = rpt_rows([line])
@@ -756,8 +830,121 @@ def rpt_panel(text: str, title: str) -> list[list[str]] | None:
                 if not follow.strip():
                     break
                 body.append(follow)
-            return rpt_rows(body)
+            return body
     return None
+
+
+def rpt_panel(text: str, title: str) -> list[list[str]] | None:
+    """Rows of the first panel whose title row matches, None if absent."""
+    body = rpt_panel_lines(text, title)
+    return None if body is None else rpt_rows(body)
+
+
+def rpt_titles(lines: list[str]) -> set[str]:
+    """Panel titles of a Quartus report: rows with a single cell."""
+    return {cells[0].strip() for cells in rpt_rows(lines) if len(cells) == 1}
+
+
+# --- Quartus report completeness ---------------------------------------------
+# A check that passes when something is absent (no SHIFT_TAPS row, no invalid
+# or ignored exception, no register identified another way) reads a report
+# that must first be shown complete: an empty, truncated or unrecognized
+# report fails the check with an LM_ERROR detail, which fails the case.
+
+
+def read_report(path: Path, kind: str) -> tuple[str, str]:
+    """(text, error) of a report file; error is empty when the file has content."""
+    if not path.exists():
+        return "", f"LM_ERROR: {kind} is missing: {path.name}"
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    if not text.strip():
+        return "", f"LM_ERROR: {kind} is empty: {path.name}"
+    return text, ""
+
+
+def map_report_error(path: Path) -> str:
+    """Empty when the Analysis & Synthesis report is complete and successful.
+
+    Complete: every panel of the table of contents is present (the summary
+    and the messages are mandatory) and the messages end with the processing
+    end of a successful run.
+    """
+    kind = "Analysis & Synthesis report"
+    text, error = read_report(path, kind)
+    if error:
+        return error
+    lines = text.splitlines()
+    toc: list[str] = []
+    if lines[0].startswith("Analysis & Synthesis report for ") and "; Table of Contents ;" in lines:
+        for line in lines[lines.index("; Table of Contents ;") + 2 :]:
+            match = re.match(r"^\s*\d+\.\s+(.*\S)\s*$", line)
+            if not match:
+                break
+            toc.append(match.group(1))
+    required = ["Analysis & Synthesis Summary", "Analysis & Synthesis Messages"]
+    if not all(title in toc for title in required):
+        return f"LM_ERROR: {kind} is not recognized: {path.name}"
+    missing = [title for title in toc if title not in rpt_titles(lines)]
+    if missing:
+        return f"LM_ERROR: {kind} is truncated: {path.name}: panel '{missing[0]}' is missing"
+    done = [index for index, line in enumerate(lines) if line.startswith("Info: Quartus Prime Analysis & Synthesis was successful.")]
+    if not done or not any("Processing ended:" in line for line in lines[done[-1] :]):
+        return f"LM_ERROR: {kind} is truncated: {path.name}: no successful end of processing"
+    summary = rpt_panel(text, "Analysis & Synthesis Summary") or []
+    status = [row[1].strip() for row in summary if len(row) > 1 and row[0].strip() == "Analysis & Synthesis Status"]
+    if not status or not status[0].startswith("Successful"):
+        return f"LM_ERROR: {kind} does not report a successful run: {path.name}"
+    return ""
+
+
+def metastability_report_error(path: Path) -> str:
+    """Empty when every synchronizer chain announced by the summary is complete."""
+    kind = "metastability report"
+    text, error = read_report(path, kind)
+    if error:
+        return error
+    match = re.search(r"^Number of Synchronizer Chains Found: (\d+)$", text, flags=re.MULTILINE)
+    if "; MTBF Summary ;" not in text or not match:
+        return f"LM_ERROR: {kind} is not recognized: {path.name}"
+    chains = parse_metastability(text)
+    incomplete = [
+        str(index)
+        for index, chain in enumerate(chains, start=1)
+        if not chain["method"] or not chain["registers"] or len(chain["registers"]) != chain["length"]
+    ]
+    if len(chains) != int(match.group(1)) or incomplete:
+        detail = f", incomplete chain {incomplete[0]}" if incomplete else ""
+        return f"LM_ERROR: {kind} is truncated: {path.name}: {len(chains)} of {match.group(1)} chains{detail}"
+    return ""
+
+
+def exceptions_report_error(path: Path) -> str:
+    """Empty when the report has no exceptions or a closed summary panel."""
+    kind = "exceptions report"
+    text, error = read_report(path, kind)
+    if error:
+        return error
+    lines = text.splitlines()
+    if "; Report Exceptions ;" in lines and any(line.startswith("No exceptions were found.") for line in lines):
+        return ""
+    body = rpt_panel_lines(text, "Report Exceptions Summary")
+    if body is None:
+        return f"LM_ERROR: {kind} is not recognized: {path.name}"
+    if not body or not body[-1].startswith("+"):
+        return f"LM_ERROR: {kind} is truncated: {path.name}"
+    return ""
+
+
+def ignored_report_error(path: Path) -> str:
+    """Empty when the report states that nothing was ignored or lists SDC commands."""
+    kind = "ignored-constraints report"
+    text, error = read_report(path, kind)
+    if error:
+        return error
+    lines = text.splitlines()
+    if "No constraints were ignored." not in lines and not any(line.startswith("; SDC Command ") for line in lines):
+        return f"LM_ERROR: {kind} is not recognized: {path.name}"
+    return ""
 
 
 def leaf_matches(register: str, signals: list[str]) -> bool:
@@ -773,7 +960,7 @@ def parse_metastability(text: str) -> list[dict[str, Any]]:
     in_registers = False
     for line in text.splitlines():
         if line.startswith("Synchronizer Chain #"):
-            current = {"method": "", "registers": []}
+            current = {"method": "", "registers": [], "length": None}
             chains.append(current)
             in_registers = False
             continue
@@ -791,6 +978,8 @@ def parse_metastability(text: str) -> list[dict[str, Any]]:
         in_registers = key == "Synchronization Registers"
         if key == "Method of Synchronizer Identification" and len(cells[0]) > 1:
             current["method"] = cells[0][1].strip()
+        if key == "Number of Synchronization Registers in Chain" and len(cells[0]) > 1 and cells[0][1].strip().isdigit():
+            current["length"] = int(cells[0][1].strip())
     return chains
 
 
@@ -802,12 +991,13 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
 
     if case.chains:
         meta_path = case_dir / "reports" / "metastability.rpt"
-        chains = parse_metastability(meta_path.read_text(encoding="utf-8", errors="ignore")) if meta_path.exists() else None
+        meta_error = metastability_report_error(meta_path)
+        chains = [] if meta_error else parse_metastability(meta_path.read_text(encoding="utf-8", errors="ignore"))
         for chain in case.chains:
             label, signals, expected = chain["label"], list(chain["signals"]), int(chain["registers"])
-            if chains is None:
-                check(f"chain:{label}:count", False, "metastability report missing")
-                check(f"chain:{label}:synchronizer", False, "metastability report missing")
+            if meta_error:
+                check(f"chain:{label}:count", False, meta_error)
+                check(f"chain:{label}:synchronizer", False, meta_error)
                 continue
             found = [(reg, item["method"]) for item in chains for reg in item["registers"] if leaf_matches(reg, signals)]
             check(f"chain:{label}:count", len(found) == expected, f"expected={expected} found={len(found)}")
@@ -824,26 +1014,29 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
         if tcl_checks.exists():
             lines.extend(line for line in tcl_checks.read_text(encoding="utf-8", errors="ignore").splitlines() if line.startswith("LM_CHECK"))
         else:
-            check("constraints:applied", False, "Timing Analyzer check output missing")
+            check("constraints:applied", False, "LM_ERROR: Timing Analyzer check output is missing: lm_constraint_checks.txt")
         expected = sum(1 for _, command, _ in constraints if is_exception(command))
         exc_path = case_dir / "reports" / "constraint_exceptions.rpt"
         ign_path = case_dir / "reports" / "constraint_ignored.rpt"
-        panel = rpt_panel(exc_path.read_text(encoding="utf-8", errors="ignore"), "Report Exceptions Summary") if exc_path.exists() else None
+        exc_error = exceptions_report_error(exc_path)
+        panel = [] if exc_error else rpt_panel(exc_path.read_text(encoding="utf-8", errors="ignore"), "Report Exceptions Summary")
         rows = [row for row in (panel or []) if row and row[0].strip() not in {"", "Status"}]
         invalid = [row[1].strip() + " " + row[7].strip() for row in rows if row[0].strip() == "Invalid" and len(row) > 7]
-        check("constraints:listed", len(rows) == expected, f"expected={expected} listed={len(rows)}")
-        check("constraints:valid", bool(rows) and not invalid, f"invalid={' | '.join(invalid)}")
-        ignored_text = ign_path.read_text(encoding="utf-8", errors="ignore") if ign_path.exists() else ""
+        check("constraints:listed", not exc_error and len(rows) == expected, exc_error or f"expected={expected} listed={len(rows)}")
+        check("constraints:valid", not exc_error and bool(rows) and not invalid, exc_error or f"invalid={' | '.join(invalid)}")
+        ign_error = ignored_report_error(ign_path)
+        ignored_text = "" if ign_error else ign_path.read_text(encoding="utf-8", errors="ignore")
         check(
             "constraints:not_ignored",
-            "No constraints were ignored." in ignored_text,
-            "see reports/constraint_ignored.rpt" if ignored_text else "ignored-constraints report missing",
+            not ign_error and "No constraints were ignored." in ignored_text,
+            ign_error or "see reports/constraint_ignored.rpt",
         )
 
     if case.no_shift_register:
         map_path = case_dir / f"{QUARTUS_PROJECT}.map.rpt"
-        if not map_path.exists():
-            check("no_shift_register", False, "Analysis & Synthesis report missing")
+        map_error = map_report_error(map_path)
+        if map_error:
+            check("no_shift_register", False, map_error)
         else:
             panel = rpt_panel(map_path.read_text(encoding="utf-8", errors="ignore"), "Registers Packed Into Inferred Megafunctions")
             packed = [row[0].strip() for row in (panel or []) if len(row) >= 3 and row[2].strip() == "SHIFT_TAPS"]
@@ -874,7 +1067,17 @@ def evaluate_checks(target: Target, case: SynthCase, case_dir: Path, ignore_expe
     checks = read_checks(checks_path)
     details = [{"status": status, "name": name, "detail": detail} for status, name, detail in checks]
     if not checks:
-        return "failed", "structural check report is empty", details
+        return "failed", "LM_ERROR: structural check report is empty", details
+    # an LM_ERROR means a check could not be evaluated: it fails the case,
+    # also a negative case that expects that check to fail
+    errors = sorted({detail for _, _, detail in checks if detail.startswith("LM_ERROR")})
+    if errors:
+        return "failed", "; ".join(errors), details
+    # a check that is not reported cannot be taken as passed
+    reported = {name for _, name, _ in checks}
+    missing = [name for name in expected_check_names(case, target.tool) if name not in reported]
+    if missing:
+        return "failed", "LM_ERROR: structural check report is incomplete, missing: " + ", ".join(missing), details
     failed = [name for status, name, _ in checks if status != "PASS"]
     expected = [] if ignore_expected else case.expected_failures(target.tool)
 
@@ -892,7 +1095,38 @@ def evaluate_checks(target: Target, case: SynthCase, case_dir: Path, ignore_expe
     return "passed", f"{len(checks)} structural checks passed", details
 
 
+def corrupt_report(case: SynthCase, case_dir: Path) -> None:
+    """Negative cases only: empty or truncate a report before the checks read it."""
+    spec = case.test_corrupt
+    path = case_dir / spec["report"]
+    if spec.get("mode") == "empty":
+        path.write_text("", encoding="utf-8")
+    elif spec.get("mode") == "truncate":
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines(keepends=True)
+        path.write_text("".join(lines[: int(spec.get("keep_lines", len(lines) // 2))]), encoding="utf-8")
+    else:
+        raise ValueError(f"Case {case.name}: unknown test_corrupt mode {spec.get('mode')!r}")
+
+
+def apply_expected_error(case: SynthCase, result: dict[str, Any], ignore_expected: bool) -> dict[str, Any]:
+    """A case with expect_error passes only if it failed with that error."""
+    expected = case.expected_error
+    if not expected or ignore_expected:
+        return result
+    if result["status"] == "failed" and expected in result["message"]:
+        result.update(status="passed", message="negative case: failed as expected: " + result["message"])
+    else:
+        result.update(status="failed", message=f"negative case: expected error '{expected}' not reported ({result['status']}: {result['message']})")
+    return result
+
+
 def run_one(target: Target, case: SynthCase, out_root: Path, sources: list[Path], dry_run: bool, ignore_expected: bool) -> dict[str, Any]:
+    if dry_run:
+        return run_case(target, case, out_root, sources, dry_run, ignore_expected)
+    return apply_expected_error(case, run_case(target, case, out_root, sources, dry_run, ignore_expected), ignore_expected)
+
+
+def run_case(target: Target, case: SynthCase, out_root: Path, sources: list[Path], dry_run: bool, ignore_expected: bool) -> dict[str, Any]:
     case_dir = out_root / target.name / case.name
     case_dir.mkdir(parents=True, exist_ok=True)
     (case_dir / "case.json").write_text(
@@ -964,6 +1198,9 @@ def run_one(target: Target, case: SynthCase, out_root: Path, sources: list[Path]
     if result["returncode"] != 0:
         result.update(status="failed", message=first_failure_message(case_dir))
         return result
+
+    if target.tool == "quartus" and case.test_corrupt:
+        corrupt_report(case, case_dir)
 
     if case.has_checks:
         status, message, details = evaluate_checks(target, case, case_dir, ignore_expected)

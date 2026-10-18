@@ -389,3 +389,84 @@ ports = [
 clocks = { clk_i = 10.0 }
 no_shift_register = true
 expect_failed_checks = { vivado = ["no_shift_register"], quartus = ["no_shift_register"] }
+
+# Report completeness. A check that passes when something is absent must
+# not pass on a report that is empty, truncated or not recognized. These
+# cases synthesize a real design, then corrupt one report (test_corrupt,
+# negative cases only) and pass only if the run fails with expect_error.
+
+[[cases]]
+name = "neg_report_map_empty"
+entity = "lm_util_delay"
+category = "negative"
+description = "Shift-register design whose Analysis & Synthesis report is emptied before the checks."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+test_corrupt = { report = "project.map.rpt", mode = "empty" }
+expect_error = "LM_ERROR: Analysis & Synthesis report is empty"
+
+[[cases]]
+name = "neg_report_map_truncated"
+entity = "lm_util_delay"
+category = "negative"
+description = "Shift-register design whose Analysis & Synthesis report is cut before the register packing panel."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_delay = 32, g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "ce_i : in std_logic",
+  "din_i : in std_logic_vector(7 downto 0)",
+  "dout_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+test_corrupt = { report = "project.map.rpt", mode = "truncate", keep_lines = 200 }
+expect_error = "LM_ERROR: Analysis & Synthesis report is truncated"
+
+[[cases]]
+name = "neg_report_netlist"
+entity = "lm_util_ccd_resync"
+category = "negative"
+description = "Synchronizer checks run after the synthesized design is closed."
+tags = ["negative"]
+tools = ["vivado"]
+generics = { g_meta_levels = 2 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+no_shift_register = true
+chains = [{ label = "din_meta", signals = ["s_din_meta"], registers = 2 }]
+constraints = ["src/lm_util_ccd_resync.vhd"]
+test_corrupt = { report = "netlist" }
+expect_error = "LM_ERROR: no synthesized design is open"
+
+[[cases]]
+name = "neg_report_ignored_empty"
+entity = "lm_util_ccd_resync"
+category = "negative"
+description = "Constraint checks with an empty ignored-exceptions report."
+tags = ["negative"]
+tools = ["vivado"]
+generics = { g_meta_levels = 2 }
+ports = [
+  "clk_i : in std_logic",
+  "ccd_din_i : in std_logic",
+  "ccd_din_o : out std_logic",
+]
+clocks = { clk_i = 10.0 }
+constraints = ["src/lm_util_ccd_resync.vhd"]
+test_corrupt = { report = "exceptions_ignored" }
+expect_error = "LM_ERROR: report_exceptions -ignored returned an empty report"
