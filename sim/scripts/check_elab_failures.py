@@ -22,6 +22,8 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT_DIR / "src"
+# test-only entities that call library functions at elaboration
+ELAB_DIR = ROOT_DIR / "sim" / "elab"
 LIBRARY = "lm_util_lib"
 GHDL_FLAGS = ["--std=08", "-fsynopsys", "-frelaxed", f"--work={LIBRARY}"]
 
@@ -41,6 +43,8 @@ class Case:
 
 ARCH_MSG = "g_arch_type must be C_LM_SRL or C_LM_PULSE"
 WD_MSG = "g_wd_timer must be in range"
+FORMAT_RANGE_MSG = "f_string_format: integer part out of the integer range"
+FORMAT_PREC_MSG = "f_string_format: precision above 9"
 
 CASES = [
     # lm_util_delay_var: unsupported architectures for every g_delay_max
@@ -59,6 +63,12 @@ CASES = [
     Case("lm_util_ccd_resync", {"g_meta_levels": 1}, "g_meta_levels must be at least 2"),
     Case("lm_util_ccd_sync_pulse", {"g_delay_len": 2}),
     Case("lm_util_ccd_sync_pulse", {"g_delay_len": 1}, "g_delay_len must be at least 2"),
+    # f_string_format: inputs that cannot be formatted (see lm_elab_string_format)
+    Case("lm_elab_string_format", {"g_case": 0}),
+    Case("lm_elab_string_format", {"g_case": 1}, FORMAT_RANGE_MSG),
+    Case("lm_elab_string_format", {"g_case": 2}, FORMAT_RANGE_MSG),
+    Case("lm_elab_string_format", {"g_case": 3}, FORMAT_RANGE_MSG),
+    Case("lm_elab_string_format", {"g_case": 4}, FORMAT_PREC_MSG),
 ]
 
 
@@ -69,7 +79,7 @@ def run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
 def analyze(ghdl: str, workdir: Path, entities: list[str]) -> None:
     # import every source, then let GHDL analyze each entity under test with
     # its dependencies in the right order
-    sources = sorted(str(path) for path in SRC_DIR.glob("*.vhd"))
+    sources = sorted(str(path) for path in [*SRC_DIR.glob("*.vhd"), *ELAB_DIR.glob("*.vhd")])
     commands = [[ghdl, "-i", *GHDL_FLAGS, *sources]]
     commands += [[ghdl, "-m", *GHDL_FLAGS, entity] for entity in entities]
     for cmd in commands:

@@ -2782,19 +2782,44 @@ function f_slv2string (slv : std_logic_vector) return string is
     end case;
   end function;
 
+  -- precision fraction digits, half rounds away from zero; precision 0 gives
+  -- no decimal point. The integer part must fit an integer and precision must
+  -- be at most 9 (10**precision fits an integer), otherwise a failure stops
+  -- elaboration or simulation.
   function f_string_format(value : real; precision : natural := 3) return string is
-    constant C_S        : real    := sign(value);
-    constant C_VAL      : real    := value * C_S;
-    -- round once on the scaled value so a fraction that rounds up to 10**precision
-    -- carries into the integer part instead of widening the fraction field
-    constant C_SCALE    : integer := integer(10.0**precision);
-    constant C_SCALED   : integer := integer(round(C_VAL * real(C_SCALE)));
-    constant C_INT      : integer := C_SCALED / C_SCALE;
-    constant C_FRAC     : integer := C_SCALED mod C_SCALE;
-    constant C_FRAC_STR : string  := integer'image(C_FRAC);
-    constant C_RES      : string  := integer'image(C_INT) & "." & (2 to (precision - C_FRAC_STR'length + 1) => '0') & C_FRAC_STR;
+    constant C_PREC_MAX : natural := 9;
+    constant C_SCALE    : real    := 10.0**f_min(precision, C_PREC_MAX);
+    constant C_VAL      : real    := abs(value);
+    constant C_INT_MAX  : real    := real(integer'high);
+    variable v_int      : real;
+    variable v_frac     : real;
+
+    -- fraction digits with leading zeros
+    function f_frac_str(frac : natural; digits : natural) return string is
+      constant C_STR : string := integer'image(frac);
+    begin
+      return (1 to digits - C_STR'length => '0') & C_STR;
+    end function;
   begin
-    return f_sel_a_b ((C_S < 0.0), "-" & C_RES, C_RES);
+    assert precision <= C_PREC_MAX
+      report "f_string_format: precision above 9: " & integer'image(precision)
+      severity failure;
+    -- round the fraction alone and carry into the integer part: the value
+    -- scaled by 10**precision does not fit an integer for large values.
+    -- The math_real reference body returns the floor and round arguments
+    -- unchanged from integer'high on, so floor gets at most C_INT_MAX; a
+    -- larger value leaves a fraction of 1 or more, which carries above it.
+    v_int  := floor(f_sel_a_b(C_VAL < C_INT_MAX, C_VAL, C_INT_MAX));
+    v_frac := round((C_VAL - v_int) * C_SCALE);
+    if v_frac >= C_SCALE then
+      v_int  := v_int + 1.0;
+      v_frac := 0.0;
+    end if;
+    assert v_int <= C_INT_MAX
+      report "f_string_format: integer part out of the integer range: " & real'image(value)
+      severity failure;
+    return f_sel_a_b(value < 0.0, "-", "") & integer'image(integer(v_int)) &
+           f_sel_a_b(precision > 0, "." & f_frac_str(integer(v_frac), precision), "");
   end function;
 
   function f_string_length(str : string) return natural is

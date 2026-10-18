@@ -50,7 +50,12 @@ then the date is not set.
   - `f_is_power_of_two` returns `false` for 0 and negative inputs instead of
     failing;
   - `f_string_substr` no longer reports an error for valid substrings (the
-    bounds check was inverted).
+    bounds check was inverted);
+  - `f_string_format` with precision 0 returns the rounded value without a
+    decimal point (`"3"` for 2.5); it returned the truncated integer part
+    followed by a rounding digit (`"2.1"` for 2.7). An integer part above
+    `integer'high` or a precision above 9 stops with a failure instead of
+    returning a wrong string.
 
 ### Fixed
 
@@ -69,8 +74,10 @@ then the date is not set.
   delay of 1 is supported in pulse mode.
 - `lm_util_pkg`: `f_div_ceil(time, time)` no longer truncates sub-ns
   remainders; `f_string_format` carries a rounded-up fraction into the
-  integer part; the unsupported-operation guard in `f_vector_tree` can
-  actually fire.
+  integer part (0.9995 with precision 3 gives `"1.000"`, it gave
+  `"0.1000"`) and formats any integer part up to `integer'high` (the value
+  is not scaled by `10**precision` as a whole); the unsupported-operation
+  guard in `f_vector_tree` can actually fire.
 - `lm_util_ccd_sync_bus`: the request edge detector tracks the
   resynchronized request during reset. A request held asserted across the
   input-domain reset release is not detected as a new rising edge, and a
@@ -121,13 +128,15 @@ then the date is not set.
   check always fails the run.
 - Simulation: the reference simulator is GHDL 6.0.0 (LLVM backend), pinned
   in CI with `ghdl/setup-ghdl`; `vunit_hdl` is pinned to 4.7.1;
-  `sim/scripts/check_elab_failures.py` checks that invalid generics stop
-  elaboration with the intended message.
+  `sim/scripts/check_elab_failures.py` checks that invalid generics and
+  inputs that `f_string_format` cannot format stop elaboration with the
+  intended message.
 - Test coverage: counter down/load modes, pulse_stretch active-low output and
   unit lengths, delay_pulse multi-cycle pulses, delay_var unit delay max and
   pulse delay 1 (also in pulse mode with `g_delay_max = 1`, both pulse
   levels, and inputs held longer than the delay), bitsum power-of-two widths,
   clock_measure steady-state window and reset behavior (reset length and
-  phase, slow and stopped measured clock), and a new `lm_util_ccd_sync_bus`
+  phase, slow and stopped measured clock), `f_string_format` (large values,
+  carry, sign, precision 0), and a new `lm_util_ccd_sync_bus`
   testbench are now exercised; previously disabled failing configurations
   are re-enabled.
