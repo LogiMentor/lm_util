@@ -12,6 +12,8 @@ elaborate, so a failure is attributable to the generic under test.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +24,8 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT_DIR / "src"
+# per-case logs, ignored by git (sim/work/)
+LOG_ROOT = ROOT_DIR / "sim" / "work" / "elab_checks"
 # test-only entities that call library functions at elaboration
 ELAB_DIR = ROOT_DIR / "sim" / "elab"
 LIBRARY = "lm_util_lib"
@@ -89,9 +93,12 @@ def analyze(ghdl: str, workdir: Path, entities: list[str]) -> None:
             raise SystemExit("GHDL analysis failed")
 
 
-def check(ghdl: str, workdir: Path, case: Case) -> bool:
+def check(ghdl: str, workdir: Path, case: Case, log_dir: Path, index: int) -> bool:
     generics = [f"-g{key}={value}" for key, value in case.generics.items()]
-    result = run([ghdl, "--elab-run", *GHDL_FLAGS, case.entity, *generics, "--stop-time=1ns"], workdir)
+    cmd = [ghdl, "--elab-run", *GHDL_FLAGS, case.entity, *generics, "--stop-time=1ns"]
+    started = dt.datetime.now()
+    result = run(cmd, workdir)
+    seconds = (dt.datetime.now() - started).total_seconds()
     if case.expect is None:
         ok = result.returncode == 0
         detail = "elaborated" if ok else "unexpected failure"
@@ -106,6 +113,24 @@ def check(ghdl: str, workdir: Path, case: Case) -> bool:
     print(f"{'pass' if ok else 'FAIL'} {case.name}: {detail}")
     if not ok:
         print("  " + result.stdout.strip().replace("\n", "\n  "))
+    log_name = f"{index:02d}_" + re.sub(r"[^A-Za-z0-9_=.-]+", "_", case.name).strip("_") + ".txt"
+    (log_dir / log_name).write_text(
+        "\n".join(
+            [
+                f"case: {case.name}",
+                f"verdict: {'pass' if ok else 'FAIL'} ({detail})",
+                f"expected: {case.expect or 'elaboration succeeds'}",
+                f"returncode: {result.returncode}",
+                f"started: {started.isoformat(timespec='milliseconds')}",
+                f"seconds: {seconds:.3f}",
+                f"workdir: {workdir}",
+                f"command: {' '.join(cmd)}",
+                "output:",
+                result.stdout,
+            ]
+        ),
+        encoding="utf-8",
+    )
     return ok
 
 
@@ -113,6 +138,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--ghdl", default="ghdl", help="GHDL executable")
     parser.add_argument("--workdir", type=Path, default=None, help="GHDL work directory (default: temporary)")
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        default=None,
+        help="directory for one log per case (default: sim/work/elab_checks/<timestamp>)",
+    )
     args = parser.parse_args()
 
     ghdl = shutil.which(args.ghdl)
@@ -124,10 +155,16 @@ def main() -> int:
         workdir = args.workdir.resolve() if args.workdir else Path(tmp)
         workdir.mkdir(parents=True, exist_ok=True)
         analyze(ghdl, workdir, sorted({case.entity for case in CASES}))
-        results = [check(ghdl, workdir, case) for case in CASES]
+        log_dir = args.log_dir or LOG_ROOT / dt.datetime.now(tz=dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        results = [check(ghdl, workdir, case, log_dir, index) for index, case in enumerate(CASES, start=1)]
 
     failed = results.count(False)
-    print(f"{len(results) - failed}/{len(results)} elaboration checks passed")
+    summary = f"{len(results) - failed}/{len(results)} elaboration checks passed"
+    lines = [f"{'pass' if ok else 'FAIL'} {case.name}" for case, ok in zip(CASES, results)]
+    (log_dir / "summary.txt").write_text("\n".join([*lines, summary, ""]), encoding="utf-8")
+    print(summary)
+    print(f"Logs: {log_dir}")
     return 1 if failed else 0
 
 
