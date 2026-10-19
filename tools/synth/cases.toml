@@ -117,6 +117,54 @@ expect_quartus_regex = ["(?i)registers|flipflop|ALM"]
 expect_diamond_regex = ["(?i)register|slice"]
 
 # ---------------------------------------------------------------------------
+# lm_util_lfsr: the state register is the output, so the unit has exactly
+# g_data_w registers (v0.1.0 had a second, output register: 2 * g_data_w),
+# and no tool warning names its source (Quartus warned on an initialized
+# variable in f_lfsr in v0.1.0).
+#   registers   : Vivado FD* cells in the netlist, Quartus "Total registers"
+#                 in the Analysis & Synthesis Summary
+#   no_warnings : no warning or critical warning that names one of the files,
+#                 Vivado in vivado.log, Quartus in the Analysis & Synthesis
+#                 messages; both reports must be complete
+# ---------------------------------------------------------------------------
+
+[[cases]]
+name = "lfsr_8"
+entity = "lm_util_lfsr"
+category = "generator"
+description = "8-bit LFSR: one 8-bit state register, no tool warning naming the source."
+tags = ["lfsr", "registers", "warnings"]
+generics = { g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "load_i : in std_logic",
+  "seed_i : in std_logic_vector(7 downto 0)",
+  "rng_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+registers = 8
+no_warnings = ["src/lm_util_lfsr.vhd"]
+
+[[cases]]
+name = "lfsr_64"
+entity = "lm_util_lfsr"
+category = "generator"
+description = "64-bit LFSR: one 64-bit state register, no tool warning naming the source."
+tags = ["lfsr", "registers", "warnings"]
+generics = { g_data_w = 64 }
+ports = [
+  "clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "load_i : in std_logic",
+  "seed_i : in std_logic_vector(63 downto 0)",
+  "rng_o : out std_logic_vector(63 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+registers = 64
+no_warnings = ["src/lm_util_lfsr.vhd"]
+
+# ---------------------------------------------------------------------------
 # CDC synchronizer cases. Each chains entry names the RTL signals of one
 # synchronizer chain and the number of register bits expected for them.
 # Structural checks (see README.md):
@@ -564,3 +612,65 @@ clocks = { clk_i = 10.0 }
 no_shift_register = true
 test_corrupt = { report = "project.map.rpt", mode = "invalid_border", panel = "Registers Packed Into Inferred Megafunctions" }
 expect_error = "LM_ERROR: Analysis & Synthesis report panel 'Registers Packed Into Inferred Megafunctions' has an invalid border"
+
+[[cases]]
+name = "neg_lfsr_registers_warning"
+entity = "lm_synth_neg_lfsr"
+category = "negative"
+description = "LFSR-like design with an output register (16 registers) and an incomplete sensitivity list."
+tags = ["negative"]
+extra_files = ["tools/synth/negative/lm_synth_neg_lfsr.vhd"]
+generics = { g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "load_i : in std_logic",
+  "seed_i : in std_logic_vector(7 downto 0)",
+  "rng_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+registers = 8
+no_warnings = ["tools/synth/negative/lm_synth_neg_lfsr.vhd"]
+expect_failed_checks = { vivado = ["registers", "no_warnings"], quartus = ["registers", "no_warnings"] }
+
+[[cases]]
+name = "neg_report_vivado_log_truncated"
+entity = "lm_util_lfsr"
+category = "negative"
+description = "8-bit LFSR whose Vivado log is cut before the end of synthesis."
+tags = ["negative"]
+tools = ["vivado"]
+generics = { g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "load_i : in std_logic",
+  "seed_i : in std_logic_vector(7 downto 0)",
+  "rng_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+registers = 8
+no_warnings = ["src/lm_util_lfsr.vhd"]
+test_corrupt = { report = "vivado.log", mode = "truncate", keep_lines = 60 }
+expect_error = "LM_ERROR: Vivado log is truncated"
+
+[[cases]]
+name = "neg_report_map_truncated_lfsr"
+entity = "lm_util_lfsr"
+category = "negative"
+description = "8-bit LFSR whose Analysis & Synthesis report is cut before the messages."
+tags = ["negative"]
+tools = ["quartus"]
+generics = { g_data_w = 8 }
+ports = [
+  "clk_i : in std_logic",
+  "rst_n_i : in std_logic",
+  "load_i : in std_logic",
+  "seed_i : in std_logic_vector(7 downto 0)",
+  "rng_o : out std_logic_vector(7 downto 0)",
+]
+clocks = { clk_i = 10.0 }
+registers = 8
+no_warnings = ["src/lm_util_lfsr.vhd"]
+test_corrupt = { report = "project.map.rpt", mode = "truncate", keep_lines = 100 }
+expect_error = "LM_ERROR: Analysis & Synthesis report is truncated"

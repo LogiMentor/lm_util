@@ -33,6 +33,9 @@ jobs:
       - name: Run pre-commit hooks
         run: pre-commit run --all-files
 
+      - name: Check LFSR tap polynomials
+        run: python tools/check_lfsr_taps.py
+
       - name: Generate vendor synthesis dry-run scripts
         run: >
           python tools/synth/run_vendor_synth.py

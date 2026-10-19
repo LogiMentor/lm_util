@@ -234,6 +234,20 @@ generate_tests(test, g_event_edge = [1])
 test = lib.test_bench("tb_vu_lm_util_edge_detector").test("falling_edge_detect")
 generate_tests(test, g_event_edge = [0])
 
+# lm_util_lfsr: any VHDL warning (for example a NUMERIC_STD truncation) fails the test
+tb = lib.test_bench("tb_vu_lm_util_lfsr")
+tb.set_sim_option("vhdl_assert_stop_level", "warning")
+lfsr_widths = list(range(3, 169)) if args.level == 'full' else [3, 4, 8, 13, 14, 32, 102, 168]
+test = tb.test("model_sequence")
+generate_tests(test, g_data_w = lfsr_widths)
+# the 102-bit sequence changed in v0.2.0 (the v0.1.0 taps were not maximal)
+test = tb.test("main_equivalence")
+generate_tests(test, g_data_w = [w for w in lfsr_widths if w != 102])
+test = tb.test("period")
+generate_tests(test, g_data_w = list(range(3, 17)))
+test = tb.test("w102_long_cycle")
+generate_tests(test, g_data_w = [102])
+
 
 #lm_util_tick_gen
 test = lib.test_bench("tb_vu_lm_util_tick_gen")

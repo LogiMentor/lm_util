@@ -57,7 +57,7 @@ library.
 | `lm_util_delay_var` | Variable delay line. |
 | `lm_util_edge_detector` | Rising/falling edge detector. |
 | `lm_util_encoder` | One-hot to binary encoder. |
-| `lm_util_lfsr` | LFSR/xorshift random sequence generator. |
+| `lm_util_lfsr` | Fibonacci LFSR pseudo-random sequence generator (3 to 168 bits). |
 | `lm_util_mux` | Generic multiplexer. |
 | `lm_util_mux_or` | OR-combining multiplexer. |
 | `lm_util_pri_arbiter` | Fixed-priority arbiter. |
@@ -83,7 +83,8 @@ VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level full --clean --output-pat
 ```
 
 The GitHub Actions workflow runs the fast regression with GHDL and uploads the
-VUnit output as an artifact.
+VUnit output as an artifact. It also runs `tools/check_lfsr_taps.py`, which
+checks that every `lm_util_lfsr` tap set is a primitive polynomial.
 
 Vendor synthesis smoke tests for Vivado, Quartus, and Diamond are defined under
 `tools/synth/`. They run locally only, using a machine-specific tool/device

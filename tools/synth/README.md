@@ -76,8 +76,9 @@ way is run once more, and the first failure is kept under `retries` in
 
 ## Structural Checks
 
-Cases may declare synchronizer `chains` and `no_shift_register = true`.
-These checks never look at the generated scripts or at the generic tool log:
+Cases may declare synchronizer `chains`, `no_shift_register = true`,
+`registers = <n>` and `no_warnings = [<source>, ...]`. These checks never look
+at the generated scripts; only `no_warnings` reads the Vivado log:
 
 - Vivado: after `synth_design`, a Tcl query on the netlist writes
   `reports/lm_checks.txt`. For each chain, the cells whose leaf name is
@@ -85,6 +86,10 @@ These checks never look at the generated scripts or at the generic tool log:
   must match the expected count (`chain:<label>:count`), be `FD*` cells
   (`chain:<label>:cell_type`) and carry `ASYNC_REG = TRUE`
   (`chain:<label>:async_reg`). `no_shift_register` requires no `SRL*` cell.
+  `registers` requires as many `FD*` cells in the netlist as the case
+  declares. `no_warnings` requires that no `WARNING:` or
+  `CRITICAL WARNING:` line of `vivado.log` names one of the listed source
+  files (matched by file name).
 - Quartus: the flow runs Analysis & Synthesis, the Fitter and
   `report_metastability` in the Timing Analyzer, with the case `clocks`
   declared in a generated SDC (several clocks are asynchronous groups). For
@@ -93,7 +98,11 @@ These checks never look at the generated scripts or at the generic tool log:
   `User Specified` (`chain:<label>:synchronizer`), that is through the
   `SYNCHRONIZER_IDENTIFICATION` attribute. `no_shift_register` requires no
   `SHIFT_TAPS` row in the "Registers Packed Into Inferred Megafunctions"
-  panel of the Analysis & Synthesis report.
+  panel of the Analysis & Synthesis report. `registers` compares the
+  `Total registers` row of the Analysis & Synthesis Summary with the case
+  value. `no_warnings` requires that no `Warning (<id>)` or
+  `Critical Warning (<id>)` message of the Analysis & Synthesis report names
+  one of the listed source files.
 
 ### Report completeness
 
@@ -105,9 +114,10 @@ netlist or the report is complete; otherwise the check fails with an
 
 | Check | Evidence required |
 | --- | --- |
-| Vivado `chain:*`, `no_shift_register`, constraint checks | A synthesized design is open and has primitive cells. |
+| Vivado `chain:*`, `no_shift_register`, `registers`, constraint checks | A synthesized design is open and has primitive cells. |
+| Vivado `no_warnings` | `vivado.log` starts with the Vivado banner, contains `Synthesis finished with <n> errors, <n> critical warnings and <n> warnings.` and `synth_design completed successfully`, and ends with the exit of Vivado. |
 | Vivado `constraints:listed`, `constraints:not_ignored` | The `report_exceptions` strings are not empty and carry the `Exceptions Report` heading; with no ignored rows, the ignored report states `No ignored timing exceptions found.` |
-| Quartus `no_shift_register` | The Analysis & Synthesis report starts with its title, lists the summary and messages panels in the table of contents, contains every panel of the table of contents, has a complete summary panel with a successful status, and ends with the end of processing. If the "Registers Packed Into Inferred Megafunctions" panel is present it must be a complete table (see below); a valid report without that panel, and without it in the table of contents, passes. |
+| Quartus `no_shift_register`, `registers`, `no_warnings` | The Analysis & Synthesis report starts with its title, lists the summary and messages panels in the table of contents, contains every panel of the table of contents, has a complete summary panel with a successful status, and ends with the end of processing. If the "Registers Packed Into Inferred Megafunctions" panel is present it must be a complete table (see below); a valid report without that panel, and without it in the table of contents, passes. |
 | Quartus `chain:*` | The metastability report has the MTBF summary, as many chains as `Number of Synchronizer Chains Found`, a `Statistics` table, present and complete, for each chain, and each chain has its identification method and as many registers as its chain length. |
 | Quartus `constraints:listed`, `constraints:valid` | The exceptions report states that no exceptions were found, or has a complete `Report Exceptions Summary` table. |
 | Quartus `constraints:not_ignored` | The ignored-constraints report states `No constraints were ignored.` (pass) or lists SDC commands (fail). |
@@ -156,11 +166,12 @@ python tools\synth\run_vendor_synth.py --config tools\synth\local.toml --tag neg
 ```
 
 The `neg_report_*` cases check the report completeness. They synthesize a
-real design, then `test_corrupt` empties or truncates one report (Quartus,
-after the tool run: a file of the case directory) or runs the checks without
-a design or with an empty ignored-exceptions report (Vivado, inside the
-script). They pass only if the run fails with the `expect_error` message.
-`test_corrupt` is meant for negative cases only.
+real design, then `test_corrupt` empties or truncates one report (after the
+tool run: a file of the case directory, such as the Quartus Analysis &
+Synthesis report or `vivado.log`) or runs the checks without a design or
+with an empty ignored-exceptions report (Vivado, inside the script). They
+pass only if the run fails with the `expect_error` message. `test_corrupt`
+is meant for negative cases only.
 
 A Quartus target whose family or device is not installed stops with an
 `LM_ERROR` message naming the missing family or device; a missing Vivado part
@@ -205,6 +216,8 @@ The initial campaign focuses on modules where vendor behavior matters:
 - CDC synchronizers (`lm_util_ccd_resync`, `lm_util_ccd_sync_bus`,
   `lm_util_ccd_sync_pulse`, `lm_util_async_reset`, `lm_util_clock_measure`,
   `lm_util_clock_mux`): structural chain checks, tag `cdc`.
+- `lm_util_lfsr` (8 and 64 bits): exactly `g_data_w` registers and no tool
+  warning naming `src/lm_util_lfsr.vhd`, tag `lfsr`.
 - Negative cases for each kind of check, tag `negative`.
 
 Add new cases to `cases.toml` when a module gains a vendor-sensitive

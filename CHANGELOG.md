@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.2.0 - unreleased
+
+### Breaking Changes
+
+- `lm_util_lfsr` rejects `g_data_w` outside 3..168 at elaboration with
+  `severity failure` (`g_data_w must be in range 3 to 168`). Widths 1 and 2
+  had no feedback taps and produced a constant zero; 0 failed at the first
+  clock edge with an index error and negative widths without a message.
+- `lm_util_lfsr` shows the effective seed on `rng_o` while reset is active:
+  reset loads `seed_i` like `load_i`. It showed the constant 4327 truncated
+  to `g_data_w` bits. The sequence after the release of reset and after a
+  load is unchanged (checked against the v0.1.0 unit for every width 3..168
+  except 102).
+- `lm_util_lfsr` with `g_data_w = 102` uses the taps 102, 99, 97, 96 from
+  the table of Ward and Molteno (University of Otago, Electronics Technical
+  Report 2012-1). The previous taps, the XAPP052 row 102, 101, 36, 35, are
+  not a primitive polynomial (it factors into degrees 3, 34 and 65) and some
+  seeds repeated every 7 steps. The 102-bit sequence changes for every seed.
+- `lm_util_lfsr` replaces a zero seed, the lock-up state of the XOR
+  feedback, with all ones on reset and load. A zero seed kept the register
+  at zero.
+- `lm_util_lfsr` has no default initial value: before the first edge with
+  reset or load `rng_o` is `'U'` in simulation (it was all zeros except bit
+  0, then `'U'` after the first edge).
+- `lm_util_lfsr` registers are renamed: the state is the signal `s_state`,
+  which drives `rng_o`; the process variable `v_rand_tmp` and the output
+  register `s_rng_reg` are gone. Timing constraints or debug probes that
+  name them must be updated.
+
+### Fixed
+
+- `lm_util_lfsr` no longer reports `NUMERIC_STD.TO_SIGNED: vector truncated`
+  on every clock edge with reset active for `g_data_w <= 13`, and Quartus no
+  longer warns about an initialized variable in `f_lfsr`.
+- `lm_util_pkg`: the comments of `f_int2slv`, `f_nat2slv`, `f_int2sl` and
+  `f_slv2sl` describe the functions (they named other functions or wrong
+  argument types). No code change.
+
+### Changed
+
+- `lm_util_lfsr` uses `g_data_w` flip-flops instead of `2 * g_data_w`
+  (Vivado 2023.1 and Quartus Prime Lite 23.1std, 8 and 64 bits), and no
+  longer uses `lm_util_pkg`. Its header and the user guide describe it as a
+  Fibonacci LFSR with XOR feedback (it was called xorshift).
+- `tools/check_lfsr_taps.py` checks that every `lm_util_lfsr` tap set is a
+  primitive polynomial over GF(2) (irreducible, order `2^N - 1`), with the
+  factors of `2^N - 1` in a data file that the script verifies; it runs in
+  CI. It accepts only the exact form of `f_lfsr` (one XOR of `v_rand` bits
+  per width, widths 3..168 in order) and of the shift in `f_lfsr_next`, and
+  fails on anything else.
+- Vendor synthesis runner: `registers` (flip-flop count) and `no_warnings`
+  (no tool warning that names given sources) structural checks, with the
+  same report completeness rule as the other checks (Vivado log included),
+  and negative cases; new `lfsr_8` and `lfsr_64` cases.
+- Test coverage: `tb_vu_lm_util_lfsr` runs with
+  `vhdl_assert_stop_level = "warning"` and checks `lm_util_lfsr` against a
+  reference model and against a test-only copy of the v0.1.0 unit (widths
+  3, 4, 8, 13, 14, 32, 102, 168 in the fast regression, 3..168 in the full
+  one), the period `2^N - 1` for widths 3..16 and the 102-bit seed that
+  repeated every 7 steps; elaboration checks for the rejected widths.
+
 ## v0.1.0 - 2026-10-18
 
 First tagged version.

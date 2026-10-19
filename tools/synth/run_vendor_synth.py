@@ -8,7 +8,8 @@ the repository while leaving tool paths, parts, and enabled targets to a local
 configuration file.
 
 Cases may declare structural checks (synchronizer chains, no shift-register
-inference). Vivado checks query the synthesized netlist from Tcl; Quartus
+inference, register count, no tool warning naming given sources). Vivado
+checks query the synthesized netlist from Tcl and read the Vivado log; Quartus
 checks read the Analysis & Synthesis report and the Timing Analyzer
 metastability report. Each check writes one line to reports/lm_checks.txt and
 any failing check fails the case.
@@ -85,8 +86,24 @@ class SynthCase:
         return list(self.options.get("constraints", []))
 
     @property
+    def registers(self) -> int | None:
+        value = self.options.get("registers")
+        return None if value is None else int(value)
+
+    @property
+    def no_warnings(self) -> list[str]:
+        """Source file names that no tool warning may name."""
+        return [Path(path).name for path in self.options.get("no_warnings", [])]
+
+    @property
     def has_checks(self) -> bool:
-        return bool(self.chains) or self.no_shift_register or bool(self.constraint_sources)
+        return (
+            bool(self.chains)
+            or self.no_shift_register
+            or bool(self.constraint_sources)
+            or self.registers is not None
+            or bool(self.no_warnings)
+        )
 
     def expected_failures(self, tool: str) -> list[str]:
         return list(self.options.get("expect_failed_checks", {}).get(tool, []))
@@ -481,6 +498,10 @@ def expected_check_names(case: SynthCase, tool: str) -> list[str]:
     names = [f"chain:{chain['label']}:{item}" for chain in case.chains for item in items]
     if case.no_shift_register:
         names.append("no_shift_register")
+    if case.registers is not None:
+        names.append("registers")
+    if case.no_warnings:
+        names.append("no_warnings")
     return names + constraint_check_names(case, tool)
 
 
@@ -495,6 +516,17 @@ def vivado_checks(case: SynthCase) -> list[str]:
     lines.append("set lm_netlist_err [lm_netlist_error]")
     for chain in case.chains:
         lines.append(f"lm_check_chain {tcl(chain['label'])} {tcl_list(chain['signals'])} {int(chain['registers'])}")
+    if case.registers is not None:
+        lines.extend(
+            [
+                "if {$lm_netlist_err ne \"\"} {",
+                "  lm_check registers 0 $lm_netlist_err",
+                "} else {",
+                "  set lm_ff [get_cells -hier -quiet -filter {IS_PRIMITIVE && REF_NAME =~ FD*}]",
+                f"  lm_check registers [expr {{[llength $lm_ff] == {case.registers}}}] \"expected={case.registers} found=[llength $lm_ff]\"",
+                "}",
+            ]
+        )
     if case.no_shift_register:
         lines.extend(
             [
@@ -1015,6 +1047,52 @@ def ignored_report_error(path: Path) -> str:
     return ""
 
 
+def vivado_log_error(path: Path) -> str:
+    """Empty when the Vivado log covers a complete, successful synthesis run.
+
+    Complete: the log starts with the Vivado banner, reports the end of
+    synthesis with its message counts and a successful synth_design, and
+    ends with the exit of Vivado.
+    """
+    kind = "Vivado log"
+    text, error = read_report(path, kind)
+    if error:
+        return error
+    lines = [line.rstrip() for line in text.splitlines()]
+    if not lines[0].startswith("#---") or not any(line.startswith("# Vivado v") for line in lines[:3]):
+        return f"LM_ERROR: {kind} is not recognized: {path.name}"
+    if not any(re.match(r"^Synthesis finished with \d+ errors, \d+ critical warnings and \d+ warnings\.$", line) for line in lines):
+        return f"LM_ERROR: {kind} is truncated: {path.name}: no end of synthesis"
+    if "synth_design completed successfully" not in lines:
+        return f"LM_ERROR: {kind} does not report a successful synth_design: {path.name}"
+    if not lines[-1].startswith("INFO: [Common 17-206] Exiting Vivado"):
+        return f"LM_ERROR: {kind} is truncated: {path.name}: no exit of Vivado"
+    return ""
+
+
+def warnings_naming(lines: list[str], pattern: str, files: list[str]) -> list[str]:
+    """Warning messages that name one of the files."""
+    return [line.strip() for line in lines if re.match(pattern, line) and any(name in line for name in files)]
+
+
+def warning_check(text: str, error: str, pattern: str, files: list[str]) -> tuple[bool, str]:
+    """(ok, detail) of a no_warnings check on a report that error declares complete."""
+    if error:
+        return False, error
+    found = warnings_naming(text.splitlines(), pattern, files)
+    return not found, f"warnings={len(found)}" + (f" first={found[0]}" if found else "")
+
+
+def vivado_log_checks(case: SynthCase, case_dir: Path) -> list[str]:
+    if not case.no_warnings:
+        return []
+    path = case_dir / "vivado.log"
+    error = vivado_log_error(path)
+    text = "" if error else path.read_text(encoding="utf-8", errors="ignore")
+    ok, detail = warning_check(text, error, r"^(?:CRITICAL )?WARNING: ", case.no_warnings)
+    return [f"LM_CHECK {'PASS' if ok else 'FAIL'} no_warnings {detail}"]
+
+
 def leaf_matches(register: str, signals: list[str]) -> bool:
     leaf = register.split("|")[-1].strip()
     base = re.sub(r"\[\d+\]$", "", leaf)
@@ -1102,8 +1180,25 @@ def quartus_checks(case: SynthCase, case_dir: Path) -> list[str]:
             ign_error or "see reports/constraint_ignored.rpt",
         )
 
+    map_path = case_dir / f"{QUARTUS_PROJECT}.map.rpt"
+    if case.registers is not None or case.no_warnings:
+        map_error = map_report_error(map_path)
+        map_text = "" if map_error else map_path.read_text(encoding="utf-8", errors="ignore")
+        if case.registers is not None:
+            # map_report_error has checked that the summary panel is complete
+            summary = [] if map_error else rpt_table(map_text, "Analysis & Synthesis Summary", None, "")[0] or []
+            total = [row[1].strip().replace(",", "") for row in summary if row[0].strip() == "Total registers"]
+            if map_error:
+                check("registers", False, map_error)
+            elif not total or not total[0].isdigit():
+                check("registers", False, f"LM_ERROR: Analysis & Synthesis Summary has no 'Total registers' row: {map_path.name}")
+            else:
+                check("registers", int(total[0]) == case.registers, f"expected={case.registers} found={total[0]}")
+        if case.no_warnings:
+            ok, detail = warning_check(map_text, map_error, r"^\s*(?:Critical )?Warning \(\d+\)", case.no_warnings)
+            check("no_warnings", ok, detail)
+
     if case.no_shift_register:
-        map_path = case_dir / f"{QUARTUS_PROJECT}.map.rpt"
         map_error = map_report_error(map_path)
         if map_error:
             check("no_shift_register", False, map_error)
@@ -1136,6 +1231,10 @@ def evaluate_checks(target: Target, case: SynthCase, case_dir: Path, ignore_expe
         checks_path.write_text("\n".join(quartus_checks(case, case_dir)) + "\n", encoding="utf-8")
     if not checks_path.exists():
         return "failed", f"structural check report missing: {CHECKS_FILE.as_posix()}", []
+    if target.tool == "vivado" and case.no_warnings:
+        # the log is complete only after Vivado exits: checked here, not in Tcl
+        with checks_path.open("a", encoding="utf-8") as fh:
+            fh.write("\n".join(vivado_log_checks(case, case_dir)) + "\n")
 
     checks = read_checks(checks_path)
     details = [{"status": status, "name": name, "detail": detail} for status, name, detail in checks]
@@ -1297,7 +1396,9 @@ def run_case(target: Target, case: SynthCase, out_root: Path, sources: list[Path
         result.update(status="failed", message=first_failure_message(case_dir))
         return result
 
-    if target.tool == "quartus" and case.test_corrupt:
+    # report files are corrupted here; "netlist" and "exceptions_ignored" are
+    # handled inside the Vivado script
+    if case.test_corrupt and case.test_corrupt.get("report") not in {"netlist", "exceptions_ignored"}:
         corrupt_report(case, case_dir)
 
     if case.has_checks:

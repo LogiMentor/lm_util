@@ -49,6 +49,7 @@ ARCH_MSG = "g_arch_type must be C_LM_SRL or C_LM_PULSE"
 WD_MSG = "g_wd_timer must be in range"
 FORMAT_RANGE_MSG = "f_string_format: integer part out of the integer range"
 FORMAT_PREC_MSG = "f_string_format: precision above 9"
+LFSR_MSG = "g_data_w must be in range 3 to 168"
 
 CASES = [
     # lm_util_delay_var: unsupported architectures for every g_delay_max
@@ -67,6 +68,14 @@ CASES = [
     Case("lm_util_ccd_resync", {"g_meta_levels": 1}, "g_meta_levels must be at least 2"),
     Case("lm_util_ccd_sync_pulse", {"g_delay_len": 2}),
     Case("lm_util_ccd_sync_pulse", {"g_delay_len": 1}, "g_delay_len must be at least 2"),
+    # lm_util_lfsr: tap sets exist for widths 3..168 only
+    Case("lm_util_lfsr", {"g_data_w": 3}),
+    Case("lm_util_lfsr", {"g_data_w": 168}),
+    Case("lm_util_lfsr", {"g_data_w": -1}, LFSR_MSG),
+    Case("lm_util_lfsr", {"g_data_w": 0}, LFSR_MSG),
+    Case("lm_util_lfsr", {"g_data_w": 1}, LFSR_MSG),
+    Case("lm_util_lfsr", {"g_data_w": 2}, LFSR_MSG),
+    Case("lm_util_lfsr", {"g_data_w": 169}, LFSR_MSG),
     # f_string_format: inputs that cannot be formatted (see lm_elab_string_format)
     Case("lm_elab_string_format", {"g_case": 0}),
     Case("lm_elab_string_format", {"g_case": 1}, FORMAT_RANGE_MSG),

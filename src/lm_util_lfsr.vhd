@@ -5,12 +5,31 @@
 -- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
--- Description: random noise generator
--- The xorshift random number generator produces a sequence of 2^g_data_w -1
--- by making a xor of a computer word with a shifted version of itself.
--- Computing such xorshift opeations for various shifts and arguments provides
--- extremely fast and simple RNGs.
---
+-- Description: pseudo-random sequence generator, Fibonacci linear feedback
+-- shift register (LFSR) with XOR feedback.
+--  - Width: 3 <= g_data_w <= 168, checked at elaboration (severity failure).
+--  - State: g_data_w bits, shifted towards the MSB on every rising edge of
+--    clk_i; the new bit 0 is the XOR of the tap bits listed in f_lfsr. rng_o
+--    is the state register itself (g_data_w flip-flops). There is no enable.
+--  - Taps: Xilinx XAPP052, Table 3 (1-based there, 0-based here). Every tap
+--    set is a primitive polynomial, checked by tools/check_lfsr_taps.py, so
+--    from any nonzero state the sequence runs through all 2^g_data_w - 1
+--    nonzero values. Width 102 differs from the table: the XAPP052 row
+--    102, 101, 36, 35 is not primitive (its polynomial factors into degrees
+--    3, 34 and 65, and some seeds repeat every 7 steps), so the taps
+--    102, 99, 97, 96 come from R. Ward and T. Molteno, "Table of Linear
+--    Feedback Shift Registers", University of Otago, Electronics Technical
+--    Report 2012-1.
+--  - Reset and load: rst_n_i is synchronous and active low. An edge with
+--    rst_n_i = '0' or load_i = '1' loads the effective seed, which rng_o
+--    shows after that edge (during reset rng_o follows seed_i one clock
+--    cycle later). The next edge without reset or load gives the next value
+--    of the sequence.
+--  - Zero seed: all zeros is the lock-up state of the XOR feedback, so a
+--    zero seed_i loads all ones instead (effective seed). The zero
+--    detection is on seed_i, outside the feedback loop.
+--  - Before the first edge with reset or load the state is not
+--    initialized: in simulation rng_o is 'U'.
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -31,30 +50,22 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-
-library lm_util_lib;
-use lm_util_lib.lm_util_pkg.all;
 
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
--- random noise generator
--- The xorshift random number generator produces a sequence of 2^g_data_w -1
--- by making a xor of a computer word with a shifted version of itself.
--- Computing such xorshift opeations for various shifts and arguments provides
--- extremely fast and simple RNGs.
+-- Fibonacci LFSR with XOR feedback; see the description in the file header.
 entity lm_util_lfsr is
   generic(
-    -- data width
+    -- data width, 3 to 168
     g_data_w : integer := 32
     );
   port(
     clk_i   : in  std_logic;                                -- input clock
-    rst_n_i : in  std_logic;                                -- input reset
-    load_i  : in  std_logic;                                -- load seed
-    seed_i  : in  std_logic_vector(g_data_w - 1 downto 0);  -- seed (should be nonzero)
-    rng_o   : out std_logic_vector(g_data_w - 1 downto 0)   -- random output
+    rst_n_i : in  std_logic;                                -- synchronous reset, active low: loads the seed
+    load_i  : in  std_logic;                                -- load the seed
+    seed_i  : in  std_logic_vector(g_data_w - 1 downto 0);  -- seed; zero loads all ones
+    rng_o   : out std_logic_vector(g_data_w - 1 downto 0)   -- state register, pseudo-random output
     );
 end lm_util_lfsr;
 
@@ -63,9 +74,10 @@ architecture a_rtl of lm_util_lfsr is
   --function for Linear Feedback Shift Register.
 
   function f_lfsr(random : std_logic_vector) return std_logic is
-    variable v_xor_out : std_logic                                  := '0';
-    variable v_rand    : std_logic_vector(random'length-1 downto 0) := random;
+    alias v_rand       : std_logic_vector(random'length - 1 downto 0) is random;
+    variable v_xor_out : std_logic;
   begin
+    v_xor_out := '0';
     if(v_rand'length = 3) then          --3
       v_xor_out := v_rand(2) xor v_rand(1);
     elsif(v_rand'length = 4) then       --4
@@ -264,8 +276,8 @@ architecture a_rtl of lm_util_lfsr is
       v_xor_out := v_rand(99) xor v_rand(62);
     elsif(v_rand'length = 101) then     --101
       v_xor_out := v_rand(100) xor v_rand(99) xor v_rand(94) xor v_rand(93);
-    elsif(v_rand'length = 102) then     --102
-      v_xor_out := v_rand(101) xor v_rand(100) xor v_rand(35) xor v_rand(34);
+    elsif(v_rand'length = 102) then     --102 (Ward and Molteno; XAPP052 row 102,101,36,35 is not primitive)
+      v_xor_out := v_rand(101) xor v_rand(98) xor v_rand(96) xor v_rand(95);
     elsif(v_rand'length = 103) then     --103
       v_xor_out := v_rand(102) xor v_rand(93);
     elsif(v_rand'length = 104) then     --104
@@ -404,36 +416,42 @@ architecture a_rtl of lm_util_lfsr is
   end f_lfsr;
 --END function for Linear Feedback Shift Register.
 
-  signal s_rng_reg : std_logic_vector(g_data_w - 1 downto 0) := std_logic_vector(to_unsigned(1, g_data_w));
+  -- next state: shift towards the MSB, feedback bit into bit 0
+  function f_lfsr_next(state : std_logic_vector) return std_logic_vector is
+    alias v_state : std_logic_vector(state'length - 1 downto 0) is state;
+  begin
+    return v_state(v_state'high - 1 downto 0) & f_lfsr(v_state);
+  end f_lfsr_next;
+
+  constant C_ZERO : std_logic_vector(g_data_w - 1 downto 0) := (others => '0');
+  constant C_ONES : std_logic_vector(g_data_w - 1 downto 0) := (others => '1');
+
+  signal s_state : std_logic_vector(g_data_w - 1 downto 0);  -- LFSR state, drives rng_o
 
 begin
 
-  assert (g_data_w <= 168) report "g_data_w out of supported range in f_lfsr" severity failure;
+  -- f_lfsr has tap sets for widths 3 to 168 only
+  assert (g_data_w >= 3) and (g_data_w <= 168)
+    report "g_data_w must be in range 3 to 168, got " & integer'image(g_data_w)
+    severity failure;
 
   proc_rng : process(clk_i)
-    variable v_rand_tmp : std_logic_vector(g_data_w - 1 downto 0);
-    variable v_lfsr     : std_logic;
   begin
     if rising_edge(clk_i) then
-      if (rst_n_i = '0') then
-        s_rng_reg   <= f_int2slv(4327, rng_o'length);
-        v_rand_tmp  := seed_i;
-      else
-        if load_i = '1' then
-          v_rand_tmp := seed_i;
+      if (rst_n_i = '0') or (load_i = '1') then
+        -- reset and load both load the seed; a zero seed is the lock-up
+        -- state of the XOR feedback, so all ones is loaded instead
+        if seed_i = C_ZERO then
+          s_state <= C_ONES;
         else
-          v_lfsr                          := f_lfsr(v_rand_tmp);
-          v_rand_tmp(g_data_w-1 downto 1) := v_rand_tmp(g_data_w-2 downto 0);
-          v_rand_tmp(0)                   := v_lfsr;
+          s_state <= seed_i;
         end if;
-
-        s_rng_reg <= v_rand_tmp;
-
+      else
+        s_state <= f_lfsr_next(s_state);
       end if;
     end if;
   end process proc_rng;
 
-  rng_o <= std_logic_vector(s_rng_reg);
+  rng_o <= s_state;
 
 end a_rtl;
-
