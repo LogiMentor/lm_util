@@ -13,10 +13,11 @@
   to `g_data_w` bits. The sequence after the release of reset and after a
   load is unchanged (checked against the v0.1.0 unit for every width 3..168
   except 102).
-- `lm_util_lfsr` with `g_data_w = 102` uses the taps 102, 101, 26, 25. The
-  previous taps, the XAPP052 row 102, 101, 36, 35, are not a primitive
-  polynomial (it factors into degrees 3, 34 and 65) and some seeds repeated
-  every 7 steps. The 102-bit sequence changes for every seed.
+- `lm_util_lfsr` with `g_data_w = 102` uses the taps 102, 99, 97, 96 from
+  the table of Ward and Molteno (University of Otago, Electronics Technical
+  Report 2012-1). The previous taps, the XAPP052 row 102, 101, 36, 35, are
+  not a primitive polynomial (it factors into degrees 3, 34 and 65) and some
+  seeds repeated every 7 steps. The 102-bit sequence changes for every seed.
 - `lm_util_lfsr` replaces a zero seed, the lock-up state of the XOR
   feedback, with all ones on reset and load. A zero seed kept the register
   at zero.

@@ -16,8 +16,10 @@
 --    from any nonzero state the sequence runs through all 2^g_data_w - 1
 --    nonzero values. Width 102 differs from the table: the XAPP052 row
 --    102, 101, 36, 35 is not primitive (its polynomial factors into degrees
---    3, 34 and 65, and some seeds repeat every 7 steps), so the taps are
---    102, 101, 26, 25.
+--    3, 34 and 65, and some seeds repeat every 7 steps), so the taps
+--    102, 99, 97, 96 come from R. Ward and T. Molteno, "Table of Linear
+--    Feedback Shift Registers", University of Otago, Electronics Technical
+--    Report 2012-1.
 --  - Reset and load: rst_n_i is synchronous and active low. An edge with
 --    rst_n_i = '0' or load_i = '1' loads the effective seed, which rng_o
 --    shows after that edge (during reset rng_o follows seed_i one clock
@@ -274,8 +276,8 @@ architecture a_rtl of lm_util_lfsr is
       v_xor_out := v_rand(99) xor v_rand(62);
     elsif(v_rand'length = 101) then     --101
       v_xor_out := v_rand(100) xor v_rand(99) xor v_rand(94) xor v_rand(93);
-    elsif(v_rand'length = 102) then     --102 (XAPP052 row 102,101,36,35 is not primitive)
-      v_xor_out := v_rand(101) xor v_rand(100) xor v_rand(25) xor v_rand(24);
+    elsif(v_rand'length = 102) then     --102 (Ward and Molteno; XAPP052 row 102,101,36,35 is not primitive)
+      v_xor_out := v_rand(101) xor v_rand(98) xor v_rand(96) xor v_rand(95);
     elsif(v_rand'length = 103) then     --103
       v_xor_out := v_rand(102) xor v_rand(93);
     elsif(v_rand'length = 104) then     --104

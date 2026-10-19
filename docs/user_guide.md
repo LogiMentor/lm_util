@@ -203,7 +203,9 @@ with a failure). `rng_o` is the state register itself: on every rising edge of
 there is no enable. The taps come from Xilinx XAPP052, Table 3, except width
 102: the table row `102, 101, 36, 35` is not a primitive polynomial (it
 factors into degrees 3, 34 and 65, and some seeds repeat every 7 steps), so
-the unit uses `102, 101, 26, 25`. Every tap set is primitive, which
+the unit uses `102, 99, 97, 96` from the table of R. Ward and T. Molteno
+("Table of Linear Feedback Shift Registers", University of Otago, Electronics
+Technical Report 2012-1). Every tap set is primitive, which
 `tools/check_lfsr_taps.py` verifies in CI: from any nonzero state the
 sequence runs through all `2**g_data_w - 1` nonzero values.
 

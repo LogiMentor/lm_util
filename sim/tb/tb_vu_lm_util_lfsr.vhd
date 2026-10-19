@@ -9,7 +9,8 @@
 --              Reference model (independent of the RTL, taps transcribed
 --              from XAPP052 Table 3, except width 102: the table row
 --              102, 101, 36, 35 is not a primitive polynomial and is
---              replaced by 102, 101, 26, 25):
+--              replaced by 102, 99, 97, 96 from Ward and Molteno, Otago
+--              Electronics Technical Report 2012-1):
 --              - effective seed: seed_i, or all ones if seed_i is zero;
 --              - an edge with reset or load sets rng_o to the effective seed;
 --              - any other edge sets rng_o to step(rng_o): shift towards the
@@ -178,7 +179,7 @@ architecture a_tb of tb_vu_lm_util_lfsr is
     99  => ( 99,  97,  54,  52,   0,   0),
     100 => (100,  63,   0,   0,   0,   0),
     101 => (101, 100,  95,  94,   0,   0),
-    102 => (102, 101,  26,  25,   0,   0),  -- XAPP052: 102, 101, 36, 35 (not primitive)
+    102 => (102,  99,  97,  96,   0,   0),  -- Ward and Molteno; XAPP052: 102, 101, 36, 35 (not primitive)
     103 => (103,  94,   0,   0,   0,   0),
     104 => (104, 103,  94,  93,   0,   0),
     105 => (105,  89,   0,   0,   0,   0),
