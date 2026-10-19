@@ -250,24 +250,26 @@ package lm_util_pkg is
   -------------------------------------------------------------------------------
   -- integer to standard logic conversion
   -- Example: f_int2sl(1) = '1', std_logic
-  -- n std_logic input (only 0 and 1 are allowed)
+  -- n integer input (only 0 and 1 are allowed, other values stop with a failure)
   -- std_logic equivalent to the integer input
   -------------------------------------------------------------------------------
   function f_int2sl(n : in integer) return std_logic;
 
   -------------------------------------------------------------------------------
-  -- integer to standard logic vector conversion
-  -- Example: f_int2sl(1) = "1", std_logic_vector
-  -- n std_logic input (only 0 and 1 are allowed)
-  -- std_logic_vector equivalent to the integer input
+  -- integer to standard logic vector conversion, two's complement (to_signed)
+  -- Example: f_int2slv(5, 4) = "0101", f_int2slv(-1, 4) = "1111"
+  -- n integer input; it must fit in dim bits as a signed number, otherwise
+  --   NUMERIC_STD reports a truncation warning and the dim low bits are kept
+  -- dim number of bits of the result
+  -- std_logic_vector(dim - 1 downto 0) equivalent to the integer input
   -------------------------------------------------------------------------------
   function f_int2slv(n : in integer; dim : in natural) return std_logic_vector;
 
   -------------------------------------------------------------------------------
   -- 1 element standard logic vector to standard logic
-  -- Example: f_sl2slv("0") = '0', std_logic
-  -- n std_logic_vector(0 downto 0) input
-  -- std_logoc equivalent to the std_logic_vector input
+  -- Example: f_slv2sl("0") = '0', std_logic
+  -- n std_logic_vector input (its lowest index element is returned)
+  -- std_logic equivalent to the std_logic_vector input
   -------------------------------------------------------------------------------
   function f_slv2sl(n : in std_logic_vector) return std_logic;
 
@@ -289,10 +291,12 @@ package lm_util_pkg is
   function f_slv2int(vec : std_logic_vector) return integer;
 
   -------------------------------------------------------------------------------
-  -- this function converts a natural into a std_logic_vector
-  -- Example: f_nat2slv("1000") = 8
-  -- vec, input vector
-  -- natural
+  -- this function converts a natural into a std_logic_vector (to_unsigned)
+  -- Example: f_nat2slv(8, 4) = "1000"
+  -- dec, natural input; it must fit in w bits, otherwise NUMERIC_STD reports
+  --   a truncation warning and the w low bits are kept
+  -- w, number of bits of the result
+  -- std_logic_vector(w - 1 downto 0)
   -------------------------------------------------------------------------------
   function f_nat2slv(dec, w : natural) return std_logic_vector;
 
