@@ -7,7 +7,9 @@
 -------------------------------------------------------------------------------
 -- Description: Testbench for lm_util_lfsr
 --              Reference model (independent of the RTL, taps transcribed
---              from XAPP052 Table 3):
+--              from XAPP052 Table 3, except width 102: the table row
+--              102, 101, 36, 35 is not a primitive polynomial and is
+--              replaced by 102, 101, 26, 25):
 --              - effective seed: seed_i, or all ones if seed_i is zero;
 --              - an edge with reset or load sets rng_o to the effective seed;
 --              - any other edge sets rng_o to step(rng_o): shift towards the
@@ -20,7 +22,11 @@
 --              - main_equivalence: rng_o equals the output of lm_ref_lfsr_v010,
 --                the unit as released in v0.1.0, driven with the same inputs,
 --                in every cycle outside reset, for nonzero seeds (the value
---                during reset and the zero seed changed by design).
+--                during reset, the zero seed and width 102 changed by design);
+--              - period: from a nonzero seed, rng_o returns to it after
+--                exactly 2^N - 1 steps (run for widths 3 to 16);
+--              - w102_long_cycle: a 102-bit seed that repeated every 7 steps
+--                with the XAPP052 taps does not repeat within C_W102_STEPS.
 --              run.py runs this testbench with vhdl_assert_stop_level =
 --              "warning": any VHDL warning (for example a NUMERIC_STD
 --              truncation) fails the test.
@@ -49,6 +55,9 @@ end tb_vu_lm_util_lfsr;
 architecture a_tb of tb_vu_lm_util_lfsr is
   -- Constants
   constant C_STEPS : positive := 200;  -- free-running steps after reset and after load
+  -- width 102: seed on a 7-step cycle of the XAPP052 taps, and steps checked
+  constant C_W102_SEED  : std_logic_vector(103 downto 0) := x"25_CB97_2E5C_B972_E5CB_972E_5CB9";
+  constant C_W102_STEPS : positive := 10_000;
 
   subtype t_word is std_logic_vector(g_data_w - 1 downto 0);
   type t_word_arr is array (natural range <>) of t_word;
@@ -169,7 +178,7 @@ architecture a_tb of tb_vu_lm_util_lfsr is
     99  => ( 99,  97,  54,  52,   0,   0),
     100 => (100,  63,   0,   0,   0,   0),
     101 => (101, 100,  95,  94,   0,   0),
-    102 => (102, 101,  36,  35,   0,   0),
+    102 => (102, 101,  26,  25,   0,   0),  -- XAPP052: 102, 101, 36, 35 (not primitive)
     103 => (103,  94,   0,   0,   0,   0),
     104 => (104, 103,  94,  93,   0,   0),
     105 => (105,  89,   0,   0,   0,   0),
@@ -314,6 +323,8 @@ begin
   proc_main : process
     variable v_model : t_word;
     variable v_next  : natural;
+    variable v_first : t_word;
+    variable v_count : natural;
 
     -- one clock edge, then compare with the v0.1.0 reference
     procedure p_step_check(constant C_WHAT : string) is
@@ -366,6 +377,39 @@ begin
       p_step_model("reset and load together");
       load_i  <= '0';
       rst_n_i <= '1';
+    elsif run("period") then
+      check_true(g_data_w <= 20, "period test limited to widths up to 20");
+      seed_i  <= C_SEEDS(0);
+      rst_n_i <= '0';
+      p_wait_clk(clk_i);
+      rst_n_i <= '1';
+      wait for C_T_EPSILON;
+      v_first := rng_o;
+      v_count := 0;
+      loop
+        p_wait_clk(clk_i);
+        wait for C_T_EPSILON;
+        v_count := v_count + 1;
+        exit when rng_o = v_first or v_count = 2**g_data_w;
+      end loop;
+      check_equal(v_count, 2**g_data_w - 1, "steps until the seed repeats");
+    elsif run("w102_long_cycle") then
+      check_equal(g_data_w, 102, "test defined for width 102");
+      seed_i  <= C_W102_SEED(g_data_w - 1 downto 0);
+      rst_n_i <= '0';
+      p_wait_clk(clk_i);
+      rst_n_i <= '1';
+      wait for C_T_EPSILON;
+      v_first := rng_o;
+      v_count := 0;
+      for k in 1 to C_W102_STEPS loop
+        p_wait_clk(clk_i);
+        wait for C_T_EPSILON;
+        if rng_o = v_first and v_count = 0 then
+          v_count := k;
+        end if;
+      end loop;
+      check_equal(v_count, 0, "step at which the seed repeats (0: no repeat within " & to_string(C_W102_STEPS) & " steps)");
     elsif run("main_equivalence") then
       for i in C_SEEDS'range loop
         -- reset with seed i (the value during reset changed by design)

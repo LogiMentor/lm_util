@@ -265,8 +265,8 @@ architecture a_rtl of lm_util_lfsr is
       v_xor_out := v_rand(99) xor v_rand(62);
     elsif(v_rand'length = 101) then     --101
       v_xor_out := v_rand(100) xor v_rand(99) xor v_rand(94) xor v_rand(93);
-    elsif(v_rand'length = 102) then     --102
-      v_xor_out := v_rand(101) xor v_rand(100) xor v_rand(35) xor v_rand(34);
+    elsif(v_rand'length = 102) then     --102 (XAPP052 row 102,101,36,35 is not primitive)
+      v_xor_out := v_rand(101) xor v_rand(100) xor v_rand(25) xor v_rand(24);
     elsif(v_rand'length = 103) then     --103
       v_xor_out := v_rand(102) xor v_rand(93);
     elsif(v_rand'length = 104) then     --104
