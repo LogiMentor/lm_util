@@ -384,7 +384,9 @@ begin
       p_wait_clk(clk_i);
       rst_n_i <= '1';
       wait for C_T_EPSILON;
-      v_first := rng_o;
+      -- reference: the seed (nonzero), not rng_o, which in reset need not
+      -- show the loaded state
+      v_first := C_SEEDS(0);
       v_count := 0;
       loop
         p_wait_clk(clk_i);
@@ -400,7 +402,9 @@ begin
       p_wait_clk(clk_i);
       rst_n_i <= '1';
       wait for C_T_EPSILON;
-      v_first := rng_o;
+      -- reference: the seed (nonzero), not rng_o, which in reset need not
+      -- show the loaded state
+      v_first := C_W102_SEED(g_data_w - 1 downto 0);
       v_count := 0;
       for k in 1 to C_W102_STEPS loop
         p_wait_clk(clk_i);
