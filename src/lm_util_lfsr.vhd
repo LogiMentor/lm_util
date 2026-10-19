@@ -63,9 +63,10 @@ architecture a_rtl of lm_util_lfsr is
   --function for Linear Feedback Shift Register.
 
   function f_lfsr(random : std_logic_vector) return std_logic is
-    variable v_xor_out : std_logic                                  := '0';
-    variable v_rand    : std_logic_vector(random'length-1 downto 0) := random;
+    alias v_rand       : std_logic_vector(random'length - 1 downto 0) is random;
+    variable v_xor_out : std_logic;
   begin
+    v_xor_out := '0';
     if(v_rand'length = 3) then          --3
       v_xor_out := v_rand(2) xor v_rand(1);
     elsif(v_rand'length = 4) then       --4
@@ -404,36 +405,39 @@ architecture a_rtl of lm_util_lfsr is
   end f_lfsr;
 --END function for Linear Feedback Shift Register.
 
-  signal s_rng_reg : std_logic_vector(g_data_w - 1 downto 0) := std_logic_vector(to_unsigned(1, g_data_w));
+  -- next state: shift towards the MSB, feedback bit into bit 0
+  function f_lfsr_next(state : std_logic_vector) return std_logic_vector is
+    alias v_state : std_logic_vector(state'length - 1 downto 0) is state;
+  begin
+    return v_state(v_state'high - 1 downto 0) & f_lfsr(v_state);
+  end f_lfsr_next;
+
+  -- value of rng_o during reset: 4327 truncated to g_data_w bits
+  constant C_RST_VAL : std_logic_vector(g_data_w - 1 downto 0) := std_logic_vector(resize(to_unsigned(4327, 13), g_data_w));
+
+  signal s_state   : std_logic_vector(g_data_w - 1 downto 0);  -- LFSR state
+  signal s_rng_reg : std_logic_vector(g_data_w - 1 downto 0);  -- output register
 
 begin
 
   assert (g_data_w <= 168) report "g_data_w out of supported range in f_lfsr" severity failure;
 
   proc_rng : process(clk_i)
-    variable v_rand_tmp : std_logic_vector(g_data_w - 1 downto 0);
-    variable v_lfsr     : std_logic;
   begin
     if rising_edge(clk_i) then
       if (rst_n_i = '0') then
-        s_rng_reg   <= f_int2slv(4327, rng_o'length);
-        v_rand_tmp  := seed_i;
+        s_state   <= seed_i;
+        s_rng_reg <= C_RST_VAL;
+      elsif load_i = '1' then
+        s_state   <= seed_i;
+        s_rng_reg <= seed_i;
       else
-        if load_i = '1' then
-          v_rand_tmp := seed_i;
-        else
-          v_lfsr                          := f_lfsr(v_rand_tmp);
-          v_rand_tmp(g_data_w-1 downto 1) := v_rand_tmp(g_data_w-2 downto 0);
-          v_rand_tmp(0)                   := v_lfsr;
-        end if;
-
-        s_rng_reg <= v_rand_tmp;
-
+        s_state   <= f_lfsr_next(s_state);
+        s_rng_reg <= f_lfsr_next(s_state);
       end if;
     end if;
   end process proc_rng;
 
-  rng_o <= std_logic_vector(s_rng_reg);
+  rng_o <= s_rng_reg;
 
 end a_rtl;
-
