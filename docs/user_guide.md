@@ -174,7 +174,7 @@ When synthesis completes, Vivado reports include:
 | `lm_util_delay_var` | Variable delay line with SRL or pulse/counter architecture. | `g_delay_max`, `g_data_w`, `g_arch_type`, `g_pulse_level` |
 | `lm_util_edge_detector` | Single-clock edge detector. | `g_event_edge` |
 | `lm_util_encoder` | Registered one-hot to binary encoder. | `g_data_w` |
-| `lm_util_lfsr` | LFSR/xorshift pseudo-random sequence generator. | `g_data_w` |
+| `lm_util_lfsr` | Fibonacci LFSR pseudo-random sequence generator. | `g_data_w` (3 to 168) |
 | `lm_util_mux` | Combinational or registered generic multiplexer. | `g_data_w`, `g_arch_type`, `g_nof_inputs` |
 | `lm_util_mux_or` | OR-combines data, valid, start-of-frame, and end-of-frame inputs. | `g_num_inputs`, `g_data_width` |
 | `lm_util_pri_arbiter` | Fixed-priority request arbiter. | `g_units` |
@@ -195,6 +195,39 @@ until reset, `init_i`, or the next checked data update; qualify it with the
 protocol boundary that marks the end of the CRC field. In the serial engine,
 `flush_i` shifts the CRC register for output serialization and does not update
 `match_o`.
+
+`lm_util_lfsr` is a Fibonacci linear feedback shift register with XOR
+feedback, for `g_data_w` from 3 to 168 bits (other values stop elaboration
+with a failure). `rng_o` is the state register itself: on every rising edge of
+`clk_i` it shifts towards the MSB and the new bit 0 is the XOR of the taps;
+there is no enable. The taps come from Xilinx XAPP052, Table 3, except width
+102: the table row `102, 101, 36, 35` is not a primitive polynomial (it
+factors into degrees 3, 34 and 65, and some seeds repeat every 7 steps), so
+the unit uses `102, 101, 26, 25`. Every tap set is primitive, which
+`tools/check_lfsr_taps.py` verifies in CI: from any nonzero state the
+sequence runs through all `2**g_data_w - 1` nonzero values.
+
+Reset (`rst_n_i`, synchronous, active low) and `load_i` both load the
+effective seed, which `rng_o` shows after that edge; while reset is held,
+`rng_o` follows `seed_i` one clock cycle later. The first edge without reset
+or load gives the next value of the sequence. All zeros is the lock-up state
+of the XOR feedback, so a zero `seed_i` loads all ones instead. Until the
+first edge with reset or load the register is not initialized: in simulation
+`rng_o` is `'U'`.
+
+```vhdl
+inst_lfsr : entity lm_util_lib.lm_util_lfsr
+  generic map(
+    g_data_w => 32
+  )
+  port map(
+    clk_i   => clk_i,
+    rst_n_i => rst_n_i,
+    load_i  => s_seed_load,
+    seed_i  => s_seed,
+    rng_o   => s_rng
+  );
+```
 
 `lm_util_pkg` contains shared constants, types, and utility functions. Common
 configuration constants include:
@@ -248,6 +281,7 @@ Some modules need vendor report review even when simulation passes:
 | `lm_util_delay_var` | SRL versus pulse/counter implementation. |
 | CDC modules (`lm_util_ccd_resync`, `lm_util_ccd_sync_bus`, `lm_util_ccd_sync_pulse`, `lm_util_async_reset`, `lm_util_clock_measure`, `lm_util_clock_mux`) | Synchronizer chains stay discrete flip-flops recognized as synchronizers, and the published constraint examples match and apply; checked by the `cdc` cases. |
 | `lm_util_clock_mux` | Clock mux and keep/preserve handling on each target family. |
+| `lm_util_lfsr` | One `g_data_w`-bit register and no tool warning on the source; checked by the `lfsr` cases. |
 
 Use `tools/synth/cases.toml` to add or tune cases when a module is sensitive to
 a specific vendor or family.

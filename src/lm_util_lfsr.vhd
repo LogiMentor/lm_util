@@ -5,12 +5,29 @@
 -- Company     : LogiMentor Srl
 -- Author      : A.Campera
 -------------------------------------------------------------------------------
--- Description: random noise generator
--- The xorshift random number generator produces a sequence of 2^g_data_w -1
--- by making a xor of a computer word with a shifted version of itself.
--- Computing such xorshift opeations for various shifts and arguments provides
--- extremely fast and simple RNGs.
---
+-- Description: pseudo-random sequence generator, Fibonacci linear feedback
+-- shift register (LFSR) with XOR feedback.
+--  - Width: 3 <= g_data_w <= 168, checked at elaboration (severity failure).
+--  - State: g_data_w bits, shifted towards the MSB on every rising edge of
+--    clk_i; the new bit 0 is the XOR of the tap bits listed in f_lfsr. rng_o
+--    is the state register itself (g_data_w flip-flops). There is no enable.
+--  - Taps: Xilinx XAPP052, Table 3 (1-based there, 0-based here). Every tap
+--    set is a primitive polynomial, checked by tools/check_lfsr_taps.py, so
+--    from any nonzero state the sequence runs through all 2^g_data_w - 1
+--    nonzero values. Width 102 differs from the table: the XAPP052 row
+--    102, 101, 36, 35 is not primitive (its polynomial factors into degrees
+--    3, 34 and 65, and some seeds repeat every 7 steps), so the taps are
+--    102, 101, 26, 25.
+--  - Reset and load: rst_n_i is synchronous and active low. An edge with
+--    rst_n_i = '0' or load_i = '1' loads the effective seed, which rng_o
+--    shows after that edge (during reset rng_o follows seed_i one clock
+--    cycle later). The next edge without reset or load gives the next value
+--    of the sequence.
+--  - Zero seed: all zeros is the lock-up state of the XOR feedback, so a
+--    zero seed_i loads all ones instead (effective seed). The zero
+--    detection is on seed_i, outside the feedback loop.
+--  - Before the first edge with reset or load the state is not
+--    initialized: in simulation rng_o is 'U'.
 -------------------------------------------------------------------------------
 -- Copyright 2025 LogiMentor Srl
 --
@@ -31,30 +48,22 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-
-library lm_util_lib;
-use lm_util_lib.lm_util_pkg.all;
 
 -------------------------------------------------------------------------------
 -- ENTITY
 -------------------------------------------------------------------------------
--- random noise generator
--- The xorshift random number generator produces a sequence of 2^g_data_w -1
--- by making a xor of a computer word with a shifted version of itself.
--- Computing such xorshift opeations for various shifts and arguments provides
--- extremely fast and simple RNGs.
+-- Fibonacci LFSR with XOR feedback; see the description in the file header.
 entity lm_util_lfsr is
   generic(
-    -- data width
+    -- data width, 3 to 168
     g_data_w : integer := 32
     );
   port(
     clk_i   : in  std_logic;                                -- input clock
-    rst_n_i : in  std_logic;                                -- input reset
-    load_i  : in  std_logic;                                -- load seed
-    seed_i  : in  std_logic_vector(g_data_w - 1 downto 0);  -- seed (should be nonzero)
-    rng_o   : out std_logic_vector(g_data_w - 1 downto 0)   -- random output
+    rst_n_i : in  std_logic;                                -- synchronous reset, active low: loads the seed
+    load_i  : in  std_logic;                                -- load the seed
+    seed_i  : in  std_logic_vector(g_data_w - 1 downto 0);  -- seed; zero loads all ones
+    rng_o   : out std_logic_vector(g_data_w - 1 downto 0)   -- state register, pseudo-random output
     );
 end lm_util_lfsr;
 
