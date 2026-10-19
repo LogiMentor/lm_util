@@ -2,9 +2,10 @@
 
 """Check that every lm_util_lfsr tap set is a primitive polynomial over GF(2).
 
-The taps are read from f_lfsr in src/lm_util_lfsr.vhd. Bit i of the register
-(i = 0 .. N-1) holds the feedback bit computed i + 1 clock cycles earlier, so
-a tap set T gives the characteristic polynomial
+The taps are read from f_lfsr in src/lm_util_lfsr.vhd. f_lfsr_next shifts the
+state towards the MSB and puts the XOR of the taps into bit 0, so bit i of the
+register (i = 0 .. N-1) holds the feedback bit computed i + 1 clock cycles
+earlier, and a tap set T gives the characteristic polynomial
 
     P(x) = x^N + sum(x^(N-1-i) for i in T)
 
@@ -12,9 +13,17 @@ and the register runs through all 2^N - 1 nonzero states if and only if P is
 primitive: irreducible (Rabin test) and of order 2^N - 1, i.e.
 x^((2^N - 1) / r) != 1 mod P for every prime r dividing 2^N - 1.
 
+That convention holds only for the exact form of f_lfsr and f_lfsr_next, so
+the script accepts only that form (comments, spacing and case aside): the
+if/elsif chain over widths 3 .. 168 in order, each branch a single XOR of
+v_rand bits, and the shift in f_lfsr_next as listed in F_LFSR_NEXT. Any other
+expression, operator, vector name or structure is an error, not something to
+interpret.
+
 The prime factors of 2^N - 1 come from tools/check_lfsr_taps_factors.txt.
 That file is checked too: the product of the factors must be 2^N - 1 and
-every factor must be prime. Primality uses a deterministic Miller-Rabin test
+every factor must be prime, each width and each prime appears once, and
+exponents are at least 1. Primality uses a deterministic Miller-Rabin test
 (bases 2 .. 41) below 3.3 * 10^24 and the Baillie-PSW test above, which is a
 strong probable-prime test with no known counterexample.
 
@@ -189,22 +198,103 @@ def primitivity_error(poly: int, degree: int, order_primes: list[int]) -> str | 
 # Inputs
 # ---------------------------------------------------------------------------
 
+# Expected form of f_lfsr around the tap chain, and of f_lfsr_next, compared
+# after vhdl_tokens()
+F_LFSR_HEAD = (
+    "function f_lfsr(random : std_logic_vector) return std_logic is",
+    "alias v_rand : std_logic_vector(random'length - 1 downto 0) is random;",
+    "variable v_xor_out : std_logic;",
+    "begin",
+    "v_xor_out := '0';",
+)
+F_LFSR_TAIL = (
+    "end if;",
+    "return v_xor_out;",
+    "end f_lfsr;",
+)
+F_LFSR_NEXT = (
+    "function f_lfsr_next(state : std_logic_vector) return std_logic_vector is",
+    "alias v_state : std_logic_vector(state'length - 1 downto 0) is state;",
+    "begin",
+    "return v_state(v_state'high - 1 downto 0) & f_lfsr(v_state);",
+    "end f_lfsr_next;",
+)
+# the only use of f_lfsr_next: the register update
+NEXT_STATE = "s_state <= f_lfsr_next(s_state);"
+BRANCH_RE = re.compile(r"(if|elsif) \( v_rand'length = (\d+) \) then")
+ASSIGN_RE = re.compile(r"v_xor_out := v_rand \( \d+ \)(?: xor v_rand \( \d+ \))* ;")
+
+
+def vhdl_tokens(line: str) -> str:
+    """Code of one line without comment, in lower case, tokens joined by single spaces."""
+    code = line.split("--", 1)[0].lower()
+    return " ".join(re.findall(r"'.'|:=|<=|[a-z_]\w*(?:'[a-z_]\w*)?|\d+|\S", code))
+
+
 def read_taps(source: Path) -> dict[int, list[int]]:
     """Tap indices per width, from the f_lfsr if/elsif chain."""
-    text = source.read_text(encoding="utf-8")
-    match = re.search(r"function\s+f_lfsr\b(.*?)end\s+(?:function\s+)?f_lfsr\s*;", text, re.S | re.I)
-    if match is None:
-        raise CheckError(f"{source.name}: function f_lfsr not found")
-    body = re.sub(r"--[^\n]*", "", match.group(1))
+    name = source.name
+    lines = source.read_text(encoding="utf-8").splitlines()
+    tokenized = ((number, vhdl_tokens(line)) for number, line in enumerate(lines, start=1))
+    code = [(number, tokens) for number, tokens in tokenized if tokens]
+
+    def shown(number: int) -> str:
+        """Source line `number` as written, without comment."""
+        return lines[number - 1].split("--", 1)[0].strip()
+
+    def find(start: str) -> int:
+        """Index in code of the single line that starts with `start`."""
+        hits = [k for k, (_, tokens) in enumerate(code) if tokens.startswith(vhdl_tokens(start))]
+        if len(hits) != 1:
+            raise CheckError(f"{name}: expected one line starting '{start}', found {len(hits)}")
+        return hits[0]
+
+    def line_at(index: int) -> tuple[int, str]:
+        if index >= len(code):
+            raise CheckError(f"{name}: unexpected end of file")
+        return code[index]
+
+    def expect(index: int, expected: tuple[str, ...]) -> None:
+        for offset, text in enumerate(expected):
+            number, tokens = line_at(index + offset)
+            if tokens != vhdl_tokens(text):
+                raise CheckError(f"{name}:{number}: expected '{text}', found '{shown(number)}'")
+
+    # f_lfsr_next: shift towards the MSB, f_lfsr into bit 0, used once
+    expect(find("function f_lfsr_next("), F_LFSR_NEXT)
+    uses = [number for number, tokens in code if tokens == vhdl_tokens(NEXT_STATE)]
+    if len(uses) != 1:
+        raise CheckError(f"{name}: expected one '{NEXT_STATE}', found {len(uses)}")
+    for function in ("f_lfsr", "f_lfsr_next"):
+        # declaration, end and the single call
+        found = sum(tokens.split().count(function) for _, tokens in code)
+        if found != 3:
+            raise CheckError(f"{name}: {function} appears {found} times, expected 3")
+
+    # f_lfsr: fixed head, one branch per width in order, fixed tail
+    index = find("function f_lfsr(")
+    expect(index, F_LFSR_HEAD)
+    index += len(F_LFSR_HEAD)
     taps: dict[int, list[int]] = {}
-    pattern = r"'length\s*=\s*(\d+)\s*\)\s*then\s*\w+\s*:=\s*([^;]+);"
-    for width_text, expr in re.findall(pattern, body, re.I):
-        width = int(width_text)
-        if width in taps:
-            raise CheckError(f"{source.name}: width {width} defined twice in f_lfsr")
-        taps[width] = [int(index) for index in re.findall(r"\w+\s*\(\s*(\d+)\s*\)", expr)]
-    if not taps:
-        raise CheckError(f"{source.name}: no tap set found in f_lfsr")
+    for width in range(WIDTH_MIN, WIDTH_MAX + 1):
+        keyword = "if" if width == WIDTH_MIN else "elsif"
+        number, tokens = line_at(index)
+        branch = BRANCH_RE.fullmatch(tokens)
+        if branch is None or branch.group(1) != keyword or int(branch.group(2)) != width:
+            raise CheckError(f"{name}:{number}: width {width}: expected '{keyword}(v_rand'length = {width}) then' "
+                             f"(widths {WIDTH_MIN}..{WIDTH_MAX} in order), found '{shown(number)}'")
+        number, tokens = line_at(index + 1)
+        if ASSIGN_RE.fullmatch(tokens) is None:
+            raise CheckError(f"{name}:{number}: width {width}: expected "
+                             f"'v_xor_out := v_rand(i) xor v_rand(j) ...;', found '{shown(number)}'")
+        indices = [int(text) for text in re.findall(r"\d+", tokens)]
+        if len(set(indices)) != len(indices):
+            raise CheckError(f"{name}:{number}: width {width}: repeated tap index in {indices}")
+        if max(indices) >= width:
+            raise CheckError(f"{name}:{number}: width {width}: tap index above {width - 1} in {indices}")
+        taps[width] = indices
+        index += 2
+    expect(index, F_LFSR_TAIL)
     return taps
 
 
@@ -214,13 +304,21 @@ def read_factors(path: Path) -> dict[int, dict[int, int]]:
         line = line.split("#", 1)[0].strip()
         if not line:
             continue
-        match = re.fullmatch(r"(\d+):((?:\s+\d+(?:\^\d+)?)+)", line)
+        match = re.fullmatch(r"(\d+):((?:\s+\d+(?:\^-?\d+)?)+)", line)
         if match is None:
             raise CheckError(f"{path.name}:{number}: malformed line")
         width = int(match.group(1))
+        if width in factors:
+            raise CheckError(f"{path.name}:{number}: width {width} listed twice")
         entry: dict[int, int] = {}
         for item in match.group(2).split():
             prime, _, exponent = item.partition("^")
+            if int(prime) in entry:
+                raise CheckError(f"{path.name}:{number}: width {width}: factor {prime} listed twice "
+                                 f"(write it once as {prime}^<exponent>)")
+            if int(exponent or 1) < 1:
+                raise CheckError(f"{path.name}:{number}: width {width}: exponent {exponent} of {prime}, "
+                                 f"must be at least 1")
             entry[int(prime)] = int(exponent or 1)
         factors[width] = entry
     return factors
@@ -254,13 +352,7 @@ def main() -> int:
 
     errors: list[str] = []
     widths = range(WIDTH_MIN, WIDTH_MAX + 1)
-    extra = sorted(set(taps) - set(widths))
-    if extra:
-        errors.append(f"f_lfsr defines widths outside {WIDTH_MIN}..{WIDTH_MAX}: {extra}")
     for width in widths:
-        if width not in taps:
-            errors.append(f"width {width}: no tap set in f_lfsr")
-            continue
         if width not in factors:
             errors.append(f"width {width}: no factorization of 2^{width} - 1 in {args.factors.name}")
             continue
@@ -269,9 +361,6 @@ def main() -> int:
             errors.append(f"width {width}: {factor_error}")
             continue
         indices = taps[width]
-        if any(index >= width for index in indices) or len(set(indices)) != len(indices):
-            errors.append(f"width {width}: invalid tap indices {indices}")
-            continue
         poly = 1 << width
         for index in indices:
             poly ^= 1 << (width - 1 - index)

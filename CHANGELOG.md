@@ -46,7 +46,9 @@
 - `tools/check_lfsr_taps.py` checks that every `lm_util_lfsr` tap set is a
   primitive polynomial over GF(2) (irreducible, order `2^N - 1`), with the
   factors of `2^N - 1` in a data file that the script verifies; it runs in
-  CI.
+  CI. It accepts only the exact form of `f_lfsr` (one XOR of `v_rand` bits
+  per width, widths 3..168 in order) and of the shift in `f_lfsr_next`, and
+  fails on anything else.
 - Vendor synthesis runner: `registers` (flip-flop count) and `no_warnings`
   (no tool warning that names given sources) structural checks, with the
   same report completeness rule as the other checks (Vivado log included),
