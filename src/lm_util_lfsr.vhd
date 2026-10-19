@@ -419,7 +419,10 @@ architecture a_rtl of lm_util_lfsr is
 
 begin
 
-  assert (g_data_w <= 168) report "g_data_w out of supported range in f_lfsr" severity failure;
+  -- f_lfsr has tap sets for widths 3 to 168 only
+  assert (g_data_w >= 3) and (g_data_w <= 168)
+    report "g_data_w must be in range 3 to 168, got " & integer'image(g_data_w)
+    severity failure;
 
   proc_rng : process(clk_i)
   begin
