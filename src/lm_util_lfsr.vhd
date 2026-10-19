@@ -412,11 +412,10 @@ architecture a_rtl of lm_util_lfsr is
     return v_state(v_state'high - 1 downto 0) & f_lfsr(v_state);
   end f_lfsr_next;
 
-  -- value of rng_o during reset: 4327 truncated to g_data_w bits
-  constant C_RST_VAL : std_logic_vector(g_data_w - 1 downto 0) := std_logic_vector(resize(to_unsigned(4327, 13), g_data_w));
+  constant C_ZERO : std_logic_vector(g_data_w - 1 downto 0) := (others => '0');
+  constant C_ONES : std_logic_vector(g_data_w - 1 downto 0) := (others => '1');
 
-  signal s_state   : std_logic_vector(g_data_w - 1 downto 0);  -- LFSR state
-  signal s_rng_reg : std_logic_vector(g_data_w - 1 downto 0);  -- output register
+  signal s_state : std_logic_vector(g_data_w - 1 downto 0);  -- LFSR state, drives rng_o
 
 begin
 
@@ -425,19 +424,20 @@ begin
   proc_rng : process(clk_i)
   begin
     if rising_edge(clk_i) then
-      if (rst_n_i = '0') then
-        s_state   <= seed_i;
-        s_rng_reg <= C_RST_VAL;
-      elsif load_i = '1' then
-        s_state   <= seed_i;
-        s_rng_reg <= seed_i;
+      if (rst_n_i = '0') or (load_i = '1') then
+        -- reset and load both load the seed; a zero seed is the lock-up
+        -- state of the XOR feedback, so all ones is loaded instead
+        if seed_i = C_ZERO then
+          s_state <= C_ONES;
+        else
+          s_state <= seed_i;
+        end if;
       else
-        s_state   <= f_lfsr_next(s_state);
-        s_rng_reg <= f_lfsr_next(s_state);
+        s_state <= f_lfsr_next(s_state);
       end if;
     end if;
   end process proc_rng;
 
-  rng_o <= s_rng_reg;
+  rng_o <= s_state;
 
 end a_rtl;

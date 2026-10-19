@@ -238,8 +238,9 @@ generate_tests(test, g_event_edge = [0])
 tb = lib.test_bench("tb_vu_lm_util_lfsr")
 tb.set_sim_option("vhdl_assert_stop_level", "warning")
 lfsr_widths = list(range(3, 169)) if args.level == 'full' else [3, 4, 8, 13, 14, 32, 102, 168]
-test = tb.test("main_equivalence")
-generate_tests(test, g_data_w = lfsr_widths)
+for name in ["model_sequence", "main_equivalence"]:
+    test = tb.test(name)
+    generate_tests(test, g_data_w = lfsr_widths)
 
 
 #lm_util_tick_gen
