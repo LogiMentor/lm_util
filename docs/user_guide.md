@@ -84,21 +84,35 @@ Install the Python dependencies and run the VUnit regression:
 
 ```sh
 python -m pip install -r requirements.txt
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level fast --clean --output-path vunit_out
+python sim/scripts/run.py --level fast --clean --output-path vunit_out
 ```
 
 Use `--level full` for broader parameter sweeps:
 
 ```sh
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level full --clean --output-path vunit_out
+python sim/scripts/run.py --level full --clean --output-path vunit_out
 ```
 
-On Windows PowerShell, set the simulator variable before invoking the runner:
+The runner uses GHDL when `VUNIT_SIMULATOR` is not set. VUnit on its own
+takes the first simulator it finds in the `PATH`, ModelSim before GHDL, so a
+machine with both would silently run ModelSim. To use another simulator,
+name it explicitly, for example on Windows PowerShell:
 
 ```powershell
-$env:VUNIT_SIMULATOR = "ghdl"
+$env:VUNIT_SIMULATOR = "modelsim"
 python sim\scripts\run.py --level fast --clean --output-path vunit_out
 ```
+
+At start the runner prints the simulator it uses, and for GHDL the version
+and backend, for example:
+
+```text
+Simulator: ghdl
+GHDL: GHDL 6.0.0 (tarball) [Dunoon edition], backend llvm
+```
+
+The GHDL compile and elaboration flags (`--std=08 -fsynopsys -frelaxed`)
+apply whenever the simulator is GHDL, by default or by explicit choice.
 
 The reference simulator is GHDL 6.0.0 with the LLVM backend, VHDL-2008
 (`--std=08`); CI installs the same version. The Python dependencies, VUnit

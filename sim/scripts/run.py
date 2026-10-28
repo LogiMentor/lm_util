@@ -2,10 +2,12 @@
 
 import argparse
 import os
+import subprocess
 from itertools import product
 from pathlib import Path
 
 from vunit import VUnit
+from vunit.sim_if.ghdl import GHDLInterface
 
 from string_format_vectors import write as write_string_format_vectors
 
@@ -47,8 +49,20 @@ parser.add_argument('--level', choices=['fast', 'full'], default='fast')
 # Use parse_known_args to let VUnit handle the rest
 args, remaining_argv = parser.parse_known_args()
 
+# Without VUNIT_SIMULATOR, VUnit takes the first simulator it finds in the
+# PATH (ModelSim before GHDL). Default to the reference simulator so another
+# one is used only when it is chosen explicitly.
+os.environ.setdefault("VUNIT_SIMULATOR", "ghdl")
+
 # Create VUnit instance by parsing command line arguments
 vu = VUnit.from_argv(argv=remaining_argv, compile_builtins=False)
+
+simulator = vu.get_simulator_name()
+print(f"Simulator: {simulator}")
+if simulator == "ghdl":
+    ghdl_prefix = GHDLInterface.find_prefix()
+    ghdl_version = subprocess.check_output([str(Path(ghdl_prefix) / GHDLInterface.executable), "--version"], text=True)
+    print(f"GHDL: {ghdl_version.splitlines()[0]}, backend {GHDLInterface.determine_backend(ghdl_prefix)}")
 
 # Optionally add VUnit's builtin HDL utilities for checking, logging, communication...
 vu.add_vhdl_builtins()
@@ -69,7 +83,7 @@ lib.add_source_files([
     for path in sorted(TB_DIR.glob("*.vhd"))
 ])
 
-if os.environ.get("VUNIT_SIMULATOR") == "ghdl":
+if simulator == "ghdl":
     vu.set_compile_option("ghdl.a_flags", ["--std=08", "-fsynopsys", "-frelaxed"])
     vu.set_sim_option("ghdl.elab_flags", ["--std=08", "-fsynopsys", "-frelaxed"])
 

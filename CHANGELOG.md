@@ -60,6 +60,11 @@
   3, 4, 8, 13, 14, 32, 102, 168 in the fast regression, 3..168 in the full
   one), the period `2^N - 1` for widths 3..16 and the 102-bit seed that
   repeated every 7 steps; elaboration checks for the rejected widths.
+- `sim/scripts/run.py` uses GHDL when `VUNIT_SIMULATOR` is not set; another
+  simulator runs only when the variable names it. VUnit alone took the first
+  simulator in the `PATH`, ModelSim before GHDL, and the GHDL flags were
+  applied only when the variable was set to `ghdl`. The runner prints the
+  simulator it uses and, for GHDL, the version and backend.
 
 ## v0.1.0 - 2026-10-18
 

@@ -73,14 +73,17 @@ The regression is based on VUnit and self-checking testbenches. The default
 
 ```sh
 python -m pip install -r requirements.txt
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level fast --clean --output-path vunit_out
+python sim/scripts/run.py --level fast --clean --output-path vunit_out
 ```
 
 To run the extended sweep:
 
 ```sh
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level full --clean --output-path vunit_out
+python sim/scripts/run.py --level full --clean --output-path vunit_out
 ```
+
+The runner uses GHDL unless `VUNIT_SIMULATOR` names another simulator, and
+prints the simulator it uses (for GHDL also the version and backend).
 
 The GitHub Actions workflow runs the fast regression with GHDL and uploads the
 VUnit output as an artifact. It also runs `tools/check_lfsr_taps.py`, which
