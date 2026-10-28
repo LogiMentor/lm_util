@@ -66,6 +66,14 @@
   applied only when the variable was set to `ghdl`. The runner prints the
   simulator it uses and, for GHDL, the version and backend.
 
+### CI
+
+- The VUnit job uploads only `vunit_xunit.xml` and the `output.txt` of each
+  test on every run, and the rest of the test output only when the job
+  fails, without GHDL executables, objects and compiled libraries; both
+  artifacts are kept 7 days. It uploaded the whole `vunit_out` on every run,
+  about 400 MB, almost all of it GHDL executables.
+
 ## v0.1.0 - 2026-10-18
 
 First tagged version.

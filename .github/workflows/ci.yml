@@ -91,11 +91,28 @@ jobs:
           --xunit-xml vunit_xunit.xml
           --output-path vunit_out
 
+      # Only the reports: the rest of vunit_out is mostly GHDL executables
+      # (one per test), objects and compiled libraries.
       - name: Upload VUnit artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: vunit-results
+          retention-days: 7
           path: |
             vunit_xunit.xml
-            vunit_out/
+            vunit_out/test_output/*/output.txt
+
+      - name: Upload VUnit test output on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vunit-test-output
+          retention-days: 7
+          path: |
+            vunit_out/test_output/
+            !vunit_out/test_output/*/ghdl/
+            !vunit_out/**/*.exe
+            !vunit_out/**/*.o
+            !vunit_out/**/*.cf
+            !vunit_out/**/*.lst
