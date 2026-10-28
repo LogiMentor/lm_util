@@ -84,21 +84,35 @@ Install the Python dependencies and run the VUnit regression:
 
 ```sh
 python -m pip install -r requirements.txt
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level fast --clean --output-path vunit_out
+python sim/scripts/run.py --level fast --clean --output-path vunit_out
 ```
 
 Use `--level full` for broader parameter sweeps:
 
 ```sh
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level full --clean --output-path vunit_out
+python sim/scripts/run.py --level full --clean --output-path vunit_out
 ```
 
-On Windows PowerShell, set the simulator variable before invoking the runner:
+The runner uses GHDL when `VUNIT_SIMULATOR` is not set. VUnit on its own
+takes the first simulator it finds in the `PATH`, ModelSim before GHDL, so a
+machine with both would silently run ModelSim. To use another simulator,
+name it explicitly, for example on Windows PowerShell:
 
 ```powershell
-$env:VUNIT_SIMULATOR = "ghdl"
+$env:VUNIT_SIMULATOR = "modelsim"
 python sim\scripts\run.py --level fast --clean --output-path vunit_out
 ```
+
+At start the runner prints the simulator it uses, and for GHDL the version
+and backend, for example:
+
+```text
+Simulator: ghdl
+GHDL: GHDL 6.0.0 (tarball) [Dunoon edition], backend llvm
+```
+
+The GHDL compile and elaboration flags (`--std=08 -fsynopsys -frelaxed`)
+apply whenever the simulator is GHDL, by default or by explicit choice.
 
 The reference simulator is GHDL 6.0.0 with the LLVM backend, VHDL-2008
 (`--std=08`); CI installs the same version. The Python dependencies, VUnit
@@ -174,7 +188,7 @@ When synthesis completes, Vivado reports include:
 | `lm_util_delay_var` | Variable delay line with SRL or pulse/counter architecture. | `g_delay_max`, `g_data_w`, `g_arch_type`, `g_pulse_level` |
 | `lm_util_edge_detector` | Single-clock edge detector. | `g_event_edge` |
 | `lm_util_encoder` | Registered one-hot to binary encoder. | `g_data_w` |
-| `lm_util_lfsr` | LFSR/xorshift pseudo-random sequence generator. | `g_data_w` |
+| `lm_util_lfsr` | Fibonacci LFSR pseudo-random sequence generator. | `g_data_w` (3 to 168) |
 | `lm_util_mux` | Combinational or registered generic multiplexer. | `g_data_w`, `g_arch_type`, `g_nof_inputs` |
 | `lm_util_mux_or` | OR-combines data, valid, start-of-frame, and end-of-frame inputs. | `g_num_inputs`, `g_data_width` |
 | `lm_util_pri_arbiter` | Fixed-priority request arbiter. | `g_units` |
@@ -195,6 +209,41 @@ until reset, `init_i`, or the next checked data update; qualify it with the
 protocol boundary that marks the end of the CRC field. In the serial engine,
 `flush_i` shifts the CRC register for output serialization and does not update
 `match_o`.
+
+`lm_util_lfsr` is a Fibonacci linear feedback shift register with XOR
+feedback, for `g_data_w` from 3 to 168 bits (other values stop elaboration
+with a failure). `rng_o` is the state register itself: on every rising edge of
+`clk_i` it shifts towards the MSB and the new bit 0 is the XOR of the taps;
+there is no enable. The taps come from Xilinx XAPP052, Table 3, except width
+102: the table row `102, 101, 36, 35` is not a primitive polynomial (it
+factors into degrees 3, 34 and 65, and some seeds repeat every 7 steps), so
+the unit uses `102, 99, 97, 96` from the table of R. Ward and T. Molteno
+("Table of Linear Feedback Shift Registers", University of Otago, Electronics
+Technical Report 2012-1). Every tap set is primitive, which
+`tools/check_lfsr_taps.py` verifies in CI: from any nonzero state the
+sequence runs through all `2**g_data_w - 1` nonzero values.
+
+Reset (`rst_n_i`, synchronous, active low) and `load_i` both load the
+effective seed, which `rng_o` shows after that edge; while reset is held,
+`rng_o` follows `seed_i` one clock cycle later. The first edge without reset
+or load gives the next value of the sequence. All zeros is the lock-up state
+of the XOR feedback, so a zero `seed_i` loads all ones instead. Until the
+first edge with reset or load the register is not initialized: in simulation
+`rng_o` is `'U'`.
+
+```vhdl
+inst_lfsr : entity lm_util_lib.lm_util_lfsr
+  generic map(
+    g_data_w => 32
+  )
+  port map(
+    clk_i   => clk_i,
+    rst_n_i => rst_n_i,
+    load_i  => s_seed_load,
+    seed_i  => s_seed,
+    rng_o   => s_rng
+  );
+```
 
 `lm_util_pkg` contains shared constants, types, and utility functions. Common
 configuration constants include:
@@ -248,6 +297,7 @@ Some modules need vendor report review even when simulation passes:
 | `lm_util_delay_var` | SRL versus pulse/counter implementation. |
 | CDC modules (`lm_util_ccd_resync`, `lm_util_ccd_sync_bus`, `lm_util_ccd_sync_pulse`, `lm_util_async_reset`, `lm_util_clock_measure`, `lm_util_clock_mux`) | Synchronizer chains stay discrete flip-flops recognized as synchronizers, and the published constraint examples match and apply; checked by the `cdc` cases. |
 | `lm_util_clock_mux` | Clock mux and keep/preserve handling on each target family. |
+| `lm_util_lfsr` | One `g_data_w`-bit register and no tool warning on the source; checked by the `lfsr` cases. |
 
 Use `tools/synth/cases.toml` to add or tune cases when a module is sensitive to
 a specific vendor or family.

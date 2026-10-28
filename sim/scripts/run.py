@@ -2,10 +2,12 @@
 
 import argparse
 import os
+import subprocess
 from itertools import product
 from pathlib import Path
 
 from vunit import VUnit
+from vunit.sim_if.ghdl import GHDLInterface
 
 from string_format_vectors import write as write_string_format_vectors
 
@@ -47,8 +49,20 @@ parser.add_argument('--level', choices=['fast', 'full'], default='fast')
 # Use parse_known_args to let VUnit handle the rest
 args, remaining_argv = parser.parse_known_args()
 
+# Without VUNIT_SIMULATOR, VUnit takes the first simulator it finds in the
+# PATH (ModelSim before GHDL). Default to the reference simulator so another
+# one is used only when it is chosen explicitly.
+os.environ.setdefault("VUNIT_SIMULATOR", "ghdl")
+
 # Create VUnit instance by parsing command line arguments
 vu = VUnit.from_argv(argv=remaining_argv, compile_builtins=False)
+
+simulator = vu.get_simulator_name()
+print(f"Simulator: {simulator}")
+if simulator == "ghdl":
+    ghdl_prefix = GHDLInterface.find_prefix()
+    ghdl_version = subprocess.check_output([str(Path(ghdl_prefix) / GHDLInterface.executable), "--version"], text=True)
+    print(f"GHDL: {ghdl_version.splitlines()[0]}, backend {GHDLInterface.determine_backend(ghdl_prefix)}")
 
 # Optionally add VUnit's builtin HDL utilities for checking, logging, communication...
 vu.add_vhdl_builtins()
@@ -69,7 +83,7 @@ lib.add_source_files([
     for path in sorted(TB_DIR.glob("*.vhd"))
 ])
 
-if os.environ.get("VUNIT_SIMULATOR") == "ghdl":
+if simulator == "ghdl":
     vu.set_compile_option("ghdl.a_flags", ["--std=08", "-fsynopsys", "-frelaxed"])
     vu.set_sim_option("ghdl.elab_flags", ["--std=08", "-fsynopsys", "-frelaxed"])
 
@@ -233,6 +247,20 @@ generate_tests(test, g_event_edge = [1])
 
 test = lib.test_bench("tb_vu_lm_util_edge_detector").test("falling_edge_detect")
 generate_tests(test, g_event_edge = [0])
+
+# lm_util_lfsr: any VHDL warning (for example a NUMERIC_STD truncation) fails the test
+tb = lib.test_bench("tb_vu_lm_util_lfsr")
+tb.set_sim_option("vhdl_assert_stop_level", "warning")
+lfsr_widths = list(range(3, 169)) if args.level == 'full' else [3, 4, 8, 13, 14, 32, 102, 168]
+test = tb.test("model_sequence")
+generate_tests(test, g_data_w = lfsr_widths)
+# the 102-bit sequence changed in v0.2.0 (the v0.1.0 taps were not maximal)
+test = tb.test("main_equivalence")
+generate_tests(test, g_data_w = [w for w in lfsr_widths if w != 102])
+test = tb.test("period")
+generate_tests(test, g_data_w = list(range(3, 17)))
+test = tb.test("w102_long_cycle")
+generate_tests(test, g_data_w = [102])
 
 
 #lm_util_tick_gen

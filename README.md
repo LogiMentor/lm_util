@@ -57,7 +57,7 @@ library.
 | `lm_util_delay_var` | Variable delay line. |
 | `lm_util_edge_detector` | Rising/falling edge detector. |
 | `lm_util_encoder` | One-hot to binary encoder. |
-| `lm_util_lfsr` | LFSR/xorshift random sequence generator. |
+| `lm_util_lfsr` | Fibonacci LFSR pseudo-random sequence generator (3 to 168 bits). |
 | `lm_util_mux` | Generic multiplexer. |
 | `lm_util_mux_or` | OR-combining multiplexer. |
 | `lm_util_pri_arbiter` | Fixed-priority arbiter. |
@@ -73,17 +73,22 @@ The regression is based on VUnit and self-checking testbenches. The default
 
 ```sh
 python -m pip install -r requirements.txt
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level fast --clean --output-path vunit_out
+python sim/scripts/run.py --level fast --clean --output-path vunit_out
 ```
 
 To run the extended sweep:
 
 ```sh
-VUNIT_SIMULATOR=ghdl python sim/scripts/run.py --level full --clean --output-path vunit_out
+python sim/scripts/run.py --level full --clean --output-path vunit_out
 ```
 
+The runner uses GHDL unless `VUNIT_SIMULATOR` names another simulator, and
+prints the simulator it uses (for GHDL also the version and backend).
+
 The GitHub Actions workflow runs the fast regression with GHDL and uploads the
-VUnit output as an artifact.
+xUnit report and the test logs as an artifact (the full test output, without
+executables, only when the job fails). It also runs `tools/check_lfsr_taps.py`, which
+checks that every `lm_util_lfsr` tap set is a primitive polynomial.
 
 Vendor synthesis smoke tests for Vivado, Quartus, and Diamond are defined under
 `tools/synth/`. They run locally only, using a machine-specific tool/device
