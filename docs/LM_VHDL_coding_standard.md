@@ -72,12 +72,29 @@ The goal is to produce readable, consistent, review-friendly VHDL with predictab
 * **R50** Avoid mixing positive-edge and negative-edge triggered flip-flops. Avoid gating, inverting, or multiplexing clock signals unless explicitly required.
 * **R60** FSMs shall be coded using a **single clocked process** and an enumerated state type.
 * **R70** Do not use delay constants in RTL code.
-* **R80** Sensitivity lists shall be complete and shall not contain unnecessary signals. Prefer `process(all)` for combinational logic when supported.
+* **R80** Sensitivity lists shall be complete and shall not contain unnecessary signals. In RTL list the signals explicitly: `process(all)` is VHDL-2008 only (see R140) and is allowed in testbenches.
 * **R90** Prefer signals over variables for synthesizable logic.
 * **R100** Avoid default initialization. When an initial value is required, use a reset.
 * **R110** Avoid latch inference.
 * **R120** Outputs of hierarchical blocks shall be registered whenever possible. Avoid combinational outputs.
 * **R130** Structural and behavioral descriptions shall not be mixed in the same file as much as possible.
+* **R140** The RTL of reusable libraries (`src/` of lm_util and the units copied from other IP) and the synthesis test tops shall be valid both in VHDL-93 and in VHDL-2008: they shall analyze with GHDL `--std=93` and `--std=08` without `-fsynopsys` or `-frelaxed`. Use only the standard IEEE packages (`std_logic_1164`, `numeric_std`, `math_real`) and `std.textio`; Synopsys packages (`std_logic_arith`, `std_logic_unsigned`, `std_logic_signed`, `std_logic_textio`) are forbidden. Do not use as identifiers the words that VHDL-2008 reserves (`context`, `force`, `release`, `parameter`, `default` and the PSL words `assume`, `assume_guarantee`, `cover`, `fairness`, `property`, `restrict`, `restrict_guarantee`, `sequence`, `strong`, `vmode`, `vprop`, `vunit`). Testbenches and reference models may use VHDL-2008. `tools/check_vhdl_std.py` checks `src/` in CI.
+
+  Common VHDL-2008 constructs excluded by R140, with an alternative valid in both standards:
+
+  | VHDL-2008 only | Valid in VHDL-93 and VHDL-2008 |
+  | --- | --- |
+  | `process(all)` | `process(a_i, b_i, s_sel)`, every signal read |
+  | Reading an `out` port: `cnt_o <= cnt_o + 1;` | Internal signal: `s_cnt <= s_cnt + 1;` and `cnt_o <= s_cnt;` |
+  | Matching operators: `if (a ?= b) = '1' then`, `case?`, `select?` | `if a = b then`; decode don't-care bits explicitly |
+  | Implicit condition: `if valid_i then` | `if valid_i = '1' then` |
+  | Unary reduction: `and v`, `or v`, `xor v` | `f_vector_and(v)`, `f_vector_or(v)`, `f_vector_xor(v)` from `lm_util_pkg` |
+  | Conditional assignment in a process: `s <= a when sel = '1' else b;` | `if sel = '1' then s <= a; else s <= b; end if;` |
+  | `if ... generate` with `elsif`/`else`, `case ... generate` | One `if ... generate` per condition, with complementary conditions |
+  | Loop or generate bound of non-literal universal integer type: `for i in v'length - 1 downto 0`, `for j in 0 to 2**k - 1 generate` | `for i in v'range`; `for i in v'high downto 0` when `v` is declared `(n - 1 downto 0)`; `for j in integer range 0 to 2**k - 1 generate` |
+  | Sized bit-string literal: `8x"0F"` | `x"0F"` or `std_logic_vector(to_unsigned(15, 8))` |
+  | `std_ulogic_vector` and `std_logic_vector` used interchangeably | `std_logic_vector` only (R10) |
+  | `to_string`, `to_hstring`, `context` declarations, `/* */` comments | Testbenches only; in RTL, `--` comments and the `lm_util_pkg` string helpers |
 
 ---
 

@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.2.1 - unreleased
+
+### Changed
+
+- The RTL in `src/` is valid both in VHDL-93 and in VHDL-2008 and uses only
+  the standard IEEE packages (rule R140 of the coding standard; testbenches
+  stay VHDL-2008). Three lines changed, with no change in behaviour:
+  - `lm_util_pkg` no longer uses `ieee.std_logic_textio`, a Synopsys package
+    in VHDL-93 that it did not use;
+  - the loop in `f_gray2bin` (`lm_util_pkg`) runs over `v_a'high downto 0`
+    instead of `v_a'length - 1 downto 0`, the same range;
+  - the `gen_mux` generate of `lm_util_barrel_shifter` declares its range as
+    `integer range 0 to 2**k-1`, the same range.
+
+  The last two are syntax only: VHDL-93 does not accept a loop or generate
+  bound of universal integer type that is not a literal or an attribute.
+- Coding standard: new rule R140 with the VHDL-2008 constructs it excludes
+  and their alternatives; R80 no longer recommends `process(all)` for RTL.
+
+### CI
+
+- New job: `tools/check_vhdl_std.py` analyzes `src/` with GHDL `--std=93`
+  and `--std=08`, without `-fsynopsys` or `-frelaxed`, and runs
+  `ghdl --synth` on every entity in both standards with the generics of
+  `tools/check_vhdl_std_generics.toml`. It fails at the first diagnostic
+  with the file, the line and the standard.
+
 ## v0.2.0 - 2026-10-28
 
 ### Breaking Changes
