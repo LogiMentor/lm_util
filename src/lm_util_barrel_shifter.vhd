@@ -65,7 +65,7 @@ begin
   gen_tree : for k in 0 to f_ceil_log2(g_data_w)-1 generate
     begin
     -- generate the muxes on each level
-    gen_mux : for j in 0 to 2**k-1 generate
+    gen_mux : for j in integer range 0 to 2**k-1 generate
       -- constants that describe each mux
       constant C_NOF_MUXES   : natural := 2**k;
       constant C_MUX_WIDTH   : natural := g_data_w/C_NOF_MUXES;
