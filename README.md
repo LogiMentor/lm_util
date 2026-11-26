@@ -88,7 +88,9 @@ prints the simulator it uses (for GHDL also the version and backend).
 The GitHub Actions workflow runs the fast regression with GHDL and uploads the
 xUnit report and the test logs as an artifact (the full test output, without
 executables, only when the job fails). It also runs `tools/check_lfsr_taps.py`, which
-checks that every `lm_util_lfsr` tap set is a primitive polynomial.
+checks that every `lm_util_lfsr` tap set is a primitive polynomial, and
+`tools/check_vhdl_std.py`, which checks that `src/` is valid VHDL-93 and
+VHDL-2008 (see [VHDL Standard](#vhdl-standard)).
 
 Vendor synthesis smoke tests for Vivado, Quartus, and Diamond are defined under
 `tools/synth/`. They run locally only, using a machine-specific tool/device
@@ -111,9 +113,21 @@ internal markers before they reach the public repository.
 
 ## VHDL Standard
 
-The synthesizable sources avoid vendor primitives and use standard IEEE
-libraries. The VUnit testbenches use VHDL-2008 constructs such as context
-clauses; the GHDL CI flow compiles with VHDL-2008 enabled.
+The synthesizable sources in `src/` are valid both in VHDL-93 and in
+VHDL-2008, use only the standard IEEE packages and avoid vendor primitives
+(rule R140 of the [coding standard](docs/LM_VHDL_coding_standard.md)). The
+VUnit testbenches use VHDL-2008 constructs such as context clauses, and the
+regression compiles everything with VHDL-2008.
+
+CI checks the rule with `tools/check_vhdl_std.py`: it analyzes `src/` with
+GHDL `--std=93` and `--std=08` (without `-fsynopsys` or `-frelaxed`) and runs
+`ghdl --synth` on every entity in both standards, with the generics of
+`tools/check_vhdl_std_generics.toml`. To run it locally (GHDL in the `PATH`,
+or `--ghdl <path>`; `--std 93` checks one standard only):
+
+```sh
+python tools/check_vhdl_std.py
+```
 
 Some modules rely on portable inference patterns for shift registers, CDC
 register chains, or clocking structures. Use the local vendor synthesis smoke

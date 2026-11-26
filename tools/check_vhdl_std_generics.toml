@@ -1,0 +1,111 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Generics for the "ghdl --synth" step of tools/check_vhdl_std.py: one table
+# per entity in src/, with representative values. Every entity in src/ must
+# have a table (an empty one keeps the defaults) and every table must name an
+# entity in src/. Values are passed as -g<name>=<value>.
+
+[lm_util_async_reset]
+g_delay_len = "2"
+g_rst_lvl = "'0'"
+
+[lm_util_barrel_shifter]
+g_data_w = "16"
+
+[lm_util_bitsum]
+g_din_w = "16"
+g_nof_first_stage_chunk = "3"
+
+[lm_util_ccd_resync]
+g_meta_levels = "2"
+
+[lm_util_ccd_switch]
+g_priority_lo = "false"
+g_or_high = "true"
+g_and_low = "false"
+
+[lm_util_ccd_sync_bus]
+g_bus_width = "8"
+g_meta_levels = "2"
+
+[lm_util_ccd_sync_pulse]
+g_delay_len = "3"
+
+[lm_util_clock_gen]
+g_clock_div = "10"
+g_clock_phase = "0"
+g_pos_duty_cycle = "5"
+
+[lm_util_clock_measure]
+g_ref_clock_freq = "100000000"
+g_clock_width = "32"
+
+[lm_util_clock_mux]
+g_num_clocks = "2"
+
+[lm_util_counter]
+g_data_w = "8"
+g_wd_timer = "200"
+g_dir = "0"
+
+[lm_util_crc_par]
+g_data_w = "16"
+
+[lm_util_crc_ser]
+
+[lm_util_debouncer]
+g_debounce_length = "16"
+g_debounce_lvl = "2"
+
+[lm_util_delay]
+g_delay = "8"
+g_data_w = "8"
+
+[lm_util_delay_pulse]
+g_delay = "4"
+g_pulse_level = "'1'"
+
+[lm_util_delay_srl]
+g_delay = "31"
+g_data_w = "8"
+g_srl_depth = "32"
+
+[lm_util_delay_var]
+g_delay_max = "16"
+g_data_w = "8"
+g_arch_type = "0"
+g_pulse_level = "1"
+
+[lm_util_edge_detector]
+g_event_edge = "1"
+
+[lm_util_encoder]
+g_data_w = "16"
+
+[lm_util_lfsr]
+g_data_w = "16"
+
+[lm_util_mux]
+g_data_w = "8"
+g_arch_type = "1"
+g_nof_inputs = "4"
+
+[lm_util_mux_or]
+g_num_inputs = "4"
+g_data_width = "8"
+
+[lm_util_pri_arbiter]
+g_units = "4"
+
+[lm_util_pulse_stretch]
+g_has_fixed_length = "0"
+g_pulse_length = "4"
+g_pulse_overlength = "3"
+g_has_resync_stage = "1"
+g_out_level = "'1'"
+
+[lm_util_rr_arbiter]
+g_units = "4"
+
+[lm_util_tick_gen]
+g_clock_div = "10"

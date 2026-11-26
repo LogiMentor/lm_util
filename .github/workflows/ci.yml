@@ -45,6 +45,28 @@ jobs:
           --include-disabled
           --out vendor_synth_out/ci-dry-run
 
+  vhdl-std:
+    name: VHDL-93 and VHDL-2008 check
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install GHDL
+        uses: ghdl/setup-ghdl@75eff367dadc0cd06454a118db0b458d44fdc3c3 # v1.5.1
+        with:
+          version: v6.0.0
+          backend: llvm
+
+      - name: Analyze and synthesize src/ with --std=93 and --std=08
+        run: python tools/check_vhdl_std.py
+
   vunit:
     name: VUnit regression
     runs-on: ubuntu-24.04

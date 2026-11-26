@@ -30,7 +30,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
-use ieee.std_logic_textio.all;
 
 use std.textio.all;
 
@@ -1207,7 +1206,7 @@ package body lm_util_pkg is
       report "lm_util_lib.f_gray2bin error! Input length must be greater than 1!"
       severity failure;
     v_int := '0';
-    for n in v_a'length - 1 downto 0 loop
+    for n in v_a'high downto 0 loop
       v_bin(n) := v_a(n) xor v_int;
       v_int    := v_bin(n);
     end loop;
